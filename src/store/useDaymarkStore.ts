@@ -17,6 +17,7 @@ interface DaymarkState {
   setCalendarView: (view: CalendarView) => void;
   setCalendarDate: (date: string) => void;
   setScheduleTask: (taskId?: string) => void;
+  addTask: (title: string, categoryId: Task['categoryId']) => void;
 }
 
 export const useDaymarkStore = create<DaymarkState>((set) => ({
@@ -44,5 +45,7 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   setCalendarView: (calendarView) => set({ calendarView }),
   setCalendarDate: (calendarDate) => set({ calendarDate }),
   setScheduleTask: (scheduleTaskId) => set({ scheduleTaskId }),
+  addTask: (title, categoryId) => set((state) => ({
+    tasks: [...state.tasks, { id: `task-${Date.now()}`, title: title.trim(), categoryId, scheduledDate: '2026-09-22' }],
+  })),
 }));
-

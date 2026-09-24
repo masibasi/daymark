@@ -15,7 +15,7 @@ export function ProjectCard({ project, tasks, now }: { project: Project; tasks: 
     <Pressable onPress={() => router.push(`/projects/${project.id}`)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={[styles.accent, { backgroundColor: palette.solid }]} />
       <View style={styles.content}>
-        <View style={styles.top}><Text style={styles.date}>Due {format(parseISO(project.deadline), 'MMM d')}</Text><Text style={[styles.days, days <= 3 && { color: colors.warm }]}>{days === 0 ? 'Today' : `D−${days}`}</Text></View>
+        <View style={styles.top}><Text style={styles.date}>Due {format(parseISO(project.deadline), 'MMM d')}</Text><Text style={[styles.days, days <= 3 && { color: colors.accent }]}>{days === 0 ? 'Today' : `D−${days}`}</Text></View>
         <Text style={styles.title}>{project.title}</Text>
         <Text style={styles.notes} numberOfLines={2}>{project.notes ?? 'A focused project with a clear finish line.'}</Text>
         <View style={styles.bottom}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progress}>{progress.completed} of {progress.total}</Text><Ionicons name="arrow-forward" size={16} color={colors.muted} /></View>
@@ -39,4 +39,3 @@ const styles = StyleSheet.create({
   progress: { ...type.meta, color: colors.muted, fontFamily },
   pressed: { opacity: 0.72 },
 });
-

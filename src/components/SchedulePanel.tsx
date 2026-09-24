@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   panel: { width: '100%', maxWidth: 520, maxHeight: '78%', padding: space.lg, paddingTop: space.sm, backgroundColor: colors.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   handle: { width: 38, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong, alignSelf: 'center', marginBottom: space.lg },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  eyebrow: { ...type.meta, color: colors.warm, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
+  eyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
   title: { ...type.title, color: colors.ink, marginTop: 2, fontFamily },
   close: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.track, alignItems: 'center', justifyContent: 'center' },
   hint: { ...type.body, color: colors.inkSoft, marginTop: space.sm, marginBottom: space.md, fontFamily },
@@ -43,4 +43,3 @@ const styles = StyleSheet.create({
   ready: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs, marginTop: space.md, borderRadius: radius.md, backgroundColor: colors.ink },
   readyText: { ...type.bodyMedium, color: colors.paper, fontFamily },
 });
-

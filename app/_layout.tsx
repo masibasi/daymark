@@ -6,9 +6,8 @@ import { AppShell } from '@/components/AppShell';
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <AppShell><Slot /></AppShell>
     </SafeAreaProvider>
   );
 }
-

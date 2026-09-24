@@ -19,8 +19,7 @@ export function ScreenHeader({ eyebrow, title, subtitle, action }: ScreenHeaderP
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md },
   copy: { flex: 1, minWidth: 0 },
-  eyebrow: { ...type.meta, color: colors.warm, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: space.xs, fontFamily },
+  eyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: space.xs, fontFamily },
   title: { ...type.display, color: colors.ink, fontFamily },
   subtitle: { ...type.body, color: colors.inkSoft, marginTop: space.xs, fontFamily },
 });
-

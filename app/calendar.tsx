@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, padding: space.lg, paddingBottom: space.md },
   toolbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.md, maxWidth: 1380, width: '100%', alignSelf: 'center', marginBottom: space.md },
   toolbarCompact: { flexDirection: 'column', alignItems: 'stretch' },
-  eyebrow: { ...type.meta, color: colors.warm, textTransform: 'uppercase', letterSpacing: 1.1, fontFamily },
+  eyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.1, fontFamily },
   title: { ...type.title, color: colors.ink, marginTop: 2, fontFamily },
   toolbarActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   periodControls: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -65,9 +65,8 @@ const styles = StyleSheet.create({
   scheduleButton: { position: 'absolute', right: space.xl, bottom: space.xl, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.md, borderRadius: radius.round, backgroundColor: colors.ink },
   scheduleText: { ...type.bodyMedium, color: colors.paper, fontFamily },
   scheduleBanner: { width: '100%', maxWidth: 1380, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xs, marginBottom: space.xs },
-  pulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.warm },
+  pulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   bannerText: { ...type.meta, flex: 1, color: colors.inkSoft, fontFamily },
   bannerStrong: { color: colors.ink },
   cancel: { ...type.meta, color: colors.danger, fontFamily },
 });
-

@@ -2,7 +2,7 @@
 
 ## Personality
 
-Daymark is warm, quiet, and editorial: paper-like neutrals, rounded but not bubbly forms, and color used with intent. It should feel personal rather than corporate, cute through proportion and motion rather than illustration or decoration.
+Daymark is quiet, crisp, and personal: true black/white foundations, rounded but not bubbly forms, and color used with intent. It should feel personal rather than corporate, cute through proportion and motion rather than decorative warmth.
 
 ## Information hierarchy
 
@@ -25,13 +25,15 @@ Base spacing steps: 4, 8, 12, 16, 24, 32, 48. Task rows are mostly borderless. R
 
 ## Color
 
-- Canvas: warm off-white.
-- Ink: softened near-black.
-- Secondary text: warm gray.
-- Study: periwinkle blue.
-- Career: apricot orange.
-- Personal: leaf green.
-- Routine: dusty rose.
+- Light canvas: white with neutral gray surfaces.
+- Dark canvas: near-black with charcoal surfaces.
+- Ink reverses cleanly between near-black and near-white.
+- Study: clear blue.
+- Career: vivid rose.
+- Personal: fresh green.
+- Routine: violet.
+
+The app follows the device color scheme. Theme colors must remain neutral; category color provides the personality. Do not reintroduce beige, cream, brown, or an overall warm cast.
 
 Category colors appear in checks, small rails, project accents, TimeBlocks, and Day Orbit segments. External events use cool neutral blue-gray.
 
@@ -58,4 +60,3 @@ Month cells show date, a small Day Orbit, up to three compact lines, then a `+N`
 ## Components
 
 `AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
-

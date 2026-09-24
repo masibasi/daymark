@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   navItemActive: { backgroundColor: colors.track },
   navLabel: { ...type.meta, fontSize: 10, color: colors.muted, fontFamily },
   navLabelActive: { color: colors.ink },
-  avatar: { width: 38, height: 38, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sageSoft },
+  avatar: { width: 38, height: 38, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.profile },
   avatarText: { ...type.meta, color: colors.ink, fontFamily },
   pressed: { opacity: 0.65 },
 });

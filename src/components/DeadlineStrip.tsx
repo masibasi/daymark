@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   topline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   projectDot: { width: 9, height: 9, borderRadius: 5 },
   days: { ...type.meta, color: colors.muted, fontFamily },
-  warm: { color: colors.warm },
+  warm: { color: colors.accent },
   urgent: { color: colors.danger },
   title: { ...type.section, color: colors.ink, marginTop: space.sm, minHeight: 44, fontFamily },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.sm },
@@ -49,4 +49,3 @@ const styles = StyleSheet.create({
   progressText: { ...type.meta, color: colors.muted, fontFamily },
   pressed: { opacity: 0.7 },
 });
-

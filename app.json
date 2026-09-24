@@ -5,11 +5,10 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "daymark",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "plugins": ["expo-router"],
     "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png" },
     "ios": { "supportsTablet": true },
-    "android": { "adaptiveIcon": { "foregroundImage": "./assets/android-icon-foreground.png", "backgroundColor": "#F5F2EA" } }
+    "android": { "adaptiveIcon": { "foregroundImage": "./assets/android-icon-foreground.png", "backgroundColor": "#FFFFFF" } }
   }
 }
-

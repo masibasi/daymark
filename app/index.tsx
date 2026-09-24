@@ -4,6 +4,7 @@ import { DeadlineStrip } from '@/components/DeadlineStrip';
 import { DayOrbit } from '@/components/DayOrbit';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TaskSection } from '@/components/TaskSection';
+import { QuickAdd } from '@/components/QuickAdd';
 import { selectDayOrbit, selectTasksByCategory, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
 import { prototypeDate } from '@/store/mockData';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -16,6 +17,7 @@ export default function TodayScreen() {
   const projects = useDaymarkStore((state) => state.projects);
   const tasks = useDaymarkStore((state) => state.tasks);
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
+  const addTask = useDaymarkStore((state) => state.addTask);
   const todayTasks = selectTodayTasks(tasks, prototypeDate);
   const groups = selectTasksByCategory(todayTasks, categories);
   const upcoming = selectUpcomingProjects(projects, prototypeDate);
@@ -34,6 +36,7 @@ export default function TodayScreen() {
           <View style={styles.tasksColumn}>
             <View style={styles.tasksHeader}><Text style={styles.sectionTitle}>Today's tasks</Text><Text style={styles.taskCount}>{todayTasks.length - completed} left</Text></View>
             {groups.map((group) => <TaskSection key={group.category.id} category={group.category} tasks={group.tasks} onToggle={toggleTask} projectNames={projectNames} />)}
+            <QuickAdd categories={categories} onAdd={addTask} />
           </View>
           <View style={[styles.orbitCard, desktop && styles.orbitCardDesktop]}>
             <Text style={styles.orbitEyebrow}>Your day mark</Text>
@@ -62,7 +65,7 @@ const styles = StyleSheet.create({
   taskCount: { ...type.meta, color: colors.muted, marginLeft: 'auto', fontFamily },
   orbitCard: { marginTop: space.lg, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   orbitCardDesktop: { width: 300, marginTop: 0 },
-  orbitEyebrow: { ...type.meta, color: colors.warm, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: space.lg, fontFamily },
+  orbitEyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: space.lg, fontFamily },
   orbitNumber: { ...type.section, color: colors.ink, marginTop: space.md, fontFamily },
   orbitCopy: { ...type.body, color: colors.inkSoft, textAlign: 'center', marginTop: space.xs, maxWidth: 220, fontFamily },
   legend: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginTop: space.lg },

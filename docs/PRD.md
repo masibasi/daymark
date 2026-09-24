@@ -37,6 +37,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Responsive Today, Calendar Week, Calendar Month, Projects, and Project Detail.
 - Mock data and in-memory state.
 - Task completion, project progress, add-to-Today, and mock scheduling.
+- Contextual creation of a daily Task from Today with title and category.
 - Original Day Orbit on Today and Month.
 - Desktop sidebar and mobile bottom navigation.
 
@@ -60,4 +61,3 @@ No authentication, backend, real provider integration, social features, teams, A
 - A task can be scheduled by selecting it and tapping a week slot.
 - External events never appear in Today unless separately represented as Tasks.
 - Calendar layouts remain usable at phone, tablet, and desktop widths.
-

@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   backText: { ...type.bodyMedium, color: colors.ink, fontFamily },
   hero: { paddingBottom: space.xl, borderBottomWidth: 1, borderColor: colors.line },
   categoryMark: { width: 42, height: 6, borderRadius: 3, marginBottom: space.lg },
-  kicker: { ...type.meta, color: colors.warm, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
+  kicker: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
   title: { ...type.display, color: colors.ink, marginTop: space.xs, fontFamily },
   notes: { ...type.body, color: colors.inkSoft, marginTop: space.sm, maxWidth: 580, fontFamily },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
@@ -63,4 +63,3 @@ const styles = StyleSheet.create({
   todayText: { ...type.meta, color: colors.muted, fontFamily },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
-
