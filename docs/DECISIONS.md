@@ -12,6 +12,7 @@
 - **Task is not CalendarEvent.** External commitments do not become todos.
 - **TimeBlock links intent to time.** A Task can have zero, one, or many blocks.
 - **Completion uses Day Orbit.** Category identity is preserved through stable ring segments.
+- **Watercolor is concentrated in the Day Mark.** Its liquid center and restrained glass-like surface provide organic character; the rest of the app keeps a crisp black/white foundation instead of becoming full-screen glassmorphism.
 - **No social or gamification in V1.** The emotional reward is the visible record of finished work.
 - **Neutral black/white foundation.** Light mode is white, dark mode is near-black; category colors carry the visual energy instead of beige or warm neutrals.
 - **Today includes contextual quick add.** A daily task can be created with a title and category without leaving Today.

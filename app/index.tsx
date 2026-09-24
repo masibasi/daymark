@@ -38,7 +38,7 @@ export default function TodayScreen() {
         <View style={[styles.overview, wide && styles.overviewWide]}>
           <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
             <View style={styles.orbitHeading}><Text style={styles.orbitEyebrow}>Your day mark</Text><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
-            <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 15 : 13} />
+            <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
             <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
             <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
             <View style={styles.legend}>{categories.map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>

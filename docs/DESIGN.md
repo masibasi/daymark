@@ -39,11 +39,11 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 ## Day Orbit
 
-The Orbit is a thin ring with one stable segment per category that has work for the represented day. Segment length reflects that category's share of the day's work. A pale track shows the full segment and a saturated overlay shows category completion. When every task is complete, the center fills with the same category segments so the day reads as finished without blending colors. Completion history is derived from `completedAt` only. At small sizes the mark may omit gaps but must keep category colors distinct.
+The Orbit is a thin ring with one stable segment per category that has work for the represented day. Segment length reflects that category's share of the day's work. A pale track shows the full segment and a saturated overlay shows category completion. Inside the ring, translucent category-colored liquid rises with overall completion; gently overlapping wave edges create a watercolor impression while the source colors remain identifiable. The large Today mark breathes almost imperceptibly, while calendar marks stay static for clarity and performance. Completion history is derived from `completedAt` only.
 
 ## Task interaction
 
-Task rows use a tactile circular check, title, optional project context, and a quiet schedule action. On completion: check scales and fills, text softens, and the Orbit updates in 300–450ms. No strike-through or celebration effects.
+Task rows use a tactile circular check, title, optional project context, and a quiet schedule action. On completion: check scales and fills, text softens, and the Orbit updates in 300–450ms. The persistent Day Mark motion is slow and ambient, never celebratory. No strike-through or celebration effects.
 
 ## Calendar interaction
 
