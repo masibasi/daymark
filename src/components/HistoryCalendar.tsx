@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
-import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
 
 interface HistoryCalendarProps {
@@ -32,7 +32,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCa
         {days.map((day) => {
           const selected = isSameDay(day, selectedDate);
           return (
-            <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} onPress={() => onSelectDate(day)} style={[styles.day, !isSameMonth(day, selectedDate) && styles.outside]}>
+            <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, !isSameMonth(day, selectedDate) && styles.outside]}>
               <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day)} size={22} strokeWidth={3.5} /></View>
               <Text style={[styles.dayNumber, selected && styles.selectedNumber]}>{format(day, 'd')}</Text>
             </Pressable>
@@ -44,7 +44,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCa
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 300, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  card: { flex: 1, minWidth: 300, minHeight: 352, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
   title: { ...type.section, color: colors.ink, fontFamily },
   controls: { flexDirection: 'row', gap: 4 },
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   day: { width: `${100 / 7}%`, minHeight: 43, alignItems: 'center', justifyContent: 'center' },
   outside: { opacity: 0.28 },
   orbitWrap: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  selected: { backgroundColor: colors.ink },
+  selected: { backgroundColor: categoryPalette.routine.soft, borderWidth: 1, borderColor: categoryPalette.routine.solid },
   dayNumber: { fontSize: 9, lineHeight: 12, color: colors.inkSoft, fontFamily },
-  selectedNumber: { color: colors.ink, fontWeight: '700' },
+  selectedNumber: { color: categoryPalette.routine.ink, fontWeight: '700' },
 });

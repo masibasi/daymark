@@ -6,7 +6,7 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and greeting → Day Orbit and compact history calendar → upcoming deadlines → selected day's category-grouped tasks.
+- Today: date and concise weather context → Day Orbit and compact history calendar → upcoming deadlines → selected day's category-grouped tasks.
 - Week: period controls → day headers/all-day row → hour grid and blocks → scheduling affordance.
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
 - Project Detail: identity/deadline → progress → subtasks.
@@ -39,7 +39,7 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 ## Day Orbit
 
-The Orbit is a thin ring with one stable segment per category that has work for the represented day. Segment length reflects that category's share of the day's work. A pale track shows the full segment and a saturated overlay shows category completion. Completion history is derived from `completedAt` only. At small sizes the mark may omit gaps but must keep category colors distinct.
+The Orbit is a thin ring with one stable segment per category that has work for the represented day. Segment length reflects that category's share of the day's work. A pale track shows the full segment and a saturated overlay shows category completion. When every task is complete, the center fills with the same category segments so the day reads as finished without blending colors. Completion history is derived from `completedAt` only. At small sizes the mark may omit gaps but must keep category colors distinct.
 
 ## Task interaction
 

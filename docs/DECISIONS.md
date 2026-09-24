@@ -4,6 +4,7 @@
 
 - **Today is home.** The primary question is what to do now.
 - **The Day Orbit leads Today.** Completion context and the compact history calendar appear before deadlines and task rows, so accomplishment is part of orientation rather than an afterthought.
+- **Today’s header is factual, not motivational.** It shows the selected date and concise weather context; prototype weather is mock data until a provider is explicitly scoped.
 - **Today can revisit another date.** Selecting a day in the compact history calendar changes the visible tasks and completion record without changing the scheduling calendar's role.
 - **Calendar is primary navigation, second to Today.** Scheduling is core, not a utility screen.
 - **Projects are persistent.** They remain visible regardless of Today's selection.

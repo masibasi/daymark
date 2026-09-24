@@ -33,7 +33,7 @@ export default function TodayScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.page}>
-        <ScreenHeader eyebrow={format(selectedDate, 'EEEE · MMMM d')} title={isToday ? 'A gentle day, Jimin.' : `A day in ${format(selectedDate, 'MMMM')}.`} subtitle={isToday ? 'Start with what matters. The rest can wait.' : 'Completed work leaves a mark you can return to.'} />
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles" />
 
         <View style={[styles.overview, wide && styles.overviewWide]}>
           <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
   page: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
   overview: { gap: space.md, marginTop: space.lg },
-  overviewWide: { flexDirection: 'row', alignItems: 'stretch' },
-  orbitCard: { padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
-  orbitCardWide: { width: 300 },
+  overviewWide: { flexDirection: 'row', alignItems: 'flex-start' },
+  orbitCard: { minHeight: 304, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  orbitCardWide: { width: 300, height: 352 },
   orbitHeading: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md },
   orbitEyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily },
   orbitDate: { ...type.meta, color: colors.muted, fontFamily },
   orbitNumber: { ...type.section, color: colors.ink, marginTop: space.sm, fontFamily },
-  orbitCopy: { ...type.body, color: colors.inkSoft, textAlign: 'center', marginTop: 2, maxWidth: 230, fontFamily },
+  orbitCopy: { ...type.body, color: colors.inkSoft, textAlign: 'center', marginTop: 2, width: 230, minHeight: 42, fontFamily },
   legend: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginTop: space.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
