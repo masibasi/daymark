@@ -8,7 +8,9 @@
 - **Today can revisit another date.** Selecting a day in the compact history calendar changes the visible tasks and completion record without changing the scheduling calendar's role.
 - **Calendar is primary navigation, second to Today.** Scheduling is core, not a utility screen.
 - **Projects are persistent.** They remain visible regardless of Today's selection.
+- **Deadline work is the primary differentiator.** Project urgency, progress, and the next actionable steps take priority over becoming a general-purpose list manager.
 - **Deadline previews stay compact.** Today shows the most urgent three and links to the rest.
+- **Deadline urgency is visible in the surface.** Cards move from neutral to category tint, warm tint, then restrained rose as the due date approaches.
 - **Task is not CalendarEvent.** External commitments do not become todos.
 - **TimeBlock links intent to time.** A Task can have zero, one, or many blocks.
 - **Completion uses Day Orbit.** Category identity is preserved through stable ring segments.
@@ -16,6 +18,9 @@
 - **No social or gamification in V1.** The emotional reward is the visible record of finished work.
 - **Neutral black/white foundation.** Light mode is white, dark mode is near-black; category colors carry the visual energy instead of beige or warm neutrals.
 - **Today includes contextual quick add.** A daily task can be created with a title and category without leaving Today.
+- **Rescheduling matters more than arbitrary lists.** Daymark should support moving an unfinished Task to another day; broad user-defined list hierarchies are not required for the core loop.
+- **Calendar integration stays explicit.** Calendar events provide time context; Tasks enter the calendar only when the user schedules a TimeBlock. Events do not silently become todos.
+- **Project detail remains focused on mobile.** V0 keeps full-screen project detail. A desktop side panel is preferred over an expanding card because it preserves the deadline overview while allowing quick edits; this is a later interaction refinement.
 
 ## Technical
 

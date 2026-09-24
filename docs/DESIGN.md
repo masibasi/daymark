@@ -39,7 +39,11 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 ## Day Orbit
 
-The Orbit is a thin ring with one stable segment per category that has work for the represented day. Segment length reflects that category's share of the day's work. A pale track shows the full segment and a saturated overlay shows category completion. Inside the ring, translucent category-colored liquid rises with overall completion; gently overlapping wave edges create a watercolor impression while the source colors remain identifiable. The large Today mark breathes almost imperceptibly, while calendar marks stay static for clarity and performance. Completion history is derived from `completedAt` only.
+The Orbit uses one continuous neutral track. Completed category colors sit directly against one another and collectively expand around the ring, so new completion appears to push the existing colors forward rather than lighting up isolated fragments. Inside, a much paler layer of translucent category-colored liquid rises with overall completion; overlapping edges suggest diluted watercolor without becoming a dark mixed mass. The large Today mark breathes almost imperceptibly, while calendar marks stay static for clarity and performance. Completion history is derived from `completedAt` only.
+
+## Deadline urgency
+
+Deadline cards should be understandable before their labels are read. Distant work stays white/neutral, the normal attention window uses a faint project-category tint, D−3 uses a warm cream tint, and D−1/due-today uses a restrained rose tint with a stronger edge. Urgency increases through surface intensity, not size, flashing, or an all-red screen.
 
 ## Task interaction
 

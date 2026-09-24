@@ -32,6 +32,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can switch between week and month calendars.
 - I can distinguish external events from task work blocks.
 - I can select a task, then tap an open week slot to schedule it.
+- I can move unfinished work to another day without recreating it.
 
 ## V0 scope
 
@@ -49,6 +50,10 @@ The first user is an individual balancing study, career, personal, and routine w
 - Google Calendar read/write through a provider boundary.
 - Production-grade local persistence and conflict handling.
 - Public beta quality, accessibility, onboarding, and empty states.
+
+## Product boundary
+
+Daymark is not intended to match the arbitrary list hierarchy of a general todo manager. It should make deadline-driven work persist, make unfinished work easy to reschedule, and use the calendar to answer “when will I work on this?” External calendar events remain context rather than automatically becoming Tasks.
 
 ## Non-goals
 

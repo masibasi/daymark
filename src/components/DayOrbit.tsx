@@ -16,7 +16,6 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   const clipId = `liquid-${useId().replace(/:/g, '')}`;
   const radiusValue = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radiusValue;
-  const gap = segments.length > 1 ? Math.min(circumference * 0.025, 3) : 0;
   const complete = segments.length > 0 && segments.every((segment) => segment.completion === 1);
   const completion = segments.reduce((total, segment) => total + segment.share * segment.completion, 0);
   const innerRadius = Math.max(0, radiusValue - strokeWidth / 2 - 1.5);
@@ -24,7 +23,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   const innerBottom = size / 2 + innerRadius;
   const liquidY = complete ? innerTop - 1 : innerBottom - innerRadius * 2 * completion;
   const breathe = useRef(new Animated.Value(0)).current;
-  let offset = 0;
+  let completedOffset = 0;
 
   useEffect(() => {
     if (!animate) return undefined;
@@ -63,7 +62,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           <Path
             d={`M ${size / 2 - innerRadius - 2} ${liquidY} C ${size * 0.38} ${liquidY - size * 0.018}, ${size * 0.62} ${liquidY + size * 0.018}, ${size / 2 + innerRadius + 2} ${liquidY} L ${size} ${size} L 0 ${size} Z`}
             fill={categoryPalette[segments[0].categoryId].soft}
-            opacity={0.72}
+            opacity={0.34}
           />
           {liquidSegments.map((segment, index) => {
             const width = innerRadius * 2 * segment.share;
@@ -78,39 +77,27 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
             const color = categoryPalette[segment.categoryId].solid;
             return (
               <G key={`liquid-${segment.categoryId}`}>
-                <Ellipse cx={centerX} cy={centerY} rx={blobRadiusX} ry={blobRadiusY} fill={color} opacity={complete ? 0.68 : 0.46 + segment.completion * 0.16} />
-                <Ellipse cx={centerX + size * 0.018} cy={centerY - size * 0.018} rx={blobRadiusX * 0.72} ry={blobRadiusY * 0.82} fill={color} opacity={0.2} />
+                <Ellipse cx={centerX} cy={centerY} rx={blobRadiusX} ry={blobRadiusY} fill={color} opacity={complete ? 0.3 : 0.18 + segment.completion * 0.12} />
+                <Ellipse cx={centerX + size * 0.018} cy={centerY - size * 0.018} rx={blobRadiusX * 0.72} ry={blobRadiusY * 0.82} fill={color} opacity={0.08} />
               </G>
             );
           })}
         </G> : null}
-        {segments.length === 0 ? (
-          <Circle cx={size / 2} cy={size / 2} r={radiusValue} fill="none" stroke={colors.track} strokeWidth={strokeWidth} />
-        ) : segments.map((segment) => {
-          const length = circumference * segment.share;
-          const start = offset;
-          offset += length;
+        <Circle cx={size / 2} cy={size / 2} r={radiusValue} fill="none" stroke={colors.track} strokeWidth={strokeWidth} />
+        {segments.map((segment) => {
+          const fillDash = circumference * segment.share * segment.completion;
+          const start = completedOffset;
+          completedOffset += fillDash;
           const palette = categoryPalette[segment.categoryId];
-          const trackDash = Math.max(0, length - gap);
-          const fillDash = Math.max(0, trackDash * segment.completion);
-          return (
-            <G key={segment.categoryId}>
-              <Circle
-                cx={size / 2} cy={size / 2} r={radiusValue} fill="none"
-                stroke={palette.soft} strokeWidth={strokeWidth} strokeLinecap="round"
-                strokeDasharray={`${trackDash} ${circumference - trackDash}`}
-                strokeDashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`}
-              />
-              {fillDash > 0 ? (
-                <Circle
-                  cx={size / 2} cy={size / 2} r={radiusValue} fill="none"
-                  stroke={palette.solid} strokeWidth={strokeWidth} strokeLinecap="round"
-                  strokeDasharray={`${fillDash} ${circumference - fillDash}`}
-                  strokeDashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                />
-              ) : null}
-            </G>
-          );
+          return fillDash > 0 ? (
+            <Circle
+              key={segment.categoryId}
+              cx={size / 2} cy={size / 2} r={radiusValue} fill="none"
+              stroke={palette.solid} strokeWidth={strokeWidth} strokeLinecap="butt"
+              strokeDasharray={`${fillDash} ${circumference - fillDash}`}
+              strokeDashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          ) : null;
         })}
       </Svg>
     </Animated.View>

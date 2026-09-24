@@ -15,8 +15,10 @@ export function DeadlineStrip({ projects, tasks, now }: DeadlineStripProps) {
         const tone = selectDeadlineTone(days);
         const progress = selectProjectProgress(tasks, project.id);
         const palette = categoryPalette[project.categoryId];
+        const backgroundColor = tone === 'urgent' ? colors.deadlineUrgent : tone === 'warm' ? colors.deadlineWarm : tone === 'normal' ? palette.soft : colors.paper;
+        const borderColor = tone === 'urgent' ? colors.deadlineBorderUrgent : tone === 'warm' ? colors.deadlineBorderWarm : tone === 'normal' ? palette.solid : colors.line;
         return (
-          <Pressable key={project.id} onPress={() => router.push(`/projects/${project.id}`)} style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
+          <Pressable key={project.id} onPress={() => router.push(`/projects/${project.id}`)} style={({ pressed }) => [styles.item, { backgroundColor, borderColor }, pressed && styles.pressed]}>
             <View style={styles.topline}>
               <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
               <Text style={[styles.days, tone === 'warm' && styles.warm, tone === 'urgent' && styles.urgent]}>{days === 0 ? 'Due today' : `D−${days}`}</Text>

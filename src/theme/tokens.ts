@@ -11,6 +11,10 @@ export const lightColors = {
   track: '#F0F0F0',
   white: '#FFFFFF',
   danger: '#E54858',
+  deadlineWarm: '#FFF7ED',
+  deadlineUrgent: '#FFF0F2',
+  deadlineBorderWarm: '#F4CFA5',
+  deadlineBorderUrgent: '#F4A9B2',
   accent: '#6C63E8',
   event: '#66788A',
   eventSoft: '#EAF0F4',
@@ -22,6 +26,7 @@ export const lightColors = {
 export const darkColors = {
   canvas: '#0D0D0D', paper: '#171717', ink: '#F7F7F7', inkSoft: '#C4C4C4', muted: '#858585',
   line: '#292929', lineStrong: '#3A3A3A', track: '#262626', white: '#FFFFFF', danger: '#FF6675', accent: '#9A92FF',
+  deadlineWarm: '#33271B', deadlineUrgent: '#382027', deadlineBorderWarm: '#6B4A28', deadlineBorderUrgent: '#713845',
   event: '#91A4B5', eventSoft: '#24313B', lineFaint: '#202020', canvasMuted: '#121212', profile: '#2C2C2C',
 } as const;
 

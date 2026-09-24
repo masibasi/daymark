@@ -10,6 +10,8 @@
 ## V0.2 — local reliability and polish
 
 - Local persistence, refined add/edit flows, stronger accessibility.
+- Move unfinished Tasks to another date with a simple date action; evaluate direct drag between dates on desktop after the action model is stable.
+- Desktop project side panel for quick subtask management while mobile retains focused detail navigation.
 - Calendar scrolling, collision layout, keyboard navigation, and richer empty states.
 - Interaction and animation polish on native devices.
 
@@ -26,4 +28,3 @@
 ## Later
 
 Android-specific polish, Apple Calendar/EventKit, notifications, widgets, optional social features, and assistive AI scheduling. These are not V1 commitments.
-
