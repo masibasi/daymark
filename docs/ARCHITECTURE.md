@@ -24,7 +24,7 @@ Relationships:
 
 ## State boundaries
 
-`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, and `addTimeBlock`. Pure selectors in `src/domain/selectors.ts` derive today groups, project progress, deadline urgency, calendar ranges, and Day Orbit data.
+`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, and `addTimeBlock`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail “add to Today” still targets the actual prototype date. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data.
 
 There is exactly one Day Orbit calculation. It uses `completedAt` only; `scheduledDate` is never a completion fallback.
 
@@ -44,4 +44,3 @@ Supabase/PostgreSQL can later store users, categories, projects, tasks, time blo
 - Archived projects remain historical but do not appear as upcoming.
 - Deleted provider events must not delete Tasks.
 - Time zones and all-day event boundaries need explicit provider normalization before real sync.
-

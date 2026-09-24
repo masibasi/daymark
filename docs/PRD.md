@@ -27,6 +27,7 @@ The first user is an individual balancing study, career, personal, and routine w
 
 - I can see urgent projects before today's ordinary tasks.
 - I can complete and reopen a task and see today's Orbit update.
+- I can scan a compact month of completion marks and open any day to review its tasks.
 - I can open a project, complete subtasks, and place a subtask on Today without duplication.
 - I can switch between week and month calendars.
 - I can distinguish external events from task work blocks.
@@ -39,6 +40,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Task completion, project progress, add-to-Today, and mock scheduling.
 - Contextual creation of a daily Task from Today with title and category.
 - Original Day Orbit on Today and Month.
+- Compact completion-history calendar on Today with date navigation.
 - Desktop sidebar and mobile bottom navigation.
 
 ## V1 scope
@@ -57,6 +59,7 @@ No authentication, backend, real provider integration, social features, teams, A
 - The app runs on Expo Web with no TypeScript errors.
 - Today, Week, Month, Projects, and Project Detail are reachable on mobile and desktop.
 - Completing a task updates its state and the Day Orbit.
+- Selecting a date in Today's history calendar shows that date's tasks and completion mark.
 - Project subtasks are shared Task records; adding one to Today does not duplicate it.
 - A task can be scheduled by selecting it and tapping a week slot.
 - External events never appear in Today unless separately represented as Tasks.

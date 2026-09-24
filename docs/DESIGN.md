@@ -6,7 +6,7 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and greeting → upcoming deadlines → category-grouped tasks → daily completion summary.
+- Today: date and greeting → Day Orbit and compact history calendar → upcoming deadlines → selected day's category-grouped tasks.
 - Week: period controls → day headers/all-day row → hour grid and blocks → scheduling affordance.
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
 - Project Detail: identity/deadline → progress → subtasks.
@@ -51,12 +51,14 @@ Week view prioritizes geometry: fixed time gutter, clear day columns, faint half
 
 Month cells show date, a small Day Orbit, up to three compact lines, then a `+N` disclosure. Deadlines use a small flag treatment, not an alarm-red card.
 
+Today also includes a quieter completion-history calendar. Its cells favor the Day Orbit over event density; selecting a date moves the Today context to that day's tasks and completion record. This is navigation and reflection, not a second scheduling calendar.
+
 ## Responsive rules
 
 - Phone: one-column Today, three visible days in Week with horizontal paging implied, compact Month labels, bottom nav.
-- Tablet: wider single column or split Today summary; seven-day Week; side rail where space allows.
-- Desktop: persistent 80px rail, Today content capped around 1040px with a narrow progress column; full seven-day Calendar.
+- Tablet: Day Orbit and history calendar may sit side by side; seven-day Week; side rail where space allows.
+- Desktop: persistent 80px rail, Today content capped around 1040px with the Day Orbit and history calendar paired above the work list; full seven-day Calendar.
 
 ## Components
 
-`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
+`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.

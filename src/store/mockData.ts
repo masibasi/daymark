@@ -17,11 +17,23 @@ export const initialProjects: Project[] = [
 ];
 
 export const initialTasks: Task[] = [
+  { id: 'history-14-study', title: 'Outline interaction study', categoryId: 'study', scheduledDate: '2026-09-14', completedAt: '2026-09-14T10:20:00-07:00' },
+  { id: 'history-14-routine', title: 'Morning run', categoryId: 'routine', scheduledDate: '2026-09-14', completedAt: '2026-09-14T07:10:00-07:00' },
+  { id: 'history-16-career', title: 'Coffee chat prep', categoryId: 'career', scheduledDate: '2026-09-16', completedAt: '2026-09-16T15:00:00-07:00' },
+  { id: 'history-16-personal', title: 'Laundry', categoryId: 'personal', scheduledDate: '2026-09-16' },
+  { id: 'history-18-study', title: 'Read HCI paper', categoryId: 'study', scheduledDate: '2026-09-18', completedAt: '2026-09-18T13:20:00-07:00' },
+  { id: 'history-18-career', title: 'Send portfolio link', categoryId: 'career', scheduledDate: '2026-09-18', completedAt: '2026-09-18T16:40:00-07:00' },
+  { id: 'history-18-routine', title: 'Stretch', categoryId: 'routine', scheduledDate: '2026-09-18', completedAt: '2026-09-18T21:10:00-07:00' },
+  { id: 'history-19-study', title: 'Plan user interviews', categoryId: 'study', projectId: 'iui-project', scheduledDate: '2026-09-19', completedAt: '2026-09-19T14:00:00-07:00' },
+  { id: 'history-19-personal', title: 'Farmers market', categoryId: 'personal', scheduledDate: '2026-09-19', completedAt: '2026-09-19T11:20:00-07:00' },
+  { id: 'history-20-study', title: 'Read assignment brief', categoryId: 'study', projectId: 'agentic-ai', scheduledDate: '2026-09-20', completedAt: '2026-09-20T11:00:00-07:00' },
+  { id: 'history-20-routine', title: 'Weekly reset', categoryId: 'routine', scheduledDate: '2026-09-20', completedAt: '2026-09-20T18:30:00-07:00' },
+  { id: 'history-21-study', title: 'Set up GCP project', categoryId: 'study', projectId: 'agentic-ai', scheduledDate: '2026-09-21', completedAt: '2026-09-21T16:10:00-07:00' },
+  { id: 'history-21-career', title: 'Review internship roles', categoryId: 'career', scheduledDate: '2026-09-21' },
+  { id: 'history-21-routine', title: 'Morning pages', categoryId: 'routine', scheduledDate: '2026-09-21', completedAt: '2026-09-21T07:40:00-07:00' },
   { id: 'leetcode', title: 'LeetCode × 2', categoryId: 'study', scheduledDate: '2026-09-22', completedAt: '2026-09-22T08:45:00-07:00' },
   { id: 'lecture', title: 'Review agent systems lecture', categoryId: 'study', scheduledDate: '2026-09-22' },
   { id: 'mcp', title: 'Implement MCP server', categoryId: 'study', projectId: 'agentic-ai', scheduledDate: '2026-09-22' },
-  { id: 'gcp', title: 'Set up GCP project', categoryId: 'study', projectId: 'agentic-ai', completedAt: '2026-09-21T16:10:00-07:00' },
-  { id: 'read-brief', title: 'Read assignment brief', categoryId: 'study', projectId: 'agentic-ai', completedAt: '2026-09-20T11:00:00-07:00' },
   { id: 'deploy', title: 'Deploy service', categoryId: 'study', projectId: 'agentic-ai' },
   { id: 'record', title: 'Record demo', categoryId: 'study', projectId: 'agentic-ai' },
   { id: 'apply', title: 'Apply to Figma', categoryId: 'career', scheduledDate: '2026-09-22' },
@@ -32,7 +44,6 @@ export const initialTasks: Task[] = [
   { id: 'qt', title: 'Morning pages', categoryId: 'routine', scheduledDate: '2026-09-22', completedAt: '2026-09-22T07:30:00-07:00' },
   { id: 'gym', title: 'Gym', categoryId: 'routine', scheduledDate: '2026-09-22' },
   { id: 'wireframes', title: 'Refine mobile wireframes', categoryId: 'study', projectId: 'iui-project' },
-  { id: 'interviews', title: 'Plan user interviews', categoryId: 'study', projectId: 'iui-project', completedAt: '2026-09-19T14:00:00-07:00' },
   { id: 'prototype', title: 'Build interactive prototype', categoryId: 'study', projectId: 'iui-project' },
   { id: 'case-study', title: 'Rewrite Daymark case study', categoryId: 'career', projectId: 'portfolio' },
   { id: 'headshots', title: 'Choose new headshots', categoryId: 'career', projectId: 'portfolio' },
@@ -54,4 +65,3 @@ export const initialTimeBlocks: TimeBlock[] = [
   { id: 'b2', taskId: 'apply', startAt: '2026-09-23T09:00:00-07:00', endAt: '2026-09-23T10:00:00-07:00' },
   { id: 'b3', taskId: 'gym', startAt: '2026-09-24T17:00:00-07:00', endAt: '2026-09-24T18:00:00-07:00' },
 ];
-

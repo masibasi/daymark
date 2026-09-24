@@ -59,3 +59,6 @@ export function selectDayOrbit(tasks: Task[], day: Date): DayOrbitSegment[] {
   });
 }
 
+export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
+  return tasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
+}

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { format, parseISO, setHours } from 'date-fns';
 import type { CalendarEvent, CalendarView, Category, Project, Task, TimeBlock } from '@/domain/types';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks, prototypeDate } from './mockData';
 
@@ -11,6 +12,7 @@ interface DaymarkState {
   calendarView: CalendarView;
   calendarDate: string;
   scheduleTaskId?: string;
+  selectedTodayDate: string;
   toggleTask: (taskId: string) => void;
   setTaskOnToday: (taskId: string, onToday: boolean) => void;
   addTimeBlock: (taskId: string, startAt: string, endAt: string) => void;
@@ -18,6 +20,7 @@ interface DaymarkState {
   setCalendarDate: (date: string) => void;
   setScheduleTask: (taskId?: string) => void;
   addTask: (title: string, categoryId: Task['categoryId']) => void;
+  setSelectedTodayDate: (date: string) => void;
 }
 
 export const useDaymarkStore = create<DaymarkState>((set) => ({
@@ -28,14 +31,15 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   events: initialEvents,
   calendarView: 'week',
   calendarDate: prototypeDate.toISOString(),
+  selectedTodayDate: '2026-09-22',
   toggleTask: (taskId) => set((state) => ({
     tasks: state.tasks.map((task) => task.id === taskId
-      ? { ...task, completedAt: task.completedAt ? undefined : prototypeDate.toISOString() }
+      ? { ...task, completedAt: task.completedAt ? undefined : setHours(parseISO(state.selectedTodayDate), 12).toISOString() }
       : task),
   })),
   setTaskOnToday: (taskId, onToday) => set((state) => ({
     tasks: state.tasks.map((task) => task.id === taskId
-      ? { ...task, scheduledDate: onToday ? '2026-09-22' : undefined }
+      ? { ...task, scheduledDate: onToday ? format(prototypeDate, 'yyyy-MM-dd') : undefined }
       : task),
   })),
   addTimeBlock: (taskId, startAt, endAt) => set((state) => ({
@@ -46,6 +50,7 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   setCalendarDate: (calendarDate) => set({ calendarDate }),
   setScheduleTask: (scheduleTaskId) => set({ scheduleTaskId }),
   addTask: (title, categoryId) => set((state) => ({
-    tasks: [...state.tasks, { id: `task-${Date.now()}`, title: title.trim(), categoryId, scheduledDate: '2026-09-22' }],
+    tasks: [...state.tasks, { id: `task-${Date.now()}`, title: title.trim(), categoryId, scheduledDate: state.selectedTodayDate }],
   })),
+  setSelectedTodayDate: (selectedTodayDate) => set({ selectedTodayDate: format(parseISO(selectedTodayDate), 'yyyy-MM-dd') }),
 }));
