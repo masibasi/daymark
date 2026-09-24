@@ -45,6 +45,8 @@ The Orbit uses one continuous neutral track. Completed category colors sit direc
 
 Deadline cards should be understandable before their labels are read. Distant work stays white/neutral, the normal attention window uses a faint project-category tint, D−3 uses a warm cream tint, and D−1/due-today uses a restrained rose tint with a stronger edge. Urgency increases through surface intensity, not size, flashing, or an all-red screen.
 
+Each Project can choose when the first tint begins: 3, 7, 14, or 30 days before its deadline. This preference is shown in Project Detail and updates the Today preview immediately.
+
 ## Task interaction
 
 Task rows use a tactile circular check, title, optional project context, and a quiet schedule action. On completion: check scales and fills, text softens, and the Orbit updates in 300–450ms. The persistent Day Mark motion is slow and ambient, never celebratory. No strike-through or celebration effects.
@@ -56,6 +58,8 @@ Week view prioritizes geometry: fixed time gutter, clear day columns, faint half
 Month cells show date, a small Day Orbit, up to three compact lines, then a `+N` disclosure. Deadlines use a small flag treatment, not an alarm-red card.
 
 Today also includes a quieter completion-history calendar. Its cells favor the Day Orbit over event density; selecting a date moves the Today context to that day's tasks and completion record. This is navigation and reflection, not a second scheduling calendar.
+
+Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
 
 ## Responsive rules
 

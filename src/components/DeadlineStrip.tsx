@@ -12,7 +12,7 @@ export function DeadlineStrip({ projects, tasks, now }: DeadlineStripProps) {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.track}>
       {projects.map((project) => {
         const days = selectDeadlineDays(project.deadline, now);
-        const tone = selectDeadlineTone(days);
+        const tone = selectDeadlineTone(days, project.attentionDays);
         const progress = selectProjectProgress(tasks, project.id);
         const palette = categoryPalette[project.categoryId];
         const backgroundColor = tone === 'urgent' ? colors.deadlineUrgent : tone === 'warm' ? colors.deadlineWarm : tone === 'normal' ? palette.soft : colors.paper;

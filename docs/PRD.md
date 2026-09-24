@@ -33,6 +33,8 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can distinguish external events from task work blocks.
 - I can select a task, then tap an open week slot to schedule it.
 - I can move unfinished work to another day without recreating it.
+- I can decide how early each Project starts appearing visually urgent.
+- I can open a Task's actions from Today and move it to tomorrow, choose a date, or remove it from the displayed day.
 
 ## V0 scope
 
@@ -42,6 +44,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Contextual creation of a daily Task from Today with title and category.
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation.
+- Visual study route comparing Day Mark directions at 0, 25, 50, and 100 percent completion.
 - Desktop sidebar and mobile bottom navigation.
 
 ## V1 scope

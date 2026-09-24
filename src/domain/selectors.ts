@@ -40,10 +40,10 @@ export function selectDeadlineDays(deadline: string, now: Date): number {
   return differenceInCalendarDays(parseISO(deadline), startOfDay(now));
 }
 
-export function selectDeadlineTone(days: number): 'muted' | 'normal' | 'warm' | 'urgent' {
+export function selectDeadlineTone(days: number, attentionDays = 7): 'muted' | 'normal' | 'warm' | 'urgent' {
   if (days <= 1) return 'urgent';
   if (days <= 3) return 'warm';
-  if (days <= 7) return 'normal';
+  if (days <= attentionDays) return 'normal';
   return 'muted';
 }
 

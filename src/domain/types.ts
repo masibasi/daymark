@@ -18,6 +18,7 @@ export interface Project {
   deadline: ISODate;
   status: 'active' | 'done' | 'archived';
   notes?: string;
+  attentionDays?: number;
 }
 
 export interface Task {
@@ -49,4 +50,3 @@ export interface CalendarEvent {
 }
 
 export type CalendarView = 'week' | 'month';
-

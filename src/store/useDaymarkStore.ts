@@ -21,6 +21,8 @@ interface DaymarkState {
   setScheduleTask: (taskId?: string) => void;
   addTask: (title: string, categoryId: Task['categoryId']) => void;
   setSelectedTodayDate: (date: string) => void;
+  moveTaskToDate: (taskId: string, date?: string) => void;
+  setProjectAttentionDays: (projectId: string, days: number) => void;
 }
 
 export const useDaymarkStore = create<DaymarkState>((set) => ({
@@ -53,4 +55,12 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
     tasks: [...state.tasks, { id: `task-${Date.now()}`, title: title.trim(), categoryId, scheduledDate: state.selectedTodayDate }],
   })),
   setSelectedTodayDate: (selectedTodayDate) => set({ selectedTodayDate: format(parseISO(selectedTodayDate), 'yyyy-MM-dd') }),
+  moveTaskToDate: (taskId, date) => set((state) => ({
+    tasks: state.tasks.map((task) => task.id === taskId && !task.completedAt
+      ? { ...task, scheduledDate: date ? format(parseISO(date), 'yyyy-MM-dd') : undefined }
+      : task),
+  })),
+  setProjectAttentionDays: (projectId, days) => set((state) => ({
+    projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
+  })),
 }));

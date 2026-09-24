@@ -3,9 +3,9 @@ import type { Category, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
 import { TaskRow } from './TaskRow';
 
-interface TaskSectionProps { category: Category; tasks: Task[]; onToggle: (id: string) => void; projectNames: Record<string, string> }
+interface TaskSectionProps { category: Category; tasks: Task[]; onToggle: (id: string) => void; onMove?: (id: string, date?: string) => void; selectedDate?: string; projectNames: Record<string, string> }
 
-export function TaskSection({ category, tasks, onToggle, projectNames }: TaskSectionProps) {
+export function TaskSection({ category, tasks, onToggle, onMove, selectedDate, projectNames }: TaskSectionProps) {
   const palette = categoryPalette[category.colorKey];
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   return (
@@ -16,7 +16,7 @@ export function TaskSection({ category, tasks, onToggle, projectNames }: TaskSec
         <Text style={styles.count}>{completed}/{tasks.length}</Text>
       </View>
       <View style={styles.tasks}>
-        {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => onToggle(task.id)} projectTitle={task.projectId ? projectNames[task.projectId] : undefined} />)}
+        {tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => onToggle(task.id)} onMove={onMove ? (date) => onMove(task.id, date) : undefined} selectedDate={selectedDate} projectTitle={task.projectId ? projectNames[task.projectId] : undefined} />)}
       </View>
     </View>
   );
@@ -30,4 +30,3 @@ const styles = StyleSheet.create({
   count: { ...type.meta, color: colors.muted, marginLeft: 'auto', fontFamily },
   tasks: { paddingLeft: 1 },
 });
-

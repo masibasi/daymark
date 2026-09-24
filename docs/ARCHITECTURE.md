@@ -8,7 +8,7 @@ Expo + React Native + React Native Web with TypeScript and Expo Router. Screens 
 
 ```ts
 Category { id, name, colorKey, order }
-Project { id, title, categoryId, deadline, status, notes? }
+Project { id, title, categoryId, deadline, status, notes?, attentionDays? }
 Task { id, title, categoryId, projectId?, scheduledDate?, completedAt? }
 TimeBlock { id, taskId, startAt, endAt, externalCalendarEventId? }
 CalendarEvent { id, provider, externalId, title, startAt, endAt, allDay, colorKey? }
@@ -25,6 +25,10 @@ Relationships:
 ## State boundaries
 
 `src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, and `addTimeBlock`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail “add to Today” still targets the actual prototype date. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data.
+
+`moveTaskToDate` changes the existing Task's `scheduledDate` and keeps its `projectId`. The V0 action ignores completed Tasks so moving a historical completion cannot silently rewrite completion history; reopening the Task makes it movable again.
+
+`attentionDays` controls when an individual Project first receives a deadline tint. Missing values use seven days. The D−3 and D−1 urgency steps remain fixed in the prototype; changing the lead time does not change the underlying deadline.
 
 There is exactly one Day Orbit calculation. It uses `completedAt` only; `scheduledDate` is never a completion fallback.
 

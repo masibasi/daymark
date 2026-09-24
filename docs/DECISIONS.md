@@ -19,7 +19,11 @@
 - **Neutral black/white foundation.** Light mode is white, dark mode is near-black; category colors carry the visual energy instead of beige or warm neutrals.
 - **Today includes contextual quick add.** A daily task can be created with a title and category without leaving Today.
 - **Rescheduling matters more than arbitrary lists.** Daymark should support moving an unfinished Task to another day; broad user-defined list hierarchies are not required for the core loop.
+- **Task actions live beside the Task.** The `…` menu moves unfinished work to tomorrow, a chosen date, or off the displayed day without duplicating it.
+- **Day Mark directions are compared at equal states.** The study route shows four visual approaches at 0/25/50/100 percent; its existence does not select a final treatment.
+- **Deadline attention begins per Project.** Seven days is the default; Project Detail offers 3/7/14/30 days for the first color tint. D−3 and D−1 still intensify the card in this prototype.
 - **Calendar integration stays explicit.** Calendar events provide time context; Tasks enter the calendar only when the user schedules a TimeBlock. Events do not silently become todos.
+- **Today scheduling needs an interaction study.** Test a small free-time preview on Today with a direct “reserve time” action on a Task before building drag-and-drop. Avoid requiring a trip to the Calendar tab for every TimeBlock.
 - **Project detail remains focused on mobile.** V0 keeps full-screen project detail. A desktop side panel is preferred over an expanding card because it preserves the deadline overview while allowing quick edits; this is a later interaction refinement.
 
 ## Technical

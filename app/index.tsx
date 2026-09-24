@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Link } from 'expo-router';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
 import { DayOrbit } from '@/components/DayOrbit';
@@ -21,6 +22,7 @@ export default function TodayScreen() {
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
   const addTask = useDaymarkStore((state) => state.addTask);
+  const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
   const selectedDate = parseISO(selectedTodayDate);
   const dayTasks = selectTodayTasks(tasks, selectedDate);
   const groups = selectTasksByCategory(dayTasks, categories);
@@ -37,7 +39,7 @@ export default function TodayScreen() {
 
         <View style={[styles.overview, wide && styles.overviewWide]}>
           <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
-            <View style={styles.orbitHeading}><Text style={styles.orbitEyebrow}>Your day mark</Text><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
+            <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
             <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
             <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
             <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
@@ -51,7 +53,7 @@ export default function TodayScreen() {
 
         <View style={styles.tasksColumn}>
           <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>
-          {groups.length > 0 ? groups.map((group) => <TaskSection key={group.category.id} category={group.category} tasks={group.tasks} onToggle={toggleTask} projectNames={projectNames} />) : <Text style={styles.empty}>A clear day. Add something small, or leave it open.</Text>}
+          {groups.length > 0 ? groups.map((group) => <TaskSection key={group.category.id} category={group.category} tasks={group.tasks} onToggle={toggleTask} onMove={moveTaskToDate} selectedDate={selectedTodayDate} projectNames={projectNames} />) : <Text style={styles.empty}>A clear day. Add something small, or leave it open.</Text>}
           <QuickAdd categories={categories} onAdd={addTask} />
         </View>
       </View>
