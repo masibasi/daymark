@@ -35,6 +35,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can move unfinished work to another day without recreating it.
 - I can decide how early each Project starts appearing visually urgent.
 - I can open a Task's actions from Today and move it to tomorrow, choose a date, or remove it from the displayed day.
+- I can see today's schedule and free time at a glance on Today, and reserve time for a Task right there, without opening the Calendar tab.
 
 ## V0 scope
 
@@ -45,6 +46,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation.
 - Visual study route comparing Day Mark directions at 0, 25, 50, and 100 percent completion.
+- A Today time-rail and "reserve time" interaction study, so scheduling a Task no longer requires a trip to the Calendar tab; not a final interaction decision.
 - Desktop sidebar and mobile bottom navigation.
 
 ## V1 scope

@@ -7,12 +7,13 @@
 - Responsive layout and Day Orbit motion.
 - Task-to-week-slot scheduling without drag-and-drop.
 - Today Task action menu for moving unfinished work, Project attention lead-time control, and Day Mark concept comparisons.
+- Today time-rail and "reserve time" interaction study (`TodayTimeline`, per-Task reserve tray) so a Task can pick up a TimeBlock without opening Calendar; a study to react to, not a committed direction.
 
 ## V0.2 — local reliability and polish
 
 - Local persistence, refined add/edit flows, stronger accessibility.
 - Refine the date move flow and evaluate direct drag between dates on desktop after the action model is stable.
-- Explore a compact Today free-time preview and one-step Task scheduling; validate the interaction before drag-and-drop.
+- Decide, from the V0 Today time-rail study, whether it becomes the permanent Today interaction or stays Calendar-only; refine whichever direction is chosen before drag-and-drop.
 - Revisit whether the D−3 and D−1 escalation should also be personalized after testing the V0 per-Project lead-time control.
 - Desktop project side panel for quick subtask management while mobile retains focused detail navigation.
 - Calendar scrolling, collision layout, keyboard navigation, and richer empty states.

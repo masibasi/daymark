@@ -24,7 +24,9 @@ Relationships:
 
 ## State boundaries
 
-`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, and `addTimeBlock`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail “add to Today” still targets the actual prototype date. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data.
+`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, `addTimeBlock`, and `removeTimeBlock`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail “add to Today” still targets the actual prototype date. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data, plus (for the Today time-rail study) a day's combined event/TimeBlock agenda (`selectDayAgenda`), open free-time gaps (`selectFreeSlots`), and a Task's TimeBlocks on a given day (`selectTaskBlocksOnDay`).
+
+The Today screen's time rail (`TodayTimeline`) and each Task row's "Reserve time" tray both create TimeBlocks through `addTimeBlock` — the same action Calendar Week scheduling uses — so a TimeBlock reserved from Today appears in Calendar Week automatically. Removing a block from the rail's caption calls `removeTimeBlock`. Neither action ever sets or touches `completedAt`.
 
 `moveTaskToDate` changes the existing Task's `scheduledDate` and keeps its `projectId`. The V0 action ignores completed Tasks so moving a historical completion cannot silently rewrite completion history; reopening the Task makes it movable again.
 

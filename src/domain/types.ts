@@ -50,3 +50,5 @@ export interface CalendarEvent {
 }
 
 export type CalendarView = 'week' | 'month';
+
+export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current';

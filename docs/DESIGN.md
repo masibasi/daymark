@@ -61,6 +61,8 @@ Today also includes a quieter completion-history calendar. Its cells favor the D
 
 Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
 
+Today also includes a compact "Time today" rail between Upcoming deadlines and the task list, as a V0 interaction study — not a final scheduling direction. It shows a single 8 AM–9 PM strip with events (neutral blue-gray) and Task TimeBlocks (category-tinted) for the displayed day, a now-tick when viewing today, and a one-line summary of what's next. Each unfinished Task row also gets a small "Reserve time" clock affordance beside its `…` menu; tapping it opens an inline tray (duration chips, up to three free-slot suggestions, and a "tap an open gap on the rail" alternative) rather than a modal, so the Task can pick up a TimeBlock without a trip to the Calendar tab. Reserving time never completes the Task. The header's weather line is labeled "sample weather" so it reads honestly as mock data.
+
 ## Responsive rules
 
 - Phone: one-column Today, three visible days in Week with horizontal paging implied, compact Month labels, bottom nav.
@@ -69,4 +71,4 @@ Unfinished Today rows expose a compact `…` menu for moving to the next day, ch
 
 ## Components
 
-`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
+`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, `QuickAdd`, and `TodayTimeline` (the Today time-rail study).

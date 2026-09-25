@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { format, parseISO, setHours } from 'date-fns';
-import type { CalendarEvent, CalendarView, Category, Project, Task, TimeBlock } from '@/domain/types';
+import type { CalendarEvent, CalendarView, Category, DayMarkVariant, Project, Task, TimeBlock } from '@/domain/types';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks, prototypeDate } from './mockData';
 
 interface DaymarkState {
@@ -13,6 +13,7 @@ interface DaymarkState {
   calendarDate: string;
   scheduleTaskId?: string;
   selectedTodayDate: string;
+  dayMarkVariant: DayMarkVariant;
   toggleTask: (taskId: string) => void;
   setTaskOnToday: (taskId: string, onToday: boolean) => void;
   addTimeBlock: (taskId: string, startAt: string, endAt: string) => void;
@@ -23,6 +24,8 @@ interface DaymarkState {
   setSelectedTodayDate: (date: string) => void;
   moveTaskToDate: (taskId: string, date?: string) => void;
   setProjectAttentionDays: (projectId: string, days: number) => void;
+  removeTimeBlock: (blockId: string) => void;
+  setDayMarkVariant: (variant: DayMarkVariant) => void;
 }
 
 export const useDaymarkStore = create<DaymarkState>((set) => ({
@@ -34,6 +37,7 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   calendarView: 'week',
   calendarDate: prototypeDate.toISOString(),
   selectedTodayDate: '2026-09-22',
+  dayMarkVariant: 'current',
   toggleTask: (taskId) => set((state) => ({
     tasks: state.tasks.map((task) => task.id === taskId
       ? { ...task, completedAt: task.completedAt ? undefined : setHours(parseISO(state.selectedTodayDate), 12).toISOString() }
@@ -63,4 +67,6 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   setProjectAttentionDays: (projectId, days) => set((state) => ({
     projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
   })),
+  removeTimeBlock: (blockId) => set((state) => ({ timeBlocks: state.timeBlocks.filter((block) => block.id !== blockId) })),
+  setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
 }));

@@ -1,13 +1,15 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Link } from 'expo-router';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { addMinutes, format, isSameDay, parseISO } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
 import { DayOrbit } from '@/components/DayOrbit';
 import { HistoryCalendar } from '@/components/HistoryCalendar';
 import { QuickAdd } from '@/components/QuickAdd';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TaskSection } from '@/components/TaskSection';
-import { selectCompletedCountOnDay, selectDayOrbit, selectTasksByCategory, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
+import { TodayTimeline } from '@/components/TodayTimeline';
+import { selectCompletedCountOnDay, selectDayAgenda, selectDayOrbit, selectFreeSlots, selectTasksByCategory, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
 import { prototypeDate } from '@/store/mockData';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -18,11 +20,15 @@ export default function TodayScreen() {
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
   const tasks = useDaymarkStore((state) => state.tasks);
+  const events = useDaymarkStore((state) => state.events);
+  const timeBlocks = useDaymarkStore((state) => state.timeBlocks);
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
   const addTask = useDaymarkStore((state) => state.addTask);
   const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
+  const addTimeBlock = useDaymarkStore((state) => state.addTimeBlock);
+  const removeTimeBlock = useDaymarkStore((state) => state.removeTimeBlock);
   const selectedDate = parseISO(selectedTodayDate);
   const dayTasks = selectTodayTasks(tasks, selectedDate);
   const groups = selectTasksByCategory(dayTasks, categories);
@@ -32,10 +38,28 @@ export default function TodayScreen() {
   const isToday = isSameDay(selectedDate, prototypeDate);
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
+  const [reserveTaskId, setReserveTaskId] = useState<string | null>(null);
+  const [reserveDuration, setReserveDuration] = useState(60);
+  useEffect(() => setReserveTaskId(null), [selectedTodayDate]);
+
+  const agenda = selectDayAgenda(events, timeBlocks, tasks, selectedDate);
+  const reserveTask = reserveTaskId ? tasks.find((task) => task.id === reserveTaskId) : undefined;
+  const reserveCategoryKey = reserveTask ? categories.find((category) => category.id === reserveTask.categoryId)?.colorKey : undefined;
+  const railFreeSlots = reserveTask
+    ? selectFreeSlots(events, timeBlocks, selectedDate, { from: isToday ? prototypeDate : undefined, minMinutes: reserveDuration })
+    : [];
+
+  const handleToggleTray = (taskId: string) => setReserveTaskId((current) => (current === taskId ? null : taskId));
+  const handleReserveGap = (startAt: string) => {
+    if (!reserveTaskId) return;
+    addTimeBlock(reserveTaskId, startAt, addMinutes(parseISO(startAt), reserveDuration).toISOString());
+    setReserveTaskId(null);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles" />
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
 
         <View style={[styles.overview, wide && styles.overviewWide]}>
           <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
@@ -51,9 +75,43 @@ export default function TodayScreen() {
         <View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Upcoming</Text><Text style={styles.sectionHint}>Deadlines that need a little attention</Text></View>
         <DeadlineStrip projects={upcoming} tasks={tasks} now={prototypeDate} />
 
+        <TodayTimeline
+          day={selectedDate}
+          isToday={isToday}
+          now={prototypeDate}
+          agenda={agenda}
+          freeSlots={railFreeSlots}
+          highlightCategoryKey={reserveCategoryKey}
+          onReserveGap={reserveTask ? handleReserveGap : undefined}
+          onRemoveBlock={removeTimeBlock}
+        />
+
         <View style={styles.tasksColumn}>
           <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>
-          {groups.length > 0 ? groups.map((group) => <TaskSection key={group.category.id} category={group.category} tasks={group.tasks} onToggle={toggleTask} onMove={moveTaskToDate} selectedDate={selectedTodayDate} projectNames={projectNames} />) : <Text style={styles.empty}>A clear day. Add something small, or leave it open.</Text>}
+          {groups.length > 0 ? groups.map((group) => (
+            <TaskSection
+              key={group.category.id}
+              category={group.category}
+              tasks={group.tasks}
+              onToggle={toggleTask}
+              onMove={moveTaskToDate}
+              selectedDate={selectedTodayDate}
+              projectNames={projectNames}
+              reserve={{
+                openTaskId: reserveTaskId,
+                duration: reserveDuration,
+                onSetDuration: setReserveDuration,
+                onToggleTray: handleToggleTray,
+                day: selectedDate,
+                isToday,
+                now: prototypeDate,
+                events,
+                blocks: timeBlocks,
+                agenda,
+                onAddTimeBlock: addTimeBlock,
+              }}
+            />
+          )) : <Text style={styles.empty}>A clear day. Add something small, or leave it open.</Text>}
           <QuickAdd categories={categories} onAdd={addTask} />
         </View>
       </View>

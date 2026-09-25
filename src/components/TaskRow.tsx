@@ -5,9 +5,9 @@ import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, i
 import type { Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
-interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
+interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode; onReserve?: () => void; reserveOpen?: boolean; timeLabel?: string }
 
-export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, trailing }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, trailing, onReserve, reserveOpen, timeLabel }: TaskRowProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -45,9 +45,15 @@ export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, tr
       </Pressable>
       <View style={styles.copy}>
         <Text style={[styles.title, complete && styles.complete]} numberOfLines={2}>{task.title}</Text>
-        {projectTitle ? <Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text> : null}
+        {projectTitle || timeLabel ? (
+          <View style={styles.metaRow}>
+            {timeLabel ? <Ionicons name="time-outline" size={11} color={colors.muted} /> : null}
+            <Text style={styles.meta} numberOfLines={1}>{[projectTitle, timeLabel].filter(Boolean).join(' · ')}</Text>
+          </View>
+        ) : null}
       </View>
       {trailing}
+      {onReserve && !complete ? <Pressable accessibilityRole="button" accessibilityLabel={`Reserve time for ${task.title}`} accessibilityState={{ expanded: Boolean(reserveOpen) }} onPress={onReserve} style={styles.reserve}><Ionicons name="time-outline" size={17} color={reserveOpen ? palette.solid : colors.muted} /></Pressable> : null}
       {onMove && !complete ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${task.title}`} accessibilityState={{ expanded: menuOpen }} onPress={() => setMenuOpen(!menuOpen)} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable> : null}
     </View>
     {menuOpen && onMove ? <View style={styles.actions}>
@@ -76,7 +82,9 @@ const styles = StyleSheet.create({
   title: { ...type.bodyMedium, color: colors.ink, fontFamily },
   complete: { color: colors.muted },
   meta: { ...type.meta, color: colors.muted, marginTop: 1, fontFamily },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
+  reserve: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   actions: { position: 'absolute', top: 44, right: 0, zIndex: 20, width: 192, padding: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper },
   action: { height: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },
   actionText: { ...type.meta, color: colors.ink, fontFamily },
