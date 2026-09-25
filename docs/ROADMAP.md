@@ -9,10 +9,11 @@
 - Today Task action menu for moving unfinished work, Project attention lead-time control, and Day Mark concept comparisons.
 - Day Mark shipped as Watercolor wash after the study route comparison; collapsible history calendar (week on phone, month on desktop) on Today.
 - Today time-rail and "reserve time" interaction study was tried and parked after review — it didn't resonate; removed from the app (preserved in git history). Today scheduling stays on the Calendar tab for now.
+- Local persistence (zustand `persist` + AsyncStorage), the real system clock in place of the fixed prototype date, project/step creation and deletion, and a Settings screen with sample-data/erase actions — done, so the owner can use Daymark day to day on their own device.
 
 ## V0.2 — local reliability and polish
 
-- Local persistence, refined add/edit flows, stronger accessibility.
+- Refined add/edit flows (renaming, richer editing), stronger accessibility.
 - Refine the date move flow and evaluate direct drag between dates on desktop after the action model is stable.
 - Revisit a Today-native scheduling interaction now that the V0 time-rail study has been parked; any new direction should be simpler before drag-and-drop is considered.
 - Revisit whether the D−3 and D−1 escalation should also be personalized after testing the V0 per-Project lead-time control.

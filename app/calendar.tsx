@@ -6,7 +6,7 @@ import { MonthGrid } from '@/components/MonthGrid';
 import { SchedulePanel } from '@/components/SchedulePanel';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { WeekGrid } from '@/components/WeekGrid';
-import { prototypeDate } from '@/store/mockData';
+import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
@@ -39,7 +39,7 @@ export default function CalendarScreen() {
         <View><Text style={styles.eyebrow}>Calendar</Text><Text style={styles.title}>{format(anchor, view === 'week' ? "MMMM yyyy" : 'MMMM yyyy')}</Text></View>
         <View style={styles.toolbarActions}>
           <SegmentedControl value={view} options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} onChange={setView} />
-          <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(prototypeDate.toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable></View>
+          <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable></View>
         </View>
       </View>
       {scheduleTaskId ? <View style={styles.scheduleBanner}><View style={styles.pulse} /><Text style={styles.bannerText}>Choose a free slot for <Text style={styles.bannerStrong}>{tasks.find((task) => task.id === scheduleTaskId)?.title}</Text></Text><Pressable onPress={() => setScheduleTask(undefined)}><Text style={styles.cancel}>Cancel</Text></Pressable></View> : null}

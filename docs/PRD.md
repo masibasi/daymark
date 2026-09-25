@@ -40,9 +40,12 @@ The first user is an individual balancing study, career, personal, and routine w
 ## V0 scope
 
 - Responsive Today, Calendar Week, Calendar Month, Projects, and Project Detail.
-- Mock data and in-memory state.
+- Local persistence (zustand `persist` + AsyncStorage): the app survives a reload and is genuinely usable day to day, still with no backend or account.
+- The real system clock, not a fixed prototype date, drives "today" everywhere except the mock calendar events and the Day Mark study route.
 - Task completion, project progress, add-to-Today, and mock scheduling.
 - Contextual creation of a daily Task from Today with title and category.
+- Creating a Project (title, category, deadline) and adding/deleting its steps from Project Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
+- A Settings screen to load sample data or erase all local data, with confirmation.
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation, collapsible to one week (default on phone) or expanded to the full month (default on desktop).
 - Visual study route comparing Day Mark directions at 0, 25, 50, and 100 percent completion; Watercolor wash is the shipped default, chosen after that comparison.

@@ -15,7 +15,7 @@ export function ProjectCard({ project, tasks, now }: { project: Project; tasks: 
     <Pressable onPress={() => router.push(`/projects/${project.id}`)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={[styles.accent, { backgroundColor: palette.solid }]} />
       <View style={styles.content}>
-        <View style={styles.top}><Text style={styles.date}>Due {format(parseISO(project.deadline), 'MMM d')}</Text><Text style={[styles.days, days <= 3 && { color: colors.accent }]}>{days === 0 ? 'Today' : `D−${days}`}</Text></View>
+        <View style={styles.top}><Text style={styles.date}>Due {format(parseISO(project.deadline), 'MMM d')}</Text><Text style={[styles.days, days < 0 && styles.overdue, days >= 0 && days <= 3 && { color: colors.accent }]}>{days < 0 ? `Overdue · D+${Math.abs(days)}` : days === 0 ? 'Today' : `D−${days}`}</Text></View>
         <Text style={styles.title}>{project.title}</Text>
         <Text style={styles.notes} numberOfLines={2}>{project.notes ?? 'A focused project with a clear finish line.'}</Text>
         <View style={styles.bottom}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progress}>{progress.completed} of {progress.total}</Text><Ionicons name="arrow-forward" size={16} color={colors.muted} /></View>
@@ -31,6 +31,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   date: { ...type.meta, color: colors.muted, fontFamily },
   days: { ...type.meta, color: colors.inkSoft, fontFamily },
+  overdue: { color: colors.danger },
   title: { ...type.section, color: colors.ink, fontSize: 19, marginTop: space.sm, fontFamily },
   notes: { ...type.body, color: colors.inkSoft, marginTop: space.xs, minHeight: 42, fontFamily },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.lg },

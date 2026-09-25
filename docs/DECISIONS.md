@@ -38,3 +38,5 @@
 - **`completedAt` is the only completion-history source.** Scheduling never implies completion.
 - **Mock calendar provider first.** Real integrations wait until product UX is validated.
 - **Scheduling is select then tap.** Drag-and-drop is deferred until the grid and task model are validated.
+- **The app starts empty on first run.** A fresh install has the four fixed categories and no projects, tasks, or time blocks, so the owner's real data is never mixed with mock content. Sample data is available on demand from Settings ("Load sample data"), which replaces current projects/tasks/time blocks, and can be cleared again with "Erase all data." Both actions confirm first since they overwrite the owner's own data.
+- **Data lives only on this device.** V0 persistence (zustand `persist` + AsyncStorage, backed by `localStorage` on web) is local-only with no account, sync, or backend; Settings says so directly ("Data is saved only on this device/browser"). Mock calendar `events` are not persisted — they are fixed sample context and simply reload from `mockData` each session.

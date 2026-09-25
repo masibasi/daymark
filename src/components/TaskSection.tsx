@@ -3,9 +3,9 @@ import type { Category, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
 import { TaskRow } from './TaskRow';
 
-interface TaskSectionProps { category: Category; tasks: Task[]; onToggle: (id: string) => void; onMove?: (id: string, date?: string) => void; selectedDate?: string; projectNames: Record<string, string> }
+interface TaskSectionProps { category: Category; tasks: Task[]; onToggle: (id: string) => void; onMove?: (id: string, date?: string) => void; onDelete?: (id: string) => void; selectedDate?: string; projectNames: Record<string, string> }
 
-export function TaskSection({ category, tasks, onToggle, onMove, selectedDate, projectNames }: TaskSectionProps) {
+export function TaskSection({ category, tasks, onToggle, onMove, onDelete, selectedDate, projectNames }: TaskSectionProps) {
   const palette = categoryPalette[category.colorKey];
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
 
@@ -23,6 +23,7 @@ export function TaskSection({ category, tasks, onToggle, onMove, selectedDate, p
             task={task}
             onToggle={() => onToggle(task.id)}
             onMove={onMove ? (date) => onMove(task.id, date) : undefined}
+            onDelete={onDelete ? () => onDelete(task.id) : undefined}
             selectedDate={selectedDate}
             projectTitle={task.projectId ? projectNames[task.projectId] : undefined}
           />

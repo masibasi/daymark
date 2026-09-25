@@ -8,7 +8,7 @@ import { QuickAdd } from '@/components/QuickAdd';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TaskSection } from '@/components/TaskSection';
 import { selectCompletedCountOnDay, selectDayOrbit, selectTasksByCategory, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
-import { prototypeDate } from '@/store/mockData';
+import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
@@ -23,13 +23,14 @@ export default function TodayScreen() {
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
   const addTask = useDaymarkStore((state) => state.addTask);
   const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
+  const deleteTask = useDaymarkStore((state) => state.deleteTask);
   const selectedDate = parseISO(selectedTodayDate);
   const dayTasks = selectTodayTasks(tasks, selectedDate);
   const groups = selectTasksByCategory(dayTasks, categories);
-  const upcoming = selectUpcomingProjects(projects, prototypeDate);
+  const upcoming = selectUpcomingProjects(projects, now());
   const segments = selectDayOrbit(tasks, selectedDate);
   const completed = selectCompletedCountOnDay(dayTasks, selectedDate);
-  const isToday = isSameDay(selectedDate, prototypeDate);
+  const isToday = isSameDay(selectedDate, now());
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
   return (
@@ -49,7 +50,7 @@ export default function TodayScreen() {
         </View>
 
         <View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Upcoming</Text><Text style={styles.sectionHint}>Deadlines that need a little attention</Text></View>
-        <DeadlineStrip projects={upcoming} tasks={tasks} now={prototypeDate} />
+        <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} />
 
         <View style={styles.tasksColumn}>
           <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>
@@ -60,6 +61,7 @@ export default function TodayScreen() {
               tasks={group.tasks}
               onToggle={toggleTask}
               onMove={moveTaskToDate}
+              onDelete={deleteTask}
               selectedDate={selectedTodayDate}
               projectNames={projectNames}
             />

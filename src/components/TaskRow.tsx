@@ -1,17 +1,18 @@
 import { useRef, useState } from 'react';
-import { Animated, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { DatePickerModal } from './DatePickerModal';
+import { confirmAction } from '@/domain/confirm';
 
-interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
+interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
 
-export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, trailing }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onMove, onDelete, selectedDate, projectTitle, trailing }: TaskRowProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerMonth, setPickerMonth] = useState(selectedDate ? parseISO(selectedDate) : new Date());
   const palette = categoryPalette[task.categoryId];
   const complete = Boolean(task.completedAt);
 
@@ -30,10 +31,12 @@ export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, tr
     setPickerOpen(false);
   };
 
-  const pickerDays = pickerOpen ? eachDayOfInterval({
-    start: startOfWeek(startOfMonth(pickerMonth)),
-    end: endOfWeek(endOfMonth(pickerMonth)),
-  }) : [];
+  const deleteTask = async () => {
+    setMenuOpen(false);
+    if (!onDelete) return;
+    const confirmed = await confirmAction('Delete task', `Delete "${task.title}"? This cannot be undone.`, 'Delete');
+    if (confirmed) onDelete();
+  };
 
   return (
     <View style={[styles.wrap, menuOpen && styles.wrapOpen]}>
@@ -52,21 +55,15 @@ export function TaskRow({ task, onToggle, onMove, selectedDate, projectTitle, tr
         ) : null}
       </View>
       {trailing}
-      {onMove && !complete ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${task.title}`} accessibilityState={{ expanded: menuOpen }} onPress={() => setMenuOpen(!menuOpen)} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable> : null}
+      {(onMove || onDelete) && !complete ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${task.title}`} accessibilityState={{ expanded: menuOpen }} onPress={() => setMenuOpen(!menuOpen)} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable> : null}
     </View>
-    {menuOpen && onMove ? <View style={styles.actions}>
-      <Pressable accessibilityRole="button" onPress={() => move(format(addDays(parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd')), 1), 'yyyy-MM-dd'))} style={styles.action}><Ionicons name="arrow-forward-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Tomorrow</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => { setPickerMonth(parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd'))); setPickerOpen(true); setMenuOpen(false); }} style={styles.action}><Ionicons name="calendar-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Choose date</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => move()} style={styles.action}><Ionicons name="remove-circle-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Remove from day</Text></Pressable>
+    {menuOpen && (onMove || onDelete) ? <View style={styles.actions}>
+      {onMove ? <Pressable accessibilityRole="button" onPress={() => move(format(addDays(parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd')), 1), 'yyyy-MM-dd'))} style={styles.action}><Ionicons name="arrow-forward-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Tomorrow</Text></Pressable> : null}
+      {onMove ? <Pressable accessibilityRole="button" onPress={() => { setPickerOpen(true); setMenuOpen(false); }} style={styles.action}><Ionicons name="calendar-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Choose date</Text></Pressable> : null}
+      {onMove ? <Pressable accessibilityRole="button" onPress={() => move()} style={styles.action}><Ionicons name="remove-circle-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Remove from day</Text></Pressable> : null}
+      {onDelete ? <Pressable accessibilityRole="button" onPress={deleteTask} style={styles.action}><Ionicons name="trash-outline" size={16} color={colors.danger} /><Text style={[styles.actionText, styles.dangerText]}>Delete</Text></Pressable> : null}
     </View> : null}
-    {pickerOpen ? <Modal transparent visible animationType="fade" onRequestClose={() => setPickerOpen(false)}>
-      <View style={styles.modalShade}><View style={styles.picker}>
-        <View style={styles.pickerHeader}><Text style={styles.pickerTitle}>Move to a day</Text><Pressable accessibilityLabel="Close date picker" onPress={() => setPickerOpen(false)}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
-        <View style={styles.monthHeader}><Pressable accessibilityLabel="Previous month" onPress={() => setPickerMonth(subMonths(pickerMonth, 1))} style={styles.monthArrow}><Ionicons name="chevron-back" size={17} color={colors.ink} /></Pressable><Text style={styles.monthTitle}>{format(pickerMonth, 'MMMM yyyy')}</Text><Pressable accessibilityLabel="Next month" onPress={() => setPickerMonth(addMonths(pickerMonth, 1))} style={styles.monthArrow}><Ionicons name="chevron-forward" size={17} color={colors.ink} /></Pressable></View>
-        <View style={styles.weekdays}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
-        <View style={styles.dateGrid}>{pickerDays.map((day) => <Pressable key={day.toISOString()} accessibilityLabel={`Move ${task.title} to ${format(day, 'MMMM d')}`} onPress={() => move(format(day, 'yyyy-MM-dd'))} style={[styles.dateCell, !isSameMonth(day, pickerMonth) && styles.outside]}><Text style={styles.dateText}>{format(day, 'd')}</Text></Pressable>)}</View>
-      </View></View>
-    </Modal> : null}
+    {pickerOpen ? <DatePickerModal title="Move to a day" initialMonth={parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd'))} onPick={(date) => move(date)} onClose={() => setPickerOpen(false)} /> : null}
     </View>
   );
 }
@@ -85,17 +82,5 @@ const styles = StyleSheet.create({
   actions: { position: 'absolute', top: 44, right: 0, zIndex: 20, width: 192, padding: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper },
   action: { height: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },
   actionText: { ...type.meta, color: colors.ink, fontFamily },
-  modalShade: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space.lg, backgroundColor: 'rgba(0, 0, 0, 0.32)' },
-  picker: { width: '100%', maxWidth: 370, padding: space.lg, borderRadius: radius.lg, backgroundColor: colors.paper },
-  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.lg },
-  pickerTitle: { ...type.section, color: colors.ink, fontFamily },
-  monthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.md },
-  monthTitle: { ...type.bodyMedium, color: colors.ink, fontFamily },
-  monthArrow: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  weekdays: { flexDirection: 'row' },
-  weekday: { width: `${100 / 7}%`, textAlign: 'center', ...type.meta, color: colors.muted, fontFamily },
-  dateGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dateCell: { width: `${100 / 7}%`, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm },
-  dateText: { ...type.body, color: colors.ink, fontFamily },
-  outside: { opacity: 0.38 },
+  dangerText: { color: colors.danger },
 });
