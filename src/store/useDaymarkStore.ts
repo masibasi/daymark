@@ -24,7 +24,6 @@ interface DaymarkState {
   setSelectedTodayDate: (date: string) => void;
   moveTaskToDate: (taskId: string, date?: string) => void;
   setProjectAttentionDays: (projectId: string, days: number) => void;
-  removeTimeBlock: (blockId: string) => void;
   setDayMarkVariant: (variant: DayMarkVariant) => void;
 }
 
@@ -37,7 +36,7 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   calendarView: 'week',
   calendarDate: prototypeDate.toISOString(),
   selectedTodayDate: '2026-09-22',
-  dayMarkVariant: 'current',
+  dayMarkVariant: 'wash',
   toggleTask: (taskId) => set((state) => ({
     tasks: state.tasks.map((task) => task.id === taskId
       ? { ...task, completedAt: task.completedAt ? undefined : setHours(parseISO(state.selectedTodayDate), 12).toISOString() }
@@ -67,6 +66,5 @@ export const useDaymarkStore = create<DaymarkState>((set) => ({
   setProjectAttentionDays: (projectId, days) => set((state) => ({
     projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
   })),
-  removeTimeBlock: (blockId) => set((state) => ({ timeBlocks: state.timeBlocks.filter((block) => block.id !== blockId) })),
   setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
 }));

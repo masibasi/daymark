@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -13,18 +14,38 @@ interface HistoryCalendarProps {
 }
 
 export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCalendarProps) {
-  const days = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(selectedDate), { weekStartsOn: 0 }),
-    end: endOfWeek(endOfMonth(selectedDate), { weekStartsOn: 0 }),
-  });
+  const { width } = useWindowDimensions();
+  const [expanded, setExpanded] = useState(() => width >= 820);
+
+  const days = expanded
+    ? eachDayOfInterval({
+      start: startOfWeek(startOfMonth(selectedDate), { weekStartsOn: 0 }),
+      end: endOfWeek(endOfMonth(selectedDate), { weekStartsOn: 0 }),
+    })
+    : eachDayOfInterval({
+      start: startOfWeek(selectedDate, { weekStartsOn: 0 }),
+      end: endOfWeek(selectedDate, { weekStartsOn: 0 }),
+    });
+
+  const goToPrevious = () => onSelectDate(expanded ? subMonths(selectedDate, 1) : subWeeks(selectedDate, 1));
+  const goToNext = () => onSelectDate(expanded ? addMonths(selectedDate, 1) : addWeeks(selectedDate, 1));
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, expanded && styles.cardExpanded]}>
       <View style={styles.header}>
         <Text style={styles.title}>{format(selectedDate, 'MMMM yyyy')}</Text>
         <View style={styles.controls}>
-          <Pressable accessibilityLabel="Previous history month" onPress={() => onSelectDate(subMonths(selectedDate, 1))} style={styles.arrow}><Ionicons name="chevron-back" size={16} color={colors.ink} /></Pressable>
-          <Pressable accessibilityLabel="Next history month" onPress={() => onSelectDate(addMonths(selectedDate, 1))} style={styles.arrow}><Ionicons name="chevron-forward" size={16} color={colors.ink} /></Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={expanded ? 'Show one week' : 'Show full month'}
+            accessibilityState={{ expanded }}
+            onPress={() => setExpanded((current) => !current)}
+            style={styles.arrow}
+          >
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.ink} />
+          </Pressable>
+          <Pressable accessibilityLabel={expanded ? 'Previous history month' : 'Previous history week'} onPress={goToPrevious} style={styles.arrow}><Ionicons name="chevron-back" size={16} color={colors.ink} /></Pressable>
+          <Pressable accessibilityLabel={expanded ? 'Next history month' : 'Next history week'} onPress={goToNext} style={styles.arrow}><Ionicons name="chevron-forward" size={16} color={colors.ink} /></Pressable>
         </View>
       </View>
       <View style={styles.weekdays}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
@@ -32,7 +53,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCa
         {days.map((day) => {
           const selected = isSameDay(day, selectedDate);
           return (
-            <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, !isSameMonth(day, selectedDate) && styles.outside]}>
+            <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, expanded && !isSameMonth(day, selectedDate) && styles.outside]}>
               <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day)} size={22} strokeWidth={3.5} /></View>
               <Text style={[styles.dayNumber, selected && styles.selectedNumber]}>{format(day, 'd')}</Text>
             </Pressable>
@@ -44,7 +65,8 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCa
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 300, minHeight: 352, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  card: { flex: 1, minWidth: 300, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  cardExpanded: { minHeight: 352 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
   title: { ...type.section, color: colors.ink, fontFamily },
   controls: { flexDirection: 'row', gap: 4 },

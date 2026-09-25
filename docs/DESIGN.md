@@ -39,13 +39,13 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 ## Day Orbit
 
-The Orbit uses one continuous neutral track. Completed category colors sit directly against one another and collectively expand around the ring, so new completion appears to push the existing colors forward rather than lighting up isolated fragments. Inside, a much paler layer of translucent category-colored liquid rises with overall completion; overlapping edges suggest diluted watercolor without becoming a dark mixed mass. The large Today mark breathes almost imperceptibly, while calendar marks stay static for clarity and performance. Completion history is derived from `completedAt` only.
+The Orbit is drawn as Watercolor wash, the shipped default after comparing four treatments on the `/daymark-lab` study route. Each category keeps its own ribbon-band arc in a softened `mark` tone, sized by share and filled by completion; a pale wash bleeds inward from each arc's own segment, so colors touch at their boundaries but never mix or overlap into a blended mass. The large Today mark breathes almost imperceptibly; calendar-size and history marks stay static for clarity and performance. Completion history is derived from `completedAt` only. The other three studies (Soft ribbon, Glass vessel, and the original baseline) remain on the lab route for reference and comparison, not as live alternatives.
 
 ## Deadline urgency
 
-Deadline cards should be understandable before their labels are read. Distant work stays white/neutral, the normal attention window uses a faint project-category tint, D−3 uses a warm cream tint, and D−1/due-today uses a restrained rose tint with a stronger edge. Urgency increases through surface intensity, not size, flashing, or an all-red screen.
+Deadline cards are neutral surfaces (`colors.paper` on `colors.line`) at every urgency step — the card itself never tints. Urgency is carried only by the `D−n` label color: muted gray for distant work, soft ink inside the attention window, full ink at D−3, and danger red at D−1/due-today. Urgency increases through label color alone, not surface tint, size, flashing, or an all-red screen.
 
-Each Project can choose when the first tint begins: 3, 7, 14, or 30 days before its deadline. This preference is shown in Project Detail and updates the Today preview immediately.
+Each Project can choose when the label starts to darken: 3, 7, 14, or 30 days before its deadline. This preference is shown in Project Detail ("Emphasize this deadline from") and updates the Today preview immediately.
 
 ## Task interaction
 
@@ -57,11 +57,11 @@ Week view prioritizes geometry: fixed time gutter, clear day columns, faint half
 
 Month cells show date, a small Day Orbit, up to three compact lines, then a `+N` disclosure. Deadlines use a small flag treatment, not an alarm-red card.
 
-Today also includes a quieter completion-history calendar. Its cells favor the Day Orbit over event density; selecting a date moves the Today context to that day's tasks and completion record. This is navigation and reflection, not a second scheduling calendar.
+Today also includes a quieter completion-history calendar. Its cells favor the Day Orbit over event density; selecting a date moves the Today context to that day's tasks and completion record. This is navigation and reflection, not a second scheduling calendar. It defaults to collapsed (just the Sun–Sat week containing the selected date) on phone, and expanded (the full month) on desktop, where it sits beside the Day Mark card; a quiet chevron toggle in its header switches between them, and the prev/next arrows step by week or month to match the current state.
 
 Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
 
-Today also includes a compact "Time today" rail between Upcoming deadlines and the task list, as a V0 interaction study — not a final scheduling direction. It shows a single 8 AM–9 PM strip with events (neutral blue-gray) and Task TimeBlocks (category-tinted) for the displayed day, a now-tick when viewing today, and a one-line summary of what's next. Each unfinished Task row also gets a small "Reserve time" clock affordance beside its `…` menu; tapping it opens an inline tray (duration chips, up to three free-slot suggestions, and a "tap an open gap on the rail" alternative) rather than a modal, so the Task can pick up a TimeBlock without a trip to the Calendar tab. Reserving time never completes the Task. The header's weather line is labeled "sample weather" so it reads honestly as mock data.
+A Today time rail and per-Task "Reserve time" tray were tried as a V0 interaction study and removed after review — the interaction didn't resonate with the product owner. Today scheduling goes through the Calendar tab's select-then-tap-slot flow; a different Today-native scheduling interaction may be explored later. The header's weather line stays labeled "sample weather" so it reads honestly as mock data.
 
 ## Responsive rules
 
@@ -71,4 +71,4 @@ Today also includes a compact "Time today" rail between Upcoming deadlines and t
 
 ## Components
 
-`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, `QuickAdd`, and `TodayTimeline` (the Today time-rail study).
+`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
