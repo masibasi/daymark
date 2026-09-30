@@ -62,3 +62,7 @@ Supabase/PostgreSQL can later store users, categories, projects, tasks, time blo
 - Archived projects remain historical but do not appear as upcoming.
 - Deleted provider events must not delete Tasks.
 - Time zones and all-day event boundaries need explicit provider normalization before real sync.
+
+## Web deployment
+
+Pushing `codex/v0-rebuild` runs `.github/workflows/deploy-web.yml`, which typechecks, exports the web build with `EXPO_BASE_URL=/daymark` (read by `app.config.js`), adds a `404.html` SPA fallback and home-screen tags, and publishes to GitHub Pages at https://masibasi.github.io/daymark/. Local development keeps serving from the site root. Data stays in each browser's storage; the deployed site has no backend.

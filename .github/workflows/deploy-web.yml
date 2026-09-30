@@ -1,0 +1,49 @@
+name: Deploy web to GitHub Pages
+
+on:
+  push:
+    branches: [codex/v0-rebuild]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx expo export -p web
+        env:
+          EXPO_BASE_URL: /daymark
+      - name: Add SPA fallback and home screen tags
+        run: |
+          cp assets/icon.png dist/apple-touch-icon.png
+          sed -i 's#</head>#<link rel="apple-touch-icon" href="/daymark/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Daymark"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>#' dist/index.html
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
