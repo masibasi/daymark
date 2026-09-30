@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Link } from 'expo-router';
 import { format, isSameDay, parseISO } from 'date-fns';
@@ -7,7 +7,8 @@ import { DayOrbit } from '@/components/DayOrbit';
 import { HistoryCalendar } from '@/components/HistoryCalendar';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TaskSection } from '@/components/TaskSection';
-import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
+import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
+import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectGhostRoutines, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -25,6 +26,13 @@ export default function TodayScreen() {
   const addTask = useDaymarkStore((state) => state.addTask);
   const addRoutine = useDaymarkStore((state) => state.addRoutine);
   const addTaskFromRoutine = useDaymarkStore((state) => state.addTaskFromRoutine);
+  const removeRoutine = useDaymarkStore((state) => state.removeRoutine);
+  const moveTaskInDay = useDaymarkStore((state) => state.moveTaskInDay);
+  const showToast = useDaymarkStore((state) => state.showToast);
+  const [scrollLocked, setScrollLocked] = useState(false);
+  const scrollY = useRef(0);
+  const maxScrollY = useRef(0);
+  const viewportHeight = useRef(0);
   const [addingListId, setAddingListId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -37,6 +45,18 @@ export default function TodayScreen() {
   const segments = selectDayOrbit(tasks, selectedDate, categories);
   const completed = selectCompletedCountOnDay(dayTasks, selectedDate);
   const isToday = isSameDay(selectedDate, now());
+  const drag = useTaskDragController({
+    scrollRef,
+    getScrollY: () => scrollY.current,
+    getMaxScrollY: () => maxScrollY.current,
+    setScrollLocked,
+    canMove: useCallback((taskId: string, toCategoryId: string) => {
+      const task = useDaymarkStore.getState().tasks.find((item) => item.id === taskId);
+      return !task || task.categoryId === toCategoryId || !(task.completedAt || task.projectId);
+    }, []),
+    onDrop: (taskId, toCategoryId, toIndex) => moveTaskInDay(taskId, toCategoryId, toIndex, selectedTodayDate),
+    onBlocked: () => showToast('Project and completed tasks stay in their list'),
+  });
   // Bring the opened inline input comfortably into view above the keyboard.
   const reveal = (node: View | null) => {
     if (!node) return;
@@ -48,7 +68,13 @@ export default function TodayScreen() {
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
   return (
-    <ScrollView ref={scrollRef} contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+    <TaskDragContext.Provider value={drag}>
+    <ScrollView
+      ref={scrollRef} scrollEnabled={!scrollLocked} scrollEventThrottle={16}
+      onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
+      onLayout={(event) => { viewportHeight.current = event.nativeEvent.layout.height; }}
+      onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
+      contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View ref={contentRef} collapsable={false} style={styles.page}>
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
 
@@ -74,6 +100,7 @@ export default function TodayScreen() {
               category={group.category}
               tasks={group.tasks}
               routines={selectRoutinesForList(routines, group.category.id)}
+              ghosts={group.category.archived ? [] : selectGhostRoutines(routines, dayTasks, group.category.id, selectedDate, now())}
               onToggle={toggleTask}
               onMove={moveTaskToDate}
               onDelete={deleteTask}
@@ -84,7 +111,8 @@ export default function TodayScreen() {
               onCloseAdd={() => setAddingListId((current) => (current === group.category.id ? null : current))}
               onAddTask={addTask}
               onAddRoutine={addRoutine}
-              onAddFromRoutine={(routineId) => addTaskFromRoutine(routineId, selectedTodayDate)}
+              onAddFromRoutine={(routineId, complete) => addTaskFromRoutine(routineId, selectedTodayDate, complete)}
+              onRemoveRoutine={removeRoutine}
               onReveal={reveal}
             />
           ))}
@@ -92,6 +120,7 @@ export default function TodayScreen() {
         </View>
       </View>
     </ScrollView>
+    </TaskDragContext.Provider>
   );
 }
 

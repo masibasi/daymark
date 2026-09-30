@@ -5,6 +5,7 @@ import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
+import { UndoToast } from './UndoToast';
 
 const navItems = [
   { href: '/', label: 'Today', icon: 'sunny-outline', activeIcon: 'sunny' },
@@ -47,7 +48,7 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <View style={[styles.root, { paddingTop: desktop ? 0 : insets.top }]}>
       {desktop ? nav : null}
-      <View style={[styles.content, showBottomNav && { paddingBottom: 72 + insets.bottom }]}>{children}</View>
+      <View style={[styles.content, showBottomNav && { paddingBottom: 72 + insets.bottom }]}>{children}<UndoToast bottom={showBottomNav ? 72 + insets.bottom + space.sm : space.lg} /></View>
       {showBottomNav ? nav : null}
     </View>
   );

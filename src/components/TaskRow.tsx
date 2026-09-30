@@ -5,7 +5,6 @@ import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { DatePickerModal } from './DatePickerModal';
-import { confirmAction } from '@/domain/confirm';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 
 interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; onSaveRoutine?: () => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
@@ -54,11 +53,10 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
   const menuTop = below + menuHeight > viewport.height - space.md ? Math.max(space.md, anchor.y - menuHeight - 4) : below;
   const menuRight = Math.max(space.xs, viewport.width - (anchor.x + anchor.width));
 
-  const deleteTask = async () => {
+  // Deleting is instant; the app-level toast offers Undo.
+  const deleteTask = () => {
     setMenuOpen(false);
-    if (!onDelete) return;
-    const confirmed = await confirmAction('Delete task', `Delete "${task.title}"? This cannot be undone.`, 'Delete');
-    if (confirmed) onDelete();
+    onDelete?.();
   };
 
   return (

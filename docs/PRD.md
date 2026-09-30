@@ -45,7 +45,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Task completion, project progress, add-to-Today, and mock scheduling.
 - User-managed lists (the UI name for categories): add, rename, recolor (six distinct palette colors), reorder with up/down controls, and remove (archived, never hard-deleted, so history keeps its name and color). Lists are flat; the first-run defaults are Study, Career, Personal, and Health.
 - Per-list inline add on Today: every active list is a section ending in a quiet "+ Add" row that opens an inline input for the displayed day; Enter adds and keeps the input open for rapid entry.
-- Routines: one-tap templates for things done often. They appear as chips while a list's add input is open; tapping one creates a normal Task for the displayed day. Nothing is auto-generated.
+- Routines: one-tap templates for things done often. They appear as faint ghost rows at the end of a list on today and future days; tapping one creates a normal Task for that day (tapping its circle creates it already done). Nothing is auto-generated.
 - Mobile web polish: inputs are 16px so iOS Safari does not zoom, and the phone bottom bar hides while typing.
 - Creating a Project (title, category, deadline) and adding/deleting its steps from Project Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
 - A Settings screen to load sample data or erase all local data, with confirmation.
@@ -67,7 +67,7 @@ Daymark is not intended to match the arbitrary list hierarchy of a general todo 
 
 ## Non-goals
 
-No authentication, backend, real provider integration, social features, teams, AI scheduling, notifications, analytics, streaks, points, or drag-and-drop in V0.
+No authentication, backend, real provider integration, social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
 
 ## V0 acceptance criteria
 

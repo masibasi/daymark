@@ -38,6 +38,8 @@ export interface Task {
   scheduledDate?: ISODate;
   completedAt?: ISODateTime;
   routineId?: string;
+  // Position within its list on its scheduled day (0-based). Unordered tasks sort first, in array order.
+  order?: number;
 }
 
 export interface TimeBlock {

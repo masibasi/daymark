@@ -14,6 +14,11 @@ export function selectTodayTasks(tasks: Task[], date: Date): Task[] {
   return tasks.filter((task) => task.scheduledDate === key);
 }
 
+// Stable rule: tasks without `order` come first in their existing array order, then ordered tasks by `order`.
+export function sortTasksByOrder(tasks: Task[]): Task[] {
+  return tasks.map((task, index) => ({ task, index })).sort((a, b) => (a.task.order ?? -1) - (b.task.order ?? -1) || a.index - b.index).map((entry) => entry.task);
+}
+
 export function selectActiveCategories(categories: Category[]): Category[] {
   return categories.filter((category) => !category.archived).sort((a, b) => a.order - b.order);
 }
@@ -27,7 +32,7 @@ export function selectTodaySections(tasks: Task[], categories: Category[]): Arra
   return categories
     .slice()
     .sort((a, b) => a.order - b.order)
-    .map((category) => ({ category, tasks: tasks.filter((task) => task.categoryId === category.id) }))
+    .map((category) => ({ category, tasks: sortTasksByOrder(tasks.filter((task) => task.categoryId === category.id)) }))
     .filter((group) => !group.category.archived || group.tasks.length > 0);
 }
 
@@ -80,4 +85,10 @@ export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[])
 
 export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
   return tasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
+}
+
+// Routines shown as ghost rows: this list's routines not yet added on `day`. Never for past days.
+export function selectGhostRoutines(routines: Routine[], tasks: Task[], categoryId: CategoryId, day: Date, today: Date): Routine[] {
+  if (differenceInCalendarDays(day, today) < 0) return [];
+  return selectRoutinesForList(routines, categoryId).filter((routine) => !selectRoutineAddedOnDay(tasks, routine.id, day));
 }
