@@ -24,8 +24,8 @@
 
 ## V0.5 — account and sync foundation
 
-- Supabase/PostgreSQL, authentication, multi-device sync.
-- Offline queue, conflict rules, telemetry, and privacy controls.
+- Done (2026-09-30, awaiting owner's real-device test): Supabase email/password auth, multi-device item sync, offline dirty queue, last-writer-wins conflict rule. See `docs/ARCHITECTURE.md` "Sync".
+- Still open: password reset, field-level conflict handling, realtime push instead of polling, telemetry, privacy controls.
 
 ## V1 — Google Calendar and public beta
 

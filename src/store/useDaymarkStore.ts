@@ -6,6 +6,7 @@ import type { CalendarEvent, CalendarView, Category, CategoryId, DayMarkVariant,
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
 import { sortTasksByOrder } from '@/domain/selectors';
+import { applyChanges, type RemoteChange } from '@/sync/merge';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks } from './mockData';
 
 // What the last delete removed, so Undo can put it back exactly (same ids, order, completedAt). Never persisted.
@@ -55,6 +56,7 @@ interface DaymarkState {
   deleteTask: (taskId: string) => void;
   loadSampleData: () => void;
   eraseAllData: () => void;
+  applyRemoteItems: (changes: RemoteChange[]) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
@@ -70,8 +72,12 @@ const nextOrder = (tasks: Task[], day: string, categoryId: CategoryId, excludeId
 // Same stamp toggleTask uses: real time for today, noon for a browsed day.
 const completionStamp = (day: string) => (day === todayKey() ? now() : setHours(parseISO(day), 12)).toISOString();
 
-let idCounter = 0;
-const newId = (prefix: string) => `${prefix}-${Date.now()}-${idCounter++}`;
+// Globally unique: two devices may create items at the same millisecond, so ids carry random bits.
+const randomPart = () => {
+  const bytes = globalThis.crypto?.getRandomValues?.(new Uint32Array(2));
+  return bytes ? `${bytes[0].toString(36)}${bytes[1].toString(36)}` : `${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+};
+const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${randomPart()}`;
 
 const activeOrdered = (categories: Category[]) => categories.filter((category) => !category.archived).sort((a, b) => a.order - b.order);
 
@@ -111,7 +117,7 @@ export const useDaymarkStore = create<DaymarkState>()(
           : task),
       })),
       addTimeBlock: (taskId, startAt, endAt) => set((state) => ({
-        timeBlocks: [...state.timeBlocks, { id: `block-${Date.now()}`, taskId, startAt, endAt }],
+        timeBlocks: [...state.timeBlocks, { id: newId('block'), taskId, startAt, endAt }],
         scheduleTaskId: undefined,
       })),
       setCalendarView: (calendarView) => set({ calendarView }),
@@ -206,7 +212,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       })),
       setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
       addProject: ({ title, categoryId, deadline }) => set((state) => ({
-        projects: [...state.projects, { id: `project-${Date.now()}`, title: title.trim(), categoryId, deadline, status: 'active' }],
+        projects: [...state.projects, { id: newId('project'), title: title.trim(), categoryId, deadline, status: 'active' }],
       })),
       deleteProject: (projectId) => set((state) => {
         const taskIds = new Set(state.tasks.filter((task) => task.projectId === projectId).map((task) => task.id));
@@ -219,7 +225,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       addProjectTask: (projectId, title) => set((state) => {
         const project = state.projects.find((item) => item.id === projectId);
         if (!project || !title.trim()) return state;
-        return { tasks: [...state.tasks, { id: `task-${Date.now()}`, title: title.trim(), categoryId: project.categoryId, projectId }] };
+        return { tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId }] };
       }),
       deleteTask: (taskId) => set((state) => {
         const index = state.tasks.findIndex((task) => task.id === taskId);
@@ -242,6 +248,19 @@ export const useDaymarkStore = create<DaymarkState>()(
         };
       }),
       eraseAllData: () => set({ projects: [], tasks: [], timeBlocks: [], lastDeleted: null, toast: null }),
+      // Synced rows from another device. Upserts/removes by id per kind; leaves `order` and all derived rules alone.
+      applyRemoteItems: (changes) => set((state) => {
+        const of = (kind: RemoteChange['kind']) => changes.filter((change) => change.kind === kind);
+        const categories = applyChanges(state.categories, of('category'));
+        const projects = applyChanges(state.projects, of('project'));
+        const tasks = applyChanges(state.tasks, of('task'));
+        const timeBlocks = applyChanges(state.timeBlocks, of('timeBlock'));
+        const routines = applyChanges(state.routines, of('routine'));
+        const variant = of('preference').find((change) => change.id === 'dayMarkVariant' && !change.deleted)?.data as { value?: DayMarkVariant } | undefined;
+        const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current'].includes(variant.value) ? variant.value : state.dayMarkVariant;
+        if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant) return state;
+        return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant };
+      }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {

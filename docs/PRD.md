@@ -48,7 +48,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Routines: one-tap templates for things done often. They appear as faint ghost rows at the end of a list on today and future days; tapping one creates a normal Task for that day (tapping its circle creates it already done). Nothing is auto-generated.
 - Mobile web polish: inputs are 16px so iOS Safari does not zoom, and the phone bottom bar hides while typing.
 - Creating a Project (title, category, deadline) and adding/deleting its steps from Project Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
-- A Settings screen to load sample data or erase all local data, with confirmation.
+- A Settings screen to load sample data or erase all data, with confirmation, plus an optional Account section: sign in with email and password to sync lists, projects, tasks, time blocks, and routines across devices (Supabase; owner request 2026-09-30). The app is fully usable signed out.
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation, collapsible to one week (default on phone) or expanded to the full month (default on desktop).
 - Visual study route comparing Day Mark directions at 0, 25, 50, and 100 percent completion; Watercolor wash is the shipped default, chosen after that comparison.
@@ -56,7 +56,7 @@ The first user is an individual balancing study, career, personal, and routine w
 
 ## V1 scope
 
-- Account and multi-device sync.
+- Account management beyond email/password (password reset, multiple profiles).
 - Google Calendar read/write through a provider boundary.
 - Production-grade local persistence and conflict handling.
 - Public beta quality, accessibility, onboarding, and empty states.
@@ -67,7 +67,7 @@ Daymark is not intended to match the arbitrary list hierarchy of a general todo 
 
 ## Non-goals
 
-No authentication, backend, real provider integration, social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
+No real provider integration (auth and item sync via Supabase are allowed since 2026-09-30), social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
 
 ## V0 acceptance criteria
 

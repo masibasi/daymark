@@ -25,7 +25,7 @@ Daymark is a calm, personal productivity app: daily todos + deadline-driven proj
 
 ## Scope boundaries (hard limits — do not add without explicit user request)
 
-No Supabase, no auth, no real Google Calendar API, no production database, no push notifications, no social features (feeds/followers/sharing), no gamification (confetti/XP/streaks/badges). Drag-and-drop is allowed only to reorder Tasks within Today's lists and move them between lists (owner request 2026-09-30; completed and project tasks may reorder but never change list). Calendar scheduling remains select-task-then-tap-slot only; no other drag-and-drop (see `docs/DECISIONS.md`). See `docs/ROADMAP.md` for what's deferred vs. permanently out of scope — read it before assuming something is "just not built yet."
+Supabase email/password auth and item sync are allowed (owner request 2026-09-30; local-first, the app must keep working signed out, see `docs/ARCHITECTURE.md` "Sync"). No real Google Calendar API, no other backend, no push notifications, no social features (feeds/followers/sharing), no gamification (confetti/XP/streaks/badges). Drag-and-drop is allowed only to reorder Tasks within Today's lists and move them between lists (owner request 2026-09-30; completed and project tasks may reorder but never change list). Calendar scheduling remains select-task-then-tap-slot only; no other drag-and-drop (see `docs/DECISIONS.md`). See `docs/ROADMAP.md` for what's deferred vs. permanently out of scope — read it before assuming something is "just not built yet."
 
 ## Coding standards
 

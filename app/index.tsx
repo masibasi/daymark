@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
@@ -76,7 +77,7 @@ export default function TodayScreen() {
       onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
       contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View ref={contentRef} collapsable={false} style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
 
         <View style={[styles.overview, wide && styles.overviewWide]}>
           <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
@@ -125,6 +126,7 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
+  settingsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   scroll: { flexGrow: 1 },
   scrollKeyboard: { paddingBottom: 320 },
   page: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },

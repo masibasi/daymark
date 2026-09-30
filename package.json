@@ -11,6 +11,7 @@
   "dependencies": {
     "@expo/vector-icons": "latest",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.109.0",
     "date-fns": "latest",
     "expo": "~57.0.24",
     "expo-router": "~57.0.22",
@@ -21,6 +22,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "^15.15.4",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-web": "latest",
     "zustand": "latest"
   },

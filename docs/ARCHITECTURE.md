@@ -51,9 +51,17 @@ There is exactly one Day Orbit calculation. It uses `completedAt` only; `schedul
 
 Calendar access is represented by a `CalendarProvider` interface. V0 uses `MockCalendarProvider`. A future Google provider will map provider events to `CalendarEvent` and preserve `externalCalendarEventId` on Daymark-created TimeBlocks to prevent duplicates.
 
-## Future backend
+## Sync
 
-Supabase/PostgreSQL can later store users, categories, projects, tasks, time blocks, provider connections, and sync cursors. The client repository boundary should replace mock persistence without changing domain semantics.
+Owner-requested (2026-09-30). Supabase Auth (email + password) and one Postgres table, `daymark_items` (`supabase/schema.sql`), hold each synced entity as a row `(user_id, kind, id, data jsonb, deleted, client_updated_at, updated_at)`; RLS limits rows to their owner and there is no delete policy, so deletes are tombstones (`deleted = true`). Synced kinds: `category`, `project`, `task`, `timeBlock`, `routine`, and a `preference` row for `dayMarkVariant`. Mock events, view state, and toasts are never synced. The app is local-first: the zustand store is the source of truth and everything works signed out.
+
+Code is in `src/sync/`. `merge.ts` holds the pure rules (diffing, `decideRemote`, applying rows); `engine.ts` runs the cycle; `syncStore.ts` exposes status to the UI.
+
+- **Change tracking.** The engine subscribes to the store and diffs collections by item reference; each added/changed/removed item becomes a dirty entry `{kind, id, clientUpdatedAt, deleted}` kept in AsyncStorage (`daymark-sync-v1`, with `userId` and `lastPulledAt`), so offline edits survive reloads. Removal entries keep the last copy so the tombstone can be pushed later. Applying remote rows sets an `applyingRemote` flag so they are not re-recorded.
+- **Cycle = pull, then push.** Pull fetches rows with `updated_at > lastPulledAt` (server clock cursor). A row is skipped only if a local dirty entry has a newer `clientUpdatedAt`; otherwise it is applied through `applyRemoteItems` and the dirty entry dropped. Push upserts dirty items in batches and drops an entry only if it was not edited again meanwhile. Failures keep all dirty entries; network errors show "Offline".
+- **Triggers.** Sign-in, app start with a session, web focus/visibility/online, native AppState active, every 60 s, and 1.5 s after a local change.
+- **First sign-in on a device.** Every local item is marked dirty at epoch time, so any server copy of the same id wins and only local-only items are uploaded. Default lists share ids across devices and merge. A different user signing in resets this state.
+- **Ids** are `prefix-<time36>-<random>` so two devices never collide. Conflict rule is last-writer-wins per item by client timestamp (device clock skew is accepted).
 
 ## Important edge cases
 
@@ -66,7 +74,7 @@ Supabase/PostgreSQL can later store users, categories, projects, tasks, time blo
 
 ## Web deployment
 
-Pushing `codex/v0-rebuild` runs `.github/workflows/deploy-web.yml`, which typechecks, exports the web build with `EXPO_BASE_URL=/daymark` (read by `app.config.js`), adds a `404.html` SPA fallback and home-screen tags, and publishes to GitHub Pages at https://masibasi.github.io/daymark/. Local development keeps serving from the site root. Data stays in each browser's storage; the deployed site has no backend.
+Pushing `codex/v0-rebuild` runs `.github/workflows/deploy-web.yml`, which typechecks, exports the web build with `EXPO_BASE_URL=/daymark` (read by `app.config.js`), adds a `404.html` SPA fallback and home-screen tags, and publishes to GitHub Pages at https://masibasi.github.io/daymark/. Local development keeps serving from the site root. Data stays in each browser's storage unless the owner signs in, in which case it syncs through Supabase (see Sync). The publishable Supabase key in `src/sync/config.ts` is public by design.
 
 ## Lists and routines
 

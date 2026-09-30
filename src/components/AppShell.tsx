@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
 import { UndoToast } from './UndoToast';
@@ -17,6 +18,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const email = useSyncStatus((state) => state.email);
   const desktop = width >= 760;
   const keyboardVisible = useKeyboardVisible();
   const showBottomNav = !desktop && !keyboardVisible;
@@ -39,7 +41,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </View>
       {desktop ? (
         <Link href="/settings" asChild>
-          <Pressable style={styles.avatar}><Text style={styles.avatarText}>JL</Text></Pressable>
+          <Pressable style={styles.avatar}><Text style={styles.avatarText}>{email ? email[0].toUpperCase() : 'JL'}</Text></Pressable>
         </Link>
       ) : null}
     </View>

@@ -11,7 +11,7 @@ Hard rules:
 - Adding a project subtask to Today updates the same Task.
 - Day Orbit completion is based on `completedAt` only and is calculated in one selector.
 - Category colors remain distinct; never blend them into new colors.
-- No backend, authentication, real calendar API, social layer, or gamification in V0. Drag-and-drop is allowed only for ordering/moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling stays select-then-tap; no other drag-and-drop.
+- Supabase email/password auth and item sync are allowed (owner request 2026-09-30); the app stays local-first and works signed out. Still no real calendar API, social layer, or gamification. Drag-and-drop is allowed only for ordering/moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling stays select-then-tap; no other drag-and-drop.
 - Use TypeScript strict mode, function components, shared theme tokens, and `StyleSheet.create`.
 
 Run `npx expo start --web` and `npx tsc --noEmit` after meaningful changes. Visually verify mobile and desktop layouts before considering UI work complete.
