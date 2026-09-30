@@ -8,7 +8,8 @@ import { selectDeadlineDays, selectProjectProgress, selectProjectTasks } from '@
 import { now, todayKey } from '@/domain/clock';
 import { confirmAction } from '@/domain/confirm';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,6 +21,7 @@ export default function ProjectDetailScreen() {
   const addProjectTask = useDaymarkStore((state) => state.addProjectTask);
   const deleteTask = useDaymarkStore((state) => state.deleteTask);
   const deleteProject = useDaymarkStore((state) => state.deleteProject);
+  const paletteFor = useCategoryPalette();
   const [stepTitle, setStepTitle] = useState('');
   const project = projects.find((item) => item.id === id);
   if (!project) return <View style={styles.empty}><Text>Project not found.</Text></View>;
@@ -27,7 +29,7 @@ export default function ProjectDetailScreen() {
   const progress = selectProjectProgress(tasks, project.id);
   const percent = progress.total ? progress.completed / progress.total : 0;
   const days = selectDeadlineDays(project.deadline, now());
-  const palette = categoryPalette[project.categoryId];
+  const palette = paletteFor(project.categoryId);
 
   const addStep = () => {
     if (!stepTitle.trim()) return;
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
   doneDate: { ...type.meta, color: colors.muted, minWidth: 62, textAlign: 'center', fontFamily },
   emptySteps: { ...type.body, color: colors.muted, paddingVertical: space.sm, fontFamily },
   addStepRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderColor: colors.line },
-  addStepInput: { flex: 1, minHeight: 40, ...type.bodyMedium, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
+  addStepInput: { flex: 1, minHeight: 40, ...type.bodyMedium, fontSize: 16, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
   addStepButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   deleteProject: { alignSelf: 'center', marginTop: space.xl },
   deleteProjectText: { ...type.bodyMedium, color: colors.danger, fontFamily },

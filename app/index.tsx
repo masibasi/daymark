@@ -1,13 +1,13 @@
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Link } from 'expo-router';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
 import { DayOrbit } from '@/components/DayOrbit';
 import { HistoryCalendar } from '@/components/HistoryCalendar';
-import { QuickAdd } from '@/components/QuickAdd';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { TaskSection } from '@/components/TaskSection';
-import { selectCompletedCountOnDay, selectDayOrbit, selectTasksByCategory, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
+import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -17,25 +17,39 @@ export default function TodayScreen() {
   const wide = width >= 820;
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
+  const routines = useDaymarkStore((state) => state.routines);
   const tasks = useDaymarkStore((state) => state.tasks);
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
   const addTask = useDaymarkStore((state) => state.addTask);
+  const addRoutine = useDaymarkStore((state) => state.addRoutine);
+  const addTaskFromRoutine = useDaymarkStore((state) => state.addTaskFromRoutine);
+  const [addingListId, setAddingListId] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
   const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
   const deleteTask = useDaymarkStore((state) => state.deleteTask);
   const selectedDate = parseISO(selectedTodayDate);
   const dayTasks = selectTodayTasks(tasks, selectedDate);
-  const groups = selectTasksByCategory(dayTasks, categories);
+  const sections = selectTodaySections(dayTasks, categories);
   const upcoming = selectUpcomingProjects(projects, now());
-  const segments = selectDayOrbit(tasks, selectedDate);
+  const segments = selectDayOrbit(tasks, selectedDate, categories);
   const completed = selectCompletedCountOnDay(dayTasks, selectedDate);
   const isToday = isSameDay(selectedDate, now());
+  // Bring the opened inline input comfortably into view above the keyboard.
+  const reveal = (node: View | null) => {
+    if (!node) return;
+    setTimeout(() => {
+      if (Platform.OS === 'web') (node as unknown as HTMLElement).scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      else if (contentRef.current) node.measureLayout(contentRef.current, (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 180), animated: true }), () => undefined);
+    }, 250);
+  };
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <View style={styles.page}>
+    <ScrollView ref={scrollRef} contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <View ref={contentRef} collapsable={false} style={styles.page}>
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
 
         <View style={[styles.overview, wide && styles.overviewWide]}>
@@ -44,7 +58,7 @@ export default function TodayScreen() {
             <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
             <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
             <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
-            <View style={styles.legend}>{categories.map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+            <View style={styles.legend}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
           </View>
           <HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={(date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'))} />
         </View>
@@ -54,19 +68,27 @@ export default function TodayScreen() {
 
         <View style={styles.tasksColumn}>
           <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>
-          {groups.length > 0 ? groups.map((group) => (
+          {sections.map((group) => (
             <TaskSection
               key={group.category.id}
               category={group.category}
               tasks={group.tasks}
+              routines={selectRoutinesForList(routines, group.category.id)}
               onToggle={toggleTask}
               onMove={moveTaskToDate}
               onDelete={deleteTask}
               selectedDate={selectedTodayDate}
               projectNames={projectNames}
+              adding={addingListId === group.category.id}
+              onOpenAdd={() => setAddingListId(group.category.id)}
+              onCloseAdd={() => setAddingListId((current) => (current === group.category.id ? null : current))}
+              onAddTask={addTask}
+              onAddRoutine={addRoutine}
+              onAddFromRoutine={(routineId) => addTaskFromRoutine(routineId, selectedTodayDate)}
+              onReveal={reveal}
             />
-          )) : <Text style={styles.empty}>A clear day. Add something small, or leave it open.</Text>}
-          <QuickAdd categories={categories} onAdd={addTask} />
+          ))}
+          <Link href="/lists" style={styles.editLists}>Edit lists</Link>
         </View>
       </View>
     </ScrollView>
@@ -75,6 +97,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
+  scrollKeyboard: { paddingBottom: 320 },
   page: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
   overview: { gap: space.md, marginTop: space.lg },
   overviewWide: { flexDirection: 'row', alignItems: 'flex-start' },
@@ -97,5 +120,5 @@ const styles = StyleSheet.create({
   sectionTitle: { ...type.title, color: colors.ink, fontFamily },
   historyHint: { ...type.meta, color: colors.muted, marginTop: 2, fontFamily },
   taskCount: { ...type.meta, color: colors.muted, marginLeft: 'auto', marginTop: 8, fontFamily },
-  empty: { ...type.body, color: colors.muted, paddingVertical: space.lg, fontFamily },
+  editLists: { ...type.meta, color: colors.muted, marginTop: space.md, alignSelf: 'flex-start', fontFamily },
 });

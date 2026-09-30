@@ -7,9 +7,10 @@ Expo + React Native + React Native Web with TypeScript and Expo Router. Screens 
 ## Domain model
 
 ```ts
-Category { id, name, colorKey, order }
+Category { id: string, name, colorKey, order, archived? }   // UI name: "List"
+Routine { id, title, categoryId, order }
 Project { id, title, categoryId, deadline, status, notes?, attentionDays? }
-Task { id, title, categoryId, projectId?, scheduledDate?, completedAt? }
+Task { id, title, categoryId, projectId?, scheduledDate?, completedAt?, routineId? }
 TimeBlock { id, taskId, startAt, endAt, externalCalendarEventId? }
 CalendarEvent { id, provider, externalId, title, startAt, endAt, allDay, colorKey? }
 ```
@@ -28,9 +29,9 @@ Relationships:
 
 ## Local persistence
 
-The store is wrapped with zustand's `persist` middleware, backed by `@react-native-async-storage/async-storage` (which reads/writes `localStorage` on web) under the key `daymark-v0`, schema `version: 1`. `partialize` persists only `categories`, `projects`, `tasks`, `timeBlocks`, and `dayMarkVariant` — durable user data and preferences. Mock calendar `events`, `calendarView`, `calendarDate`, `scheduleTaskId`, and `selectedTodayDate` are session/view state and are never persisted. An unrecognized stored version is replaced by a safe empty state via `migrate` rather than crashing. `app/_layout.tsx` reads a `hasHydrated` flag (set from `onRehydrateStorage`) and renders only a blank canvas until hydration completes, so the first paint never flashes stale or wrong data.
+The store is wrapped with zustand's `persist` middleware, backed by `@react-native-async-storage/async-storage` (which reads/writes `localStorage` on web) under the key `daymark-v0`, schema `version: 2` (v1 → v2 keeps data, guarantees every category has `order`, and adds `routines`). `partialize` persists only `categories`, `routines`, `projects`, `tasks`, `timeBlocks`, and `dayMarkVariant` — durable user data and preferences. Mock calendar `events`, `calendarView`, `calendarDate`, `scheduleTaskId`, and `selectedTodayDate` are session/view state and are never persisted. An unrecognized stored version is replaced by a safe empty state via `migrate` rather than crashing. `app/_layout.tsx` reads a `hasHydrated` flag (set from `onRehydrateStorage`) and renders only a blank canvas until hydration completes, so the first paint never flashes stale or wrong data.
 
-On first run (nothing in storage yet), the store starts with the four fixed categories and empty `projects`/`tasks`/`timeBlocks`. Mock `events` still load from `mockData` as fixed sample calendar context. Settings offers `loadSampleData()` (replaces projects/tasks/timeBlocks with the `mockData` samples) and `eraseAllData()` (clears them back to empty), both used from `app/settings.tsx` behind a confirmation.
+On first run (nothing in storage yet), the store starts with four default lists (Study, Career, Personal, Health; the Health list keeps id `routine`) and empty `projects`/`tasks`/`timeBlocks`. Mock `events` still load from `mockData` as fixed sample calendar context. Settings offers `loadSampleData()` (replaces projects/tasks/timeBlocks with the `mockData` samples) and `eraseAllData()` (clears them back to empty), both used from `app/settings.tsx` behind a confirmation.
 
 ## Real clock
 
@@ -66,3 +67,13 @@ Supabase/PostgreSQL can later store users, categories, projects, tasks, time blo
 ## Web deployment
 
 Pushing `codex/v0-rebuild` runs `.github/workflows/deploy-web.yml`, which typechecks, exports the web build with `EXPO_BASE_URL=/daymark` (read by `app.config.js`), adds a `404.html` SPA fallback and home-screen tags, and publishes to GitHub Pages at https://masibasi.github.io/daymark/. Local development keeps serving from the site root. Data stays in each browser's storage; the deployed site has no backend.
+
+## Lists and routines
+
+`CategoryId` is a plain string; a list's colour comes from its `colorKey` into `categoryPalette` (six distinct keys), never from its id. Components resolve colours through `selectCategoryColorKey` (via the `useCategoryPalette` hook) and `DayOrbitSegment` carries its own `colorKey`. `selectDayOrbit(tasks, day, categories)` iterates every list in `order`, archived ones included, so history still renders. Store actions: `addCategory`, `updateCategory`, `moveCategory` (swaps `order` with the neighbouring active list), `archiveCategory` (hides the list from Today inputs, list management and composers; blocked for the last active list; never hard-deletes). Routines: `addRoutine`, `removeRoutine`, `addTaskFromRoutine(routineId, date)`, which creates a normal Task carrying `routineId`. `selectRoutinesForList` and `selectRoutineAddedOnDay` drive the chips.
+
+Today renders `selectTodaySections`: all active lists (even when empty) plus archived lists that have tasks that day. Only one list's inline add input is open at a time (state lives in `app/index.tsx`). The List management screen is `app/lists.tsx`.
+
+## Mobile web
+
+`useKeyboardVisible` (`src/theme`) hides the phone bottom bar while a text input is focused (web `focusin`/`focusout`) or the keyboard is showing (native). All TextInputs use font size 16 so iOS Safari does not zoom on focus, and the deploy workflow rewrites the viewport meta to `maximum-scale=1, viewport-fit=cover`.

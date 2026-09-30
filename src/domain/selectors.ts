@@ -1,8 +1,10 @@
 import { differenceInCalendarDays, format, isSameDay, parseISO, startOfDay } from 'date-fns';
-import type { Category, CategoryId, Project, Task } from './types';
+import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
+import type { Category, CategoryId, Project, Routine, Task } from './types';
 
 export interface DayOrbitSegment {
   categoryId: CategoryId;
+  colorKey: CategoryColorKey;
   share: number;
   completion: number;
 }
@@ -12,12 +14,30 @@ export function selectTodayTasks(tasks: Task[], date: Date): Task[] {
   return tasks.filter((task) => task.scheduledDate === key);
 }
 
-export function selectTasksByCategory(tasks: Task[], categories: Category[]): Array<{ category: Category; tasks: Task[] }> {
+export function selectActiveCategories(categories: Category[]): Category[] {
+  return categories.filter((category) => !category.archived).sort((a, b) => a.order - b.order);
+}
+
+export function selectCategoryColorKey(categories: Category[], categoryId: CategoryId): CategoryColorKey {
+  return categories.find((category) => category.id === categoryId)?.colorKey ?? categoryColorKeys[0];
+}
+
+// Today's sections: every active list (even when empty) plus any archived list that has tasks that day.
+export function selectTodaySections(tasks: Task[], categories: Category[]): Array<{ category: Category; tasks: Task[] }> {
   return categories
     .slice()
     .sort((a, b) => a.order - b.order)
     .map((category) => ({ category, tasks: tasks.filter((task) => task.categoryId === category.id) }))
-    .filter((group) => group.tasks.length > 0);
+    .filter((group) => !group.category.archived || group.tasks.length > 0);
+}
+
+export function selectRoutinesForList(routines: Routine[], categoryId: CategoryId): Routine[] {
+  return routines.filter((routine) => routine.categoryId === categoryId).sort((a, b) => a.order - b.order);
+}
+
+export function selectRoutineAddedOnDay(tasks: Task[], routineId: string, day: Date): boolean {
+  const key = format(day, 'yyyy-MM-dd');
+  return tasks.some((task) => task.routineId === routineId && task.scheduledDate === key);
 }
 
 export function selectProjectTasks(tasks: Task[], projectId: string): Task[] {
@@ -47,15 +67,14 @@ export function selectDeadlineTone(days: number, attentionDays = 7): 'muted' | '
   return 'muted';
 }
 
-export function selectDayOrbit(tasks: Task[], day: Date): DayOrbitSegment[] {
+export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[]): DayOrbitSegment[] {
   const relevant = tasks.filter((task) => task.scheduledDate === format(day, 'yyyy-MM-dd'));
   if (relevant.length === 0) return [];
-  const ids: CategoryId[] = ['study', 'career', 'personal', 'routine'];
-  return ids.flatMap((categoryId) => {
-    const categoryTasks = relevant.filter((task) => task.categoryId === categoryId);
+  return categories.slice().sort((a, b) => a.order - b.order).flatMap((category) => {
+    const categoryTasks = relevant.filter((task) => task.categoryId === category.id);
     if (categoryTasks.length === 0) return [];
     const completed = categoryTasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
-    return [{ categoryId, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length }];
+    return [{ categoryId: category.id, colorKey: category.colorKey, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length }];
   });
 }
 

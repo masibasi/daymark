@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
+import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
 
@@ -15,6 +16,7 @@ interface HistoryCalendarProps {
 
 export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCalendarProps) {
   const { width } = useWindowDimensions();
+  const categories = useDaymarkStore((state) => state.categories);
   const [expanded, setExpanded] = useState(() => width >= 820);
 
   const days = expanded
@@ -54,7 +56,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCa
           const selected = isSameDay(day, selectedDate);
           return (
             <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, expanded && !isSameMonth(day, selectedDate) && styles.outside]}>
-              <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day)} size={22} strokeWidth={3.5} /></View>
+              <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={22} strokeWidth={3.5} /></View>
               <Text style={[styles.dayNumber, selected && styles.selectedNumber]}>{format(day, 'd')}</Text>
             </Pressable>
           );

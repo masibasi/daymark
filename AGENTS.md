@@ -4,14 +4,14 @@ Guidance for Codex (and future engineers) working in this repo. Read `docs/PRD.m
 
 ## Goals
 
-Daymark is a calm, personal productivity app: daily todos + deadline-driven projects + calendar scheduling, unified by the **Day Mark** — a category-segmented completion ring. It is not a SaaS project-management tool, not social, not gamified. See `docs/PRD.md` for full product context.
+Daymark is a calm, personal productivity app: daily todos + deadline-driven projects + calendar scheduling, unified by the **Day Mark** — a list-segmented completion ring. It is not a SaaS project-management tool, not social, not gamified. See `docs/PRD.md` for full product context.
 
 ## Design principles (see docs/DESIGN.md for detail)
 
 - Calm and editorial, not "generic SaaS": minimal shadows, no gradients/glassmorphism, restrained icons, whitespace over borders.
-- Color is meaningful (category identity), not decorative. Never invent a new color outside `src/theme`.
+- Color is meaningful (list identity; lists are user-managed and resolved through `colorKey`, never through id), not decorative. Never invent a new color outside `src/theme`.
 - Completed tasks fade, they don't strike through. No confetti, streaks, XP, or badges — ever.
-- The Day Mark is always a **segmented ring** (one arc per category, sized by share, filled by completion), never a blended shape, never one micro-arc per task.
+- The Day Mark is always a **segmented ring** (one arc per list, sized by share, filled by completion), never a blended shape, never one micro-arc per task.
 
 ## Architecture rules (see docs/ARCHITECTURE.md for detail — do not violate without updating that doc first)
 

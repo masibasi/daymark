@@ -10,6 +10,7 @@
 - Day Mark shipped as Watercolor wash after the study route comparison; collapsible history calendar (week on phone, month on desktop) on Today.
 - Today time-rail and "reserve time" interaction study was tried and parked after review — it didn't resonate; removed from the app (preserved in git history). Today scheduling stays on the Calendar tab for now.
 - Local persistence (zustand `persist` + AsyncStorage), the real system clock in place of the fixed prototype date, project/step creation and deletion, and a Settings screen with sample-data/erase actions — done, so the owner can use Daymark day to day on their own device.
+- User-managed flat lists, per-list inline add on Today (replacing the bottom composer), tap-to-add routines, and mobile web fixes (no focus zoom, bottom bar hides while typing) — done after real phone use.
 
 ## V0.2 — local reliability and polish
 
@@ -34,3 +35,7 @@
 ## Later
 
 Android-specific polish, Apple Calendar/EventKit, notifications, widgets, optional social features, and assistive AI scheduling. These are not V1 commitments.
+
+## Not planned yet
+
+- Nested lists, un-archiving lists, and reordering routines.

@@ -6,7 +6,7 @@ export const initialCategories: Category[] = [
   { id: 'study', name: 'Study', colorKey: 'study', order: 0 },
   { id: 'career', name: 'Career', colorKey: 'career', order: 1 },
   { id: 'personal', name: 'Personal', colorKey: 'personal', order: 2 },
-  { id: 'routine', name: 'Routine', colorKey: 'routine', order: 3 },
+  { id: 'routine', name: 'Health', colorKey: 'routine', order: 3 },
 ];
 
 export const initialProjects: Project[] = [

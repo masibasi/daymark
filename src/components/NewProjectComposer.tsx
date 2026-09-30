@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { selectActiveCategories } from '@/domain/selectors';
 import type { Category, CategoryId } from '@/domain/types';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useDaymarkTheme } from '@/theme/useDaymarkTheme';
@@ -14,13 +15,14 @@ interface NewProjectComposerProps {
 
 export function NewProjectComposer({ categories, onCreate }: NewProjectComposerProps) {
   const { colors: themeColors, category } = useDaymarkTheme();
+  const activeCategories = selectActiveCategories(categories);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id ?? 'study');
+  const [categoryId, setCategoryId] = useState<CategoryId>(activeCategories[0]?.id ?? '');
   const [deadline, setDeadline] = useState<string | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const reset = () => { setTitle(''); setCategoryId(categories[0]?.id ?? 'study'); setDeadline(undefined); setOpen(false); };
+  const reset = () => { setTitle(''); setCategoryId(activeCategories[0]?.id ?? ''); setDeadline(undefined); setOpen(false); };
 
   const submit = () => {
     if (!title.trim() || !deadline) return;
@@ -41,7 +43,7 @@ export function NewProjectComposer({ categories, onCreate }: NewProjectComposerP
               <View style={styles.cardHeader}><Text style={styles.cardTitle}>New project</Text><Pressable accessibilityLabel="Close" onPress={reset}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
               <TextInput autoFocus value={title} onChangeText={setTitle} placeholder="Project title" placeholderTextColor={colors.muted} style={styles.input} />
               <Text style={styles.label}>Category</Text>
-              <View style={styles.categories}>{categories.map((item) => { const palette = category(item.colorKey); const selected = item.id === categoryId; return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Choose ${item.name} category`} accessibilityState={{ selected }} onPress={() => setCategoryId(item.id)} style={[styles.categoryChip, { backgroundColor: selected ? palette.soft : colors.track }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={[styles.categoryText, { color: selected ? palette.ink : colors.muted }]}>{item.name}</Text></Pressable>; })}</View>
+              <View style={styles.categories}>{activeCategories.map((item) => { const palette = category(item.colorKey); const selected = item.id === categoryId; return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Choose ${item.name} category`} accessibilityState={{ selected }} onPress={() => setCategoryId(item.id)} style={[styles.categoryChip, { backgroundColor: selected ? palette.soft : colors.track }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={[styles.categoryText, { color: selected ? palette.ink : colors.muted }]}>{item.name}</Text></Pressable>; })}</View>
               <Text style={styles.label}>Deadline</Text>
               <Pressable accessibilityRole="button" onPress={() => setPickerOpen(true)} style={styles.dateButton}>
                 <Ionicons name="calendar-outline" size={16} color={colors.inkSoft} />
@@ -66,7 +68,7 @@ const styles = StyleSheet.create({
   card: { width: '100%', maxWidth: 420, padding: space.lg, borderRadius: radius.lg, backgroundColor: colors.paper },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.md },
   cardTitle: { ...type.section, color: colors.ink, fontFamily },
-  input: { minHeight: 44, paddingHorizontal: space.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, ...type.bodyMedium, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
+  input: { minHeight: 44, paddingHorizontal: space.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, ...type.bodyMedium, fontSize: 16, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
   label: { ...type.meta, color: colors.muted, marginTop: space.md, marginBottom: space.xs, fontFamily },
   categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   categoryChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 9, borderRadius: radius.round },

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
 
 const navItems = [
   { href: '/', label: 'Today', icon: 'sunny-outline', activeIcon: 'sunny' },
@@ -16,13 +17,15 @@ export function AppShell({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const desktop = width >= 760;
+  const keyboardVisible = useKeyboardVisible();
+  const showBottomNav = !desktop && !keyboardVisible;
 
   const nav = (
     <View style={desktop ? styles.sideNav : [styles.bottomNav, { paddingBottom: Math.max(insets.bottom, space.xs) }]}>
       {desktop ? <Text style={styles.brandMark}>D</Text> : null}
       <View style={desktop ? styles.sideItems : styles.bottomItems}>
         {navItems.map((item) => {
-          const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+          const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} asChild>
               <Pressable accessibilityRole="link" accessibilityLabel={item.label} style={({ pressed }) => [styles.navItem, active && styles.navItemActive, pressed && styles.pressed]}>
@@ -44,8 +47,8 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <View style={[styles.root, { paddingTop: desktop ? 0 : insets.top }]}>
       {desktop ? nav : null}
-      <View style={[styles.content, !desktop && { paddingBottom: 72 + insets.bottom }]}>{children}</View>
-      {!desktop ? nav : null}
+      <View style={[styles.content, showBottomNav && { paddingBottom: 72 + insets.bottom }]}>{children}</View>
+      {showBottomNav ? nav : null}
     </View>
   );
 }

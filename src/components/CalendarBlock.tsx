@@ -2,13 +2,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface CalendarBlockProps { event?: CalendarEvent; block?: TimeBlock; task?: Task; compact?: boolean }
 
 export function CalendarBlock({ event, block, task, compact = false }: CalendarBlockProps) {
+  const paletteFor = useCategoryPalette();
   const isTask = Boolean(block && task);
-  const palette = task ? categoryPalette[task.categoryId] : null;
+  const palette = task ? paletteFor(task.categoryId) : null;
   const startAt = event?.startAt ?? block?.startAt ?? '';
   const endAt = event?.endAt ?? block?.endAt ?? '';
   const background = palette?.soft ?? colors.eventSoft;

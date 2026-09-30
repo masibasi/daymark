@@ -6,7 +6,7 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and concise weather context → Day Orbit and compact history calendar → upcoming deadlines → selected day's category-grouped tasks.
+- Today: date and concise weather context → Day Orbit and compact history calendar → upcoming deadlines → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
 - Week: period controls → day headers/all-day row → hour grid and blocks → scheduling affordance.
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
 - Project Detail: identity/deadline → progress → subtasks.
@@ -72,3 +72,7 @@ A Today time rail and per-Task "Reserve time" tray were tried as a V0 interactio
 ## Components
 
 `AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
+
+## Lists, inline add, routines
+
+Each list section on Today ends with a muted "+ Add" row aligned with task titles, its circle slot holding a small plus. Tapping it becomes an inline input (font 16, no border box) with an empty check-circle in the list's colour; while open, a tray below shows routine chips soft-tinted in the list colour (a routine already added that day is a muted, disabled "added" chip) and a "Save as routine" text action. The opened input scrolls into comfortable view above the keyboard. The List management screen mirrors Settings: spacious cards with colour dot (swatch picker), editable name, up/down controls, routines with × and a quiet Remove. On phones the bottom bar hides while typing.

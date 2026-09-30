@@ -4,10 +4,11 @@ import { format, parseISO } from 'date-fns';
 import { router } from 'expo-router';
 import type { Project, Task } from '@/domain/types';
 import { selectDeadlineDays, selectProjectProgress } from '@/domain/selectors';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 export function ProjectCard({ project, tasks, now }: { project: Project; tasks: Task[]; now: Date }) {
-  const palette = categoryPalette[project.categoryId];
+  const palette = useCategoryPalette()(project.categoryId);
   const progress = selectProjectProgress(tasks, project.id);
   const days = selectDeadlineDays(project.deadline, now);
   const percent = progress.total ? progress.completed / progress.total : 0;

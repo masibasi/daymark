@@ -43,7 +43,10 @@ The first user is an individual balancing study, career, personal, and routine w
 - Local persistence (zustand `persist` + AsyncStorage): the app survives a reload and is genuinely usable day to day, still with no backend or account.
 - The real system clock, not a fixed prototype date, drives "today" everywhere except the mock calendar events and the Day Mark study route.
 - Task completion, project progress, add-to-Today, and mock scheduling.
-- Contextual creation of a daily Task from Today with title and category.
+- User-managed lists (the UI name for categories): add, rename, recolor (six distinct palette colors), reorder with up/down controls, and remove (archived, never hard-deleted, so history keeps its name and color). Lists are flat; the first-run defaults are Study, Career, Personal, and Health.
+- Per-list inline add on Today: every active list is a section ending in a quiet "+ Add" row that opens an inline input for the displayed day; Enter adds and keeps the input open for rapid entry.
+- Routines: one-tap templates for things done often. They appear as chips while a list's add input is open; tapping one creates a normal Task for the displayed day. Nothing is auto-generated.
+- Mobile web polish: inputs are 16px so iOS Safari does not zoom, and the phone bottom bar hides while typing.
 - Creating a Project (title, category, deadline) and adding/deleting its steps from Project Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
 - A Settings screen to load sample data or erase all local data, with confirmation.
 - Original Day Orbit on Today and Month.

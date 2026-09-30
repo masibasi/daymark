@@ -3,7 +3,7 @@ import { Link } from 'expo-router';
 import { parseISO } from 'date-fns';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import { selectDayOrbit } from '@/domain/selectors';
-import type { CategoryId, DayMarkVariant } from '@/domain/types';
+import type { DayMarkVariant } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { DayOrbit } from '@/components/DayOrbit';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
@@ -19,16 +19,16 @@ const concepts: Array<{ variant: DayMarkVariant; title: string; description: str
   { variant: 'current', title: '04  Current (baseline)', description: 'The live shipped version, kept here for direct comparison: rising liquid pigment and gentle rotation.' },
 ];
 
-const ORDER: CategoryId[] = ['study', 'career', 'personal', 'routine'];
+const ORDER = ['study', 'career', 'personal', 'routine'] as const;
 
 function evenSegments(progress: number): DayOrbitSegment[] {
-  return ORDER.map((categoryId, index) => ({ categoryId, share: 0.25, completion: Math.max(0, Math.min(1, progress * 4 - index)) }));
+  return ORDER.map((categoryId, index) => ({ categoryId, colorKey: categoryId, share: 0.25, completion: Math.max(0, Math.min(1, progress * 4 - index)) }));
 }
 
 const unevenSegments: DayOrbitSegment[] = [
-  { categoryId: 'study', share: 0.5, completion: 1 },
-  { categoryId: 'career', share: 0.3, completion: 0.5 },
-  { categoryId: 'routine', share: 0.2, completion: 1 },
+  { categoryId: 'study', colorKey: 'study', share: 0.5, completion: 1 },
+  { categoryId: 'career', colorKey: 'career', share: 0.3, completion: 0.5 },
+  { categoryId: 'routine', colorKey: 'routine', share: 0.2, completion: 1 },
 ];
 
 const stateSamples: Array<{ label: string; segments: DayOrbitSegment[] }> = [
@@ -41,10 +41,10 @@ const stateSamples: Array<{ label: string; segments: DayOrbitSegment[] }> = [
 
 const weekSamples: Array<{ day: string; segments: DayOrbitSegment[] }> = [
   { day: '15', segments: [] },
-  { day: '16', segments: [{ categoryId: 'study', share: 0.5, completion: 1 }, { categoryId: 'career', share: 0.5, completion: 0 }] },
-  { day: '17', segments: [{ categoryId: 'study', share: 0.34, completion: 1 }, { categoryId: 'personal', share: 0.33, completion: 1 }, { categoryId: 'routine', share: 0.33, completion: 0 }] },
+  { day: '16', segments: [{ categoryId: 'study', colorKey: 'study', share: 0.5, completion: 1 }, { categoryId: 'career', colorKey: 'career', share: 0.5, completion: 0 }] },
+  { day: '17', segments: [{ categoryId: 'study', colorKey: 'study', share: 0.34, completion: 1 }, { categoryId: 'personal', colorKey: 'personal', share: 0.33, completion: 1 }, { categoryId: 'routine', colorKey: 'routine', share: 0.33, completion: 0 }] },
   { day: '18', segments: evenSegments(1) },
-  { day: '19', segments: [{ categoryId: 'career', share: 0.6, completion: 0.4 }, { categoryId: 'routine', share: 0.4, completion: 0 }] },
+  { day: '19', segments: [{ categoryId: 'career', colorKey: 'career', share: 0.6, completion: 0.4 }, { categoryId: 'routine', colorKey: 'routine', share: 0.4, completion: 0 }] },
   { day: '20', segments: [] },
   { day: '21', segments: evenSegments(1) },
 ];
@@ -61,10 +61,11 @@ export default function DayMarkLab() {
   const { width } = useWindowDimensions();
   const wide = width >= 1000;
   const tasks = useDaymarkStore((s) => s.tasks);
+  const categories = useDaymarkStore((s) => s.categories);
   const selectedTodayDate = useDaymarkStore((s) => s.selectedTodayDate);
   const dayMarkVariant = useDaymarkStore((s) => s.dayMarkVariant);
   const setDayMarkVariant = useDaymarkStore((s) => s.setDayMarkVariant);
-  const todaySegments = selectDayOrbit(tasks, parseISO(selectedTodayDate));
+  const todaySegments = selectDayOrbit(tasks, parseISO(selectedTodayDate), categories);
   const largeSize = wide ? 132 : 112;
 
   return <ScrollView contentContainerStyle={styles.scroll}>

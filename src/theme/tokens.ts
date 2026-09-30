@@ -34,7 +34,11 @@ export const categoryPalette = {
   career: { solid: '#F05276', soft: initialDarkMode ? '#48212D' : '#FFE7EE', softLight: '#FFE7EE', softDark: '#48212D', ink: initialDarkMode ? '#FFABC0' : '#BE3154', inkLight: '#BE3154', inkDark: '#FFABC0', markLight: '#F28CA3', markDark: '#F79CB0', mark: initialDarkMode ? '#F79CB0' : '#F28CA3' },
   personal: { solid: '#24B47E', soft: initialDarkMode ? '#153D30' : '#DFF7ED', softLight: '#DFF7ED', softDark: '#153D30', ink: initialDarkMode ? '#8BE0C0' : '#14805A', inkLight: '#14805A', inkDark: '#8BE0C0', markLight: '#5FCBA0', markDark: '#78D8B0', mark: initialDarkMode ? '#78D8B0' : '#5FCBA0' },
   routine: { solid: '#9A63E8', soft: initialDarkMode ? '#342348' : '#F0E7FF', softLight: '#F0E7FF', softDark: '#342348', ink: initialDarkMode ? '#CEAEFF' : '#7040B6', inkLight: '#7040B6', inkDark: '#CEAEFF', markLight: '#B587EE', markDark: '#C59BF2', mark: initialDarkMode ? '#C59BF2' : '#B587EE' },
+  amber: { solid: '#E8A21C', soft: initialDarkMode ? '#47361A' : '#FFF1D6', softLight: '#FFF1D6', softDark: '#47361A', ink: initialDarkMode ? '#F5CC7A' : '#8F5C05', inkLight: '#8F5C05', inkDark: '#F5CC7A', markLight: '#F0B94D', markDark: '#F5C965', mark: initialDarkMode ? '#F5C965' : '#F0B94D' },
+  teal: { solid: '#14A3B8', soft: initialDarkMode ? '#14383F' : '#DDF3F7', softLight: '#DDF3F7', softDark: '#14383F', ink: initialDarkMode ? '#86DCEA' : '#0E7684', inkLight: '#0E7684', inkDark: '#86DCEA', markLight: '#55C3D3', markDark: '#6FD3E2', mark: initialDarkMode ? '#6FD3E2' : '#55C3D3' },
 } as const;
+
+export const categoryColorKeys = Object.keys(categoryPalette) as CategoryColorKey[];
 
 export type CategoryColorKey = keyof typeof categoryPalette;
 

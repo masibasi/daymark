@@ -1,11 +1,13 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Task } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface SchedulePanelProps { visible: boolean; tasks: Task[]; selectedTaskId?: string; onSelect: (id: string) => void; onClose: () => void }
 
 export function SchedulePanel({ visible, tasks, selectedTaskId, onSelect, onClose }: SchedulePanelProps) {
+  const paletteFor = useCategoryPalette();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -15,7 +17,7 @@ export function SchedulePanel({ visible, tasks, selectedTaskId, onSelect, onClos
           <Text style={styles.hint}>{selectedTaskId ? 'The calendar is ready. Pick any half-hour slot; Daymark will reserve one hour.' : 'Projects stay intact—this only adds focused time to the calendar.'}</Text>
           <ScrollView style={styles.list}>
             {tasks.filter((task) => !task.completedAt).map((task) => {
-              const palette = categoryPalette[task.categoryId];
+              const palette = paletteFor(task.categoryId);
               const selected = task.id === selectedTaskId;
               return <Pressable key={task.id} onPress={() => onSelect(task.id)} style={[styles.task, selected && { backgroundColor: palette.soft }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={styles.taskTitle}>{task.title}</Text>{selected ? <Ionicons name="checkmark" size={18} color={palette.solid} /> : null}</Pressable>;
             })}

@@ -23,6 +23,9 @@ export default function SettingsScreen() {
     <View style={styles.page}>
       <ScreenHeader eyebrow="Daymark" title="Settings" subtitle="Data is saved only on this device/browser." />
       <View style={styles.section}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={onLoadSample} style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your projects, tasks, and time blocks with sample data.</Text></View>
         </Pressable>

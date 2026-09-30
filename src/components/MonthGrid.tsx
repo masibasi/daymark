@@ -2,13 +2,17 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
-import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
+import { useDaymarkStore } from '@/store/useDaymarkStore';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
 
 interface MonthGridProps { anchor: Date; events: CalendarEvent[]; blocks: TimeBlock[]; projects: Project[]; tasks: Task[] }
 
 export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGridProps) {
   const { width } = useWindowDimensions();
+  const categories = useDaymarkStore((state) => state.categories);
+  const paletteFor = useCategoryPalette();
   const compact = width < 680;
   const start = startOfWeek(startOfMonth(anchor), { weekStartsOn: 0 });
   const end = endOfWeek(endOfMonth(anchor), { weekStartsOn: 0 });
@@ -23,15 +27,15 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGrid
           const dayBlocks = blocks.filter((block) => isSameDay(parseISO(block.startAt), day));
           const deadlines = projects.filter((project) => isSameDay(parseISO(project.deadline), day));
           const items = [
-            ...deadlines.map((project) => ({ id: project.id, title: `Due · ${project.title}`, color: categoryPalette[project.categoryId].solid })),
+            ...deadlines.map((project) => ({ id: project.id, title: `Due · ${project.title}`, color: paletteFor(project.categoryId).solid })),
             ...dayEvents.map((event) => ({ id: event.id, title: event.title, color: colors.event })),
-            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? 'Task block', color: categoryPalette[taskMap.get(block.taskId)?.categoryId ?? 'study'].solid })),
+            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? 'Task block', color: (taskMap.get(block.taskId) ? paletteFor(taskMap.get(block.taskId)!.categoryId) : paletteFor('')).solid })),
           ];
           return (
             <View key={day.toISOString()} style={[styles.cell, compact && styles.cellCompact, !isSameMonth(day, anchor) && styles.outside]}>
               <View style={styles.cellTop}>
                 <Text style={[styles.date, isSameDay(day, anchor) && styles.anchorDate]}>{format(day, 'd')}</Text>
-                <DayOrbit segments={selectDayOrbit(tasks, day)} size={compact ? 18 : 22} strokeWidth={compact ? 3 : 3.5} />
+                <DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={compact ? 18 : 22} strokeWidth={compact ? 3 : 3.5} />
               </View>
               <View style={styles.items}>
                 {items.slice(0, compact ? 2 : 3).map((item) => <View key={item.id} style={styles.item}><View style={[styles.itemDot, { backgroundColor: item.color }]} /><Text style={[styles.itemText, compact && styles.itemTextCompact]} numberOfLines={1}>{item.title}</Text></View>)}

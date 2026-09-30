@@ -2,12 +2,21 @@ import type { CategoryColorKey } from '@/theme/tokens';
 
 export type ISODate = string;
 export type ISODateTime = string;
-export type CategoryId = 'study' | 'career' | 'personal' | 'routine';
+export type CategoryId = string;
 
 export interface Category {
   id: CategoryId;
   name: string;
   colorKey: CategoryColorKey;
+  order: number;
+  archived?: boolean;
+}
+
+// A one-tap template: tapping it creates a normal Task for the displayed day. Never auto-generated.
+export interface Routine {
+  id: string;
+  title: string;
+  categoryId: CategoryId;
   order: number;
 }
 
@@ -28,6 +37,7 @@ export interface Task {
   projectId?: string;
   scheduledDate?: ISODate;
   completedAt?: ISODateTime;
+  routineId?: string;
 }
 
 export interface TimeBlock {

@@ -3,18 +3,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { Project, Task } from '@/domain/types';
 import { selectDeadlineDays, selectDeadlineTone, selectProjectProgress } from '@/domain/selectors';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface DeadlineStripProps { projects: Project[]; tasks: Task[]; now: Date }
 
 export function DeadlineStrip({ projects, tasks, now }: DeadlineStripProps) {
+  const paletteFor = useCategoryPalette();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.track}>
       {projects.map((project) => {
         const days = selectDeadlineDays(project.deadline, now);
         const tone = selectDeadlineTone(days, project.attentionDays);
         const progress = selectProjectProgress(tasks, project.id);
-        const palette = categoryPalette[project.categoryId];
+        const palette = paletteFor(project.categoryId);
         return (
           <Pressable key={project.id} onPress={() => router.push(`/projects/${project.id}`)} style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
             <View style={styles.topline}>
