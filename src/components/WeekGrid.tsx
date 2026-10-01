@@ -1,5 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { addMinutes, eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, parseISO, setHours, setMinutes, startOfWeek } from 'date-fns';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, parseISO, setHours, startOfWeek } from 'date-fns';
 import { selectEventsOnDay } from '@/domain/selectors';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
 import { colors, fontFamily, type } from '@/theme/tokens';
@@ -13,11 +13,11 @@ interface WeekGridProps {
   events: CalendarEvent[];
   blocks: TimeBlock[];
   tasks: Task[];
-  scheduleTaskId?: string;
-  onSchedule: (startAt: string, endAt: string) => void;
+  onEventPress: (event: CalendarEvent, day: Date) => void;
+  onBlockPress: (block: TimeBlock) => void;
 }
 
-export function WeekGrid({ anchor, events, blocks, tasks, scheduleTaskId, onSchedule }: WeekGridProps) {
+export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockPress }: WeekGridProps) {
   const { width } = useWindowDimensions();
   const compact = width < 680;
   const hourHeight = compact ? 62 : 70;
@@ -37,7 +37,7 @@ export function WeekGrid({ anchor, events, blocks, tasks, scheduleTaskId, onSche
         <Text style={styles.allDayLabel}>all-day</Text>
         {days.map((day) => {
           const dayEvents = selectEventsOnDay(events, day).filter((event) => event.allDay);
-          return <View key={day.toISOString()} style={styles.allDayCell}>{dayEvents.map((event) => <CalendarBlock key={event.id} event={event} compact />)}</View>;
+          return <View key={day.toISOString()} style={styles.allDayCell}>{dayEvents.map((event) => <CalendarBlock key={event.id} event={event} compact onPress={() => onEventPress(event, day)} />)}</View>;
         })}
       </View>
       <ScrollView style={styles.scroller} contentContainerStyle={{ height: (END_HOUR - START_HOUR) * hourHeight }}>
@@ -53,14 +53,10 @@ export function WeekGrid({ anchor, events, blocks, tasks, scheduleTaskId, onSche
                 {hours.slice(0, -1).map((hour) => (
                   <View key={hour} style={[styles.hourCell, { height: hourHeight }]}>
                     <View style={styles.halfLine} />
-                    {scheduleTaskId ? [0, 30].map((minute) => {
-                      const start = setMinutes(setHours(day, hour), minute);
-                      return <Pressable key={minute} accessibilityLabel={`Schedule at ${format(start, 'EEE h:mm a')}`} onPress={() => onSchedule(start.toISOString(), addMinutes(start, 60).toISOString())} style={[styles.slot, { top: minute === 0 ? 0 : hourHeight / 2, height: hourHeight / 2 }]} />;
-                    }) : null}
                   </View>
                 ))}
-                {dayEvents.map((event) => <PositionedBlock key={event.id} startAt={event.startAt} endAt={event.endAt} hourHeight={hourHeight}><CalendarBlock event={event} /></PositionedBlock>)}
-                {dayBlocks.map((block) => <PositionedBlock key={block.id} startAt={block.startAt} endAt={block.endAt} hourHeight={hourHeight}><CalendarBlock block={block} task={taskMap.get(block.taskId)} /></PositionedBlock>)}
+                {dayEvents.map((event) => <PositionedBlock key={event.id} startAt={event.startAt} endAt={event.endAt} hourHeight={hourHeight}><CalendarBlock event={event} onPress={() => onEventPress(event, day)} /></PositionedBlock>)}
+                {dayBlocks.map((block) => <PositionedBlock key={block.id} startAt={block.startAt} endAt={block.endAt} hourHeight={hourHeight}><CalendarBlock block={block} task={taskMap.get(block.taskId)} onPress={() => onBlockPress(block)} /></PositionedBlock>)}
               </View>
             );
           })}
@@ -96,6 +92,5 @@ const styles = StyleSheet.create({
   dayColumn: { flex: 1, position: 'relative', borderLeftWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
   hourCell: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line, position: 'relative' },
   halfLine: { position: 'absolute', top: '50%', left: 0, right: 0, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.lineFaint },
-  slot: { position: 'absolute', left: 0, right: 0, zIndex: 3 },
   positioned: { position: 'absolute', left: 3, right: 3, zIndex: 2 },
 });

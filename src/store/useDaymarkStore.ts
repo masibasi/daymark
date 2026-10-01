@@ -24,7 +24,6 @@ interface DaymarkState {
   feedErrors: Record<string, string>;
   calendarView: CalendarView;
   calendarDate: string;
-  scheduleTaskId?: string;
   selectedTodayDate: string;
   dayMarkVariant: DayMarkVariant;
   hasHydrated: boolean;
@@ -32,10 +31,9 @@ interface DaymarkState {
   toast: Toast | null;
   toggleTask: (taskId: string) => void;
   setTaskOnToday: (taskId: string, onToday: boolean) => void;
-  addTimeBlock: (taskId: string, startAt: string, endAt: string) => void;
+  removeTimeBlock: (id: string) => void;
   setCalendarView: (view: CalendarView) => void;
   setCalendarDate: (date: string) => void;
-  setScheduleTask: (taskId?: string) => void;
   addTask: (title: string, categoryId: Task['categoryId']) => void;
   addCategory: (name: string, colorKey?: CategoryColorKey) => void;
   updateCategory: (id: CategoryId, patch: { name?: string; colorKey?: CategoryColorKey }) => void;
@@ -44,7 +42,8 @@ interface DaymarkState {
   addRoutine: (title: string, categoryId: CategoryId) => void;
   removeRoutine: (id: string) => void;
   addTaskFromRoutine: (routineId: string, date: string, complete?: boolean) => void;
-  addTaskFromEvent: (event: Pick<CalendarEvent, 'id' | 'title'>, categoryId: CategoryId, date: string) => void;
+  // categoryId undefined = create the "Schedule" list (next free colour) and add the task to it in one step.
+  addTaskFromEvent: (event: Pick<CalendarEvent, 'id' | 'title'>, categoryId: CategoryId | undefined, date: string) => void;
   moveTaskInDay: (taskId: string, toCategoryId: CategoryId, toIndex: number, day: string) => boolean;
   undoDelete: () => void;
   showToast: (message: string) => void;
@@ -126,13 +125,10 @@ export const useDaymarkStore = create<DaymarkState>()(
           ? { ...task, scheduledDate: onToday ? todayKey() : undefined, order: onToday ? nextOrder(state.tasks, todayKey(), task.categoryId, task.id) : undefined }
           : task),
       })),
-      addTimeBlock: (taskId, startAt, endAt) => set((state) => ({
-        timeBlocks: [...state.timeBlocks, { id: newId('block'), taskId, startAt, endAt }],
-        scheduleTaskId: undefined,
-      })),
+      // Legacy blocks only: nothing creates TimeBlocks any more (time-blocking is paused), but existing ones can be removed.
+      removeTimeBlock: (id) => set((state) => ({ timeBlocks: state.timeBlocks.filter((block) => block.id !== id) })),
       setCalendarView: (calendarView) => set({ calendarView }),
       setCalendarDate: (calendarDate) => set({ calendarDate }),
-      setScheduleTask: (scheduleTaskId) => set({ scheduleTaskId }),
       addTask: (title, categoryId) => set((state) => ({
         tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId, scheduledDate: state.selectedTodayDate, order: nextOrder(state.tasks, state.selectedTodayDate, categoryId) }],
       })),
@@ -180,9 +176,15 @@ export const useDaymarkStore = create<DaymarkState>()(
       // Explicit user action only ("Add to Today" on an event). One task per event per day.
       addTaskFromEvent: (event, categoryId, date) => set((state) => {
         if (state.tasks.some((task) => task.sourceEventId === event.id && task.scheduledDate === date)) return state;
-        const category = state.categories.find((item) => item.id === categoryId);
-        if (!category || category.archived) return state;
-        return { tasks: [...state.tasks, { id: newId('task'), title: event.title.trim() || 'Event', categoryId, scheduledDate: date, sourceEventId: event.id, order: nextOrder(state.tasks, date, categoryId) }] };
+        let categories = state.categories;
+        let target = categoryId ? categories.find((item) => item.id === categoryId) : undefined;
+        if (!categoryId) {
+          const order = categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
+          target = { id: newId('list'), name: 'Schedule', colorKey: nextColorKey(categories), order };
+          categories = [...categories, target];
+        }
+        if (!target || target.archived) return state;
+        return { categories, tasks: [...state.tasks, { id: newId('task'), title: event.title.trim() || 'Event', categoryId: target.id, scheduledDate: date, sourceEventId: event.id, order: nextOrder(state.tasks, date, target.id) }] };
       }),
       // Reorder within a list or move to another list on `day`. `toIndex` counts the target list without the moved task.
       // Completed tasks and project tasks may reorder but never change list. Returns false when nothing was changed.

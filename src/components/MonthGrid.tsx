@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
 import { selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
@@ -7,9 +7,9 @@ import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
 
-interface MonthGridProps { anchor: Date; events: CalendarEvent[]; blocks: TimeBlock[]; projects: Project[]; tasks: Task[] }
+interface MonthGridProps { anchor: Date; events: CalendarEvent[]; blocks: TimeBlock[]; projects: Project[]; tasks: Task[]; onEventPress: (event: CalendarEvent, day: Date) => void; onBlockPress: (block: TimeBlock) => void }
 
-export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGridProps) {
+export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPress, onBlockPress }: MonthGridProps) {
   const { width } = useWindowDimensions();
   const categories = useDaymarkStore((state) => state.categories);
   const paletteFor = useCategoryPalette();
@@ -26,10 +26,10 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGrid
           const dayEvents = selectEventsOnDay(events, day);
           const dayBlocks = blocks.filter((block) => isSameDay(parseISO(block.startAt), day));
           const deadlines = projects.filter((project) => isSameDay(parseISO(project.deadline), day));
-          const items = [
+          const items: { id: string; title: string; color: string; onPress?: () => void }[] = [
             ...deadlines.map((project) => ({ id: project.id, title: `Due · ${project.title}`, color: paletteFor(project.categoryId).solid })),
-            ...dayEvents.map((event) => ({ id: event.id, title: event.title, color: colors.event })),
-            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? 'Task block', color: (taskMap.get(block.taskId) ? paletteFor(taskMap.get(block.taskId)!.categoryId) : paletteFor('')).solid })),
+            ...dayEvents.map((event) => ({ id: event.id, title: event.title, color: colors.event, onPress: () => onEventPress(event, day) })),
+            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? 'Task block', color: (taskMap.get(block.taskId) ? paletteFor(taskMap.get(block.taskId)!.categoryId) : paletteFor('')).solid, onPress: () => onBlockPress(block) })),
           ];
           return (
             <View key={day.toISOString()} style={[styles.cell, compact && styles.cellCompact, !isSameMonth(day, anchor) && styles.outside]}>
@@ -38,7 +38,7 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGrid
                 <DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={compact ? 18 : 22} strokeWidth={compact ? 3 : 3.5} />
               </View>
               <View style={styles.items}>
-                {items.slice(0, compact ? 2 : 3).map((item) => <View key={item.id} style={styles.item}><View style={[styles.itemDot, { backgroundColor: item.color }]} /><Text style={[styles.itemText, compact && styles.itemTextCompact]} numberOfLines={1}>{item.title}</Text></View>)}
+                {items.slice(0, compact ? 2 : 3).map((item) => <Pressable key={item.id} accessibilityRole={item.onPress ? 'button' : undefined} accessibilityLabel={item.title} disabled={!item.onPress} onPress={item.onPress} style={styles.item}><View style={[styles.itemDot, { backgroundColor: item.color }]} /><Text style={[styles.itemText, compact && styles.itemTextCompact]} numberOfLines={1}>{item.title}</Text></Pressable>)}
                 {items.length > (compact ? 2 : 3) ? <Text style={styles.more}>+{items.length - (compact ? 2 : 3)} more</Text> : null}
               </View>
             </View>

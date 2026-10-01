@@ -18,7 +18,7 @@ The first user is an individual balancing study, career, personal, and routine w
 ## Core concepts
 
 - **Task:** something to accomplish. It may stand alone or belong to a Project.
-- **Project:** persistent deadline-driven work with progress and subtasks.
+- **Project (shown as "Deadline" in the UI):** persistent deadline-driven work with progress and subtasks.
 - **TimeBlock:** time reserved to work on a Task. It does not imply completion.
 - **CalendarEvent:** an external commitment. It is not automatically a Task.
 - **Day Orbit:** a category-segmented completion mark based only on `completedAt`.
@@ -31,7 +31,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can open a project, complete subtasks, and place a subtask on Today without duplication.
 - I can switch between week and month calendars.
 - I can distinguish external events from task work blocks.
-- I can select a task, then tap an open week slot to schedule it.
+- I can tap an event in the Calendar tab and add it as a Task for that event's day. Time-blocking is paused.
 - I can move unfinished work to another day without recreating it.
 - I can decide how early each Project starts appearing visually urgent.
 - I can open a Task's actions from Today and move it to tomorrow, choose a date, or remove it from the displayed day.
@@ -40,7 +40,7 @@ The first user is an individual balancing study, career, personal, and routine w
 
 ## V0 scope
 
-- Responsive Today, Calendar Week, Calendar Month, Projects, and Project Detail.
+- Responsive Today, Calendar Week, Calendar Month, Deadlines, and Deadline Detail.
 - Local persistence (zustand `persist` + AsyncStorage): the app survives a reload and is genuinely usable day to day, still with no backend or account.
 - The real system clock, not a fixed prototype date, drives "today" everywhere except the mock calendar events and the Day Mark study route.
 - Task completion, project progress, add-to-Today, and mock scheduling.
@@ -77,6 +77,6 @@ No OAuth calendar provider or calendar write-back (auth and item sync via Supaba
 - Completing a task updates its state and the Day Orbit.
 - Selecting a date in Today's history calendar shows that date's tasks and completion mark.
 - Project subtasks are shared Task records; adding one to Today does not duplicate it.
-- A task can be scheduled by selecting it and tapping a week slot.
+- Tapping a Calendar event offers "Add to <day>" and creates a Task with `sourceEventId`; existing TimeBlocks remain removable but cannot be created.
 - External events never appear in Today unless separately represented as Tasks.
 - Calendar layouts remain usable at phone, tablet, and desktop widths.

@@ -26,7 +26,7 @@ Relationships:
 
 ## State boundaries
 
-`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, `addTimeBlock`, `addProject`, `deleteProject`, `addProjectTask`, and `deleteTask`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail "add to Today" targets the real current date via `src/domain/clock.ts`. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data.
+`src/store/useDaymarkStore.ts` is the only mutable domain store. Screens call narrow actions such as `toggleTask`, `setTaskOnToday`, `addTaskFromEvent`, `addProject`, `deleteProject`, `addProjectTask`, and `deleteTask`. `selectedTodayDate` is view context for navigating completion history and creating a task on the displayed date; project-detail "add to Today" targets the real current date via `src/domain/clock.ts`. Pure selectors in `src/domain/selectors.ts` derive day groups, completion counts, project progress, deadline urgency, calendar ranges, and Day Orbit data.
 
 ## Local persistence
 
@@ -38,7 +38,7 @@ On first run (nothing in storage yet), the store starts with four default lists 
 
 `src/domain/clock.ts` exports `now()` and `todayKey()`, backed by the real system clock. Every screen and store action that means "today" (Today's header, Projects' next-deadline summary, `setTaskOnToday`, `toggleTask`'s completion timestamp, the Calendar "Today" button, `selectedTodayDate`'s initial value) uses this helper instead of the fixed `prototypeDate`. `prototypeDate` in `src/store/mockData.ts` remains only to anchor sample/mock data (the mock events and the `/daymark-lab` study route), which stays fixed around September 2026.
 
-Calendar Week scheduling (`WeekGrid` + `SchedulePanel`, select-a-task-then-tap-a-slot) is the only place a TimeBlock is created, via `addTimeBlock`; it never touches `completedAt`. A V0 study briefly added a Today time rail and per-Task "Reserve time" tray that also called `addTimeBlock`/`removeTimeBlock`; both were removed after review (see `docs/DECISIONS.md`), along with the `removeTimeBlock` store action and the `selectDayAgenda`/`selectFreeSlots`/`selectTaskBlocksOnDay`/`selectSuggestedStarts` selectors that only it used.
+Time-blocking is paused (2026-10-01, see `docs/DECISIONS.md`): nothing creates TimeBlocks and `addTimeBlock`, `SchedulePanel` and the schedule-task state were removed. Existing (legacy/sample) TimeBlocks still render in the Calendar week/month views and can be removed with `removeTimeBlock` from a tap-to-open sheet; TimeBlocks never touch `completedAt`. `addTaskFromEvent(event, categoryId | undefined, date)` creates a "Schedule" list (next free colour) in the same step when `categoryId` is undefined. The default list for event imports is `defaultEventList` in `EventActions.tsx`: a list named Schedule/Calendar, else the list of the last event-sourced Task, else none (a new Schedule list is offered).
 
 `moveTaskToDate` changes the existing Task's `scheduledDate` and keeps its `projectId`. The V0 action ignores completed Tasks so moving a historical completion cannot silently rewrite completion history; reopening the Task makes it movable again.
 

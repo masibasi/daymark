@@ -137,12 +137,12 @@ export default function SettingsScreen() {
   const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
 
   const onLoadSample = async () => {
-    const confirmed = await confirmAction('Load sample data', 'This replaces your current projects, tasks, and time blocks with sample data. Continue?', 'Load sample data');
+    const confirmed = await confirmAction('Load sample data', 'This replaces your current deadlines, tasks, and time blocks with sample data. Continue?', 'Load sample data');
     if (confirmed) loadSampleData();
   };
 
   const onEraseAll = async () => {
-    const confirmed = await confirmAction('Erase all data', `This permanently clears all projects, tasks, and time blocks on this device.${signedIn ? ' Because you are signed in, it also erases your synced data on your other devices.' : ''} Continue?`, 'Erase all data');
+    const confirmed = await confirmAction('Erase all data', `This permanently clears all deadlines, tasks, and time blocks on this device.${signedIn ? ' Because you are signed in, it also erases your synced data on your other devices.' : ''} Continue?`, 'Erase all data');
     if (confirmed) eraseAllData();
   };
 
@@ -156,12 +156,13 @@ export default function SettingsScreen() {
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onLoadSample} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your projects, tasks, and time blocks with sample data and sample events.</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your deadlines, tasks, and time blocks with sample data and sample events.</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onEraseAll} style={styles.row}>
-          <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all projects, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
+          <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all deadlines, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
         </Pressable>
       </View>
+      <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
       <Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable>
     </ScrollView>
   );

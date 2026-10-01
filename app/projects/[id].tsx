@@ -24,7 +24,7 @@ export default function ProjectDetailScreen() {
   const paletteFor = useCategoryPalette();
   const [stepTitle, setStepTitle] = useState('');
   const project = projects.find((item) => item.id === id);
-  if (!project) return <View style={styles.empty}><Text>Project not found.</Text></View>;
+  if (!project) return <View style={styles.empty}><Text>Deadline not found.</Text></View>;
   const projectTasks = selectProjectTasks(tasks, project.id);
   const progress = selectProjectProgress(tasks, project.id);
   const percent = progress.total ? progress.completed / progress.total : 0;
@@ -38,13 +38,13 @@ export default function ProjectDetailScreen() {
   };
 
   const removeProject = async () => {
-    const confirmed = await confirmAction('Delete project', `Delete "${project.title}" and its ${projectTasks.length} step${projectTasks.length === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
+    const confirmed = await confirmAction('Delete deadline', `Delete "${project.title}" and its ${projectTasks.length} step${projectTasks.length === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
     if (confirmed) { deleteProject(project.id); router.replace('/projects'); }
   };
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.page}>
-        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Projects</Text></Pressable>
+        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Deadlines</Text></Pressable>
         <View style={styles.hero}>
           <View style={[styles.categoryMark, { backgroundColor: palette.solid }]} />
           <Text style={[styles.kicker, days < 0 && styles.kickerOverdue]}>Due {format(parseISO(project.deadline), 'EEEE, MMMM d')} · {days < 0 ? `Overdue · D+${Math.abs(days)}` : `D−${days}`}</Text>
@@ -53,7 +53,7 @@ export default function ProjectDetailScreen() {
           <View style={styles.progressRow}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progressText}>{progress.completed} of {progress.total} complete</Text></View>
           <View style={styles.attention}><Text style={styles.attentionTitle}>Emphasize this deadline from</Text><View style={styles.attentionChoices}>{[3, 7, 14, 30].map((lead) => <Pressable key={lead} accessibilityRole="button" accessibilityState={{ selected: (project.attentionDays ?? 7) === lead }} onPress={() => setProjectAttentionDays(project.id, lead)} style={[styles.attentionChoice, (project.attentionDays ?? 7) === lead && styles.attentionChoiceSelected]}><Text style={[styles.attentionChoiceText, (project.attentionDays ?? 7) === lead && styles.attentionChoiceTextSelected]}>{lead} days</Text></Pressable>)}</View></View>
         </View>
-        <View style={styles.taskHeader}><Text style={styles.sectionTitle}>Project steps</Text><Text style={styles.hint}>Add any step to Today without making a copy.</Text></View>
+        <View style={styles.taskHeader}><Text style={styles.sectionTitle}>Steps</Text><Text style={styles.hint}>Add any step to Today without making a copy.</Text></View>
         <View style={styles.taskList}>
           {projectTasks.length === 0 ? <Text style={styles.emptySteps}>No steps yet. Add the first one below.</Text> : null}
           {projectTasks.map((task) => {
@@ -67,7 +67,7 @@ export default function ProjectDetailScreen() {
             <Pressable accessibilityLabel="Save step" onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={17} color={colors.paper} /></Pressable>
           </View>
         </View>
-        <Pressable accessibilityRole="button" onPress={removeProject} style={styles.deleteProject}><Text style={styles.deleteProjectText}>Delete project</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={removeProject} style={styles.deleteProject}><Text style={styles.deleteProjectText}>Delete deadline</Text></Pressable>
       </View>
     </ScrollView>
   );

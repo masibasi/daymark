@@ -3,25 +3,27 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, addWeeks, endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { MonthGrid } from '@/components/MonthGrid';
-import { SchedulePanel } from '@/components/SchedulePanel';
+import { EventActions, eventTimeRange, SheetAction } from '@/components/EventActions';
+import { EventSheet } from '@/components/EventSheet';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { WeekGrid } from '@/components/WeekGrid';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import type { CalendarEvent, TimeBlock } from '@/domain/types';
+import { colors, fontFamily, space, type } from '@/theme/tokens';
 
 export default function CalendarScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 680;
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [selection, setSelection] = useState<{ event: CalendarEvent; day: Date } | { block: TimeBlock } | null>(null);
   const view = useDaymarkStore((state) => state.calendarView);
   const dateString = useDaymarkStore((state) => state.calendarDate);
   const setView = useDaymarkStore((state) => state.setCalendarView);
   const setDate = useDaymarkStore((state) => state.setCalendarDate);
-  const scheduleTaskId = useDaymarkStore((state) => state.scheduleTaskId);
-  const setScheduleTask = useDaymarkStore((state) => state.setScheduleTask);
-  const addTimeBlock = useDaymarkStore((state) => state.addTimeBlock);
+  const removeTimeBlock = useDaymarkStore((state) => state.removeTimeBlock);
+  const addTaskFromEvent = useDaymarkStore((state) => state.addTaskFromEvent);
+  const categories = useDaymarkStore((state) => state.categories);
   const tasks = useDaymarkStore((state) => state.tasks);
   const projects = useDaymarkStore((state) => state.projects);
   const events = useDaymarkStore((state) => state.events);
@@ -34,10 +36,11 @@ export default function CalendarScreen() {
   );
   const move = (direction: -1 | 1) => setDate((view === 'week' ? (direction < 0 ? subWeeks : addWeeks) : (direction < 0 ? subMonths : addMonths))(anchor, 1).toISOString());
 
-  const schedule = (startAt: string, endAt: string) => {
-    if (!scheduleTaskId) return;
-    addTimeBlock(scheduleTaskId, startAt, endAt);
-  };
+  const close = () => setSelection(null);
+  const selectedBlock = selection && 'block' in selection ? selection.block : undefined;
+  const blockTask = tasks.find((task) => task.id === selectedBlock?.taskId);
+  const openEvent = (event: CalendarEvent, day: Date) => setSelection({ event, day });
+  const openBlock = (block: TimeBlock) => setSelection({ block });
 
   return (
     <View style={styles.page}>
@@ -48,10 +51,16 @@ export default function CalendarScreen() {
           <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable></View>
         </View>
       </View>
-      {scheduleTaskId ? <View style={styles.scheduleBanner}><View style={styles.pulse} /><Text style={styles.bannerText}>Choose a free slot for <Text style={styles.bannerStrong}>{tasks.find((task) => task.id === scheduleTaskId)?.title}</Text></Text><Pressable onPress={() => setScheduleTask(undefined)}><Text style={styles.cancel}>Cancel</Text></Pressable></View> : null}
-      <View style={styles.gridWrap}>{view === 'week' ? <WeekGrid anchor={anchor} events={events} blocks={blocks} tasks={tasks} scheduleTaskId={scheduleTaskId} onSchedule={schedule} /> : <MonthGrid anchor={anchor} events={events} blocks={blocks} projects={projects} tasks={tasks} />}</View>
-      {view === 'week' ? <Pressable onPress={() => setPanelOpen(true)} style={styles.scheduleButton}><Ionicons name="time-outline" size={18} color={colors.paper} /><Text style={styles.scheduleText}>Schedule a task</Text></Pressable> : null}
-      <SchedulePanel visible={panelOpen} tasks={tasks} selectedTaskId={scheduleTaskId} onSelect={setScheduleTask} onClose={() => setPanelOpen(false)} />
+      <View style={styles.gridWrap}>{view === 'week' ? <WeekGrid anchor={anchor} events={events} blocks={blocks} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} /> : <MonthGrid anchor={anchor} events={events} blocks={blocks} projects={projects} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} />}</View>
+      <EventSheet
+        visible={selection !== null}
+        title={selection && 'event' in selection ? selection.event.title : blockTask?.title ?? 'Task block'}
+        subtitle={selection && 'event' in selection ? `${format(selection.day, 'EEE, MMM d')} · ${eventTimeRange(selection.event)}` : selectedBlock ? `${format(parseISO(selectedBlock.startAt), 'EEE, MMM d · h:mm')}–${format(parseISO(selectedBlock.endAt), 'h:mm a')}` : ''}
+        onClose={close}
+      >
+        {selection && 'event' in selection ? <EventActions event={selection.event} day={selection.day} tasks={tasks} categories={categories} onAdd={(event, categoryId) => { addTaskFromEvent(event, categoryId, format(selection.day, 'yyyy-MM-dd')); close(); }} /> : null}
+        {selectedBlock ? <SheetAction label="Remove" onPress={() => { removeTimeBlock(selectedBlock.id); close(); }} /> : null}
+      </EventSheet>
     </View>
   );
 }
@@ -68,11 +77,4 @@ const styles = StyleSheet.create({
   todayButton: { height: 34, paddingHorizontal: space.sm, borderRadius: 17, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   todayText: { ...type.meta, color: colors.ink, fontFamily },
   gridWrap: { flex: 1, width: '100%', maxWidth: 1380, alignSelf: 'center' },
-  scheduleButton: { position: 'absolute', right: space.xl, bottom: space.xl, minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.md, borderRadius: radius.round, backgroundColor: colors.ink },
-  scheduleText: { ...type.bodyMedium, color: colors.paper, fontFamily },
-  scheduleBanner: { width: '100%', maxWidth: 1380, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xs, marginBottom: space.xs },
-  pulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
-  bannerText: { ...type.meta, flex: 1, color: colors.inkSoft, fontFamily },
-  bannerStrong: { color: colors.ink },
-  cancel: { ...type.meta, color: colors.danger, fontFamily },
 });

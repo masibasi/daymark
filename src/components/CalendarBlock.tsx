@@ -1,13 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
-interface CalendarBlockProps { event?: CalendarEvent; block?: TimeBlock; task?: Task; compact?: boolean }
+interface CalendarBlockProps { event?: CalendarEvent; block?: TimeBlock; task?: Task; compact?: boolean; onPress?: () => void }
 
-export function CalendarBlock({ event, block, task, compact = false }: CalendarBlockProps) {
+export function CalendarBlock({ event, block, task, compact = false, onPress }: CalendarBlockProps) {
   const paletteFor = useCategoryPalette();
   const isTask = Boolean(block && task);
   const palette = task ? paletteFor(task.categoryId) : null;
@@ -16,13 +16,13 @@ export function CalendarBlock({ event, block, task, compact = false }: CalendarB
   const background = palette?.soft ?? colors.eventSoft;
   const accent = palette?.solid ?? colors.event;
   return (
-    <View style={[styles.root, { backgroundColor: background, borderLeftColor: accent }, compact && styles.compact]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${task?.title ?? event?.title}, ${format(parseISO(startAt), 'h:mm a')}`} disabled={!onPress} onPress={onPress} style={[styles.root, { backgroundColor: background, borderLeftColor: accent }, compact && styles.compact]}>
       <View style={styles.labelRow}>
         {isTask ? <Ionicons name="checkmark-circle-outline" size={compact ? 10 : 12} color={accent} /> : null}
         <Text style={[styles.title, { color: palette?.ink ?? colors.ink }, compact && styles.compactTitle]} numberOfLines={compact ? 1 : 2}>{task?.title ?? event?.title}</Text>
       </View>
       {!compact ? <Text style={[styles.time, { color: accent }]}>{format(parseISO(startAt), 'h:mm')}–{format(parseISO(endAt), 'h:mm a')}</Text> : null}
-    </View>
+    </Pressable>
   );
 }
 

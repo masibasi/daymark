@@ -119,7 +119,7 @@ export default function TodayScreen() {
     </View>
   );
 
-  const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} isToday={isToday} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
+  const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
   const tasksColumn = (
     <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone]}>
@@ -169,7 +169,7 @@ export default function TodayScreen() {
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={dayTasks.length} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
 
-        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Upcoming</Text>{phone ? null : <Text style={styles.sectionHint}>Deadlines that need a little attention</Text>}</View>
+        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Deadlines</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to see its next steps</Text>}</View>
         <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} compact={phone} />
 
         {!phone && !scheduleColumn ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}

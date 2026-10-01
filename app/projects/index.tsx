@@ -21,20 +21,20 @@ export default function ProjectsScreen() {
       <View style={styles.page}>
         <ScreenHeader
           eyebrow="Persistent work"
-          title="Projects"
+          title="Deadlines"
           subtitle="Deadlines stay visible, even when they are not part of today."
           action={<NewProjectComposer categories={categories} onCreate={addProject} />}
         />
         <View style={styles.summary}>
           <Text style={styles.summaryNumber}>{projects.filter((project) => project.status === 'active').length}</Text>
-          <Text style={styles.summaryText}>active projects</Text>
+          <Text style={styles.summaryText}>active deadlines</Text>
           <View style={styles.summaryDivider} />
           <Text style={styles.summaryText}>{nextDeadline ? (nextDeadlineDays === 0 ? 'Next deadline is today' : `Next deadline in ${nextDeadlineDays} day${nextDeadlineDays === 1 ? '' : 's'}`) : 'No upcoming deadlines'}</Text>
         </View>
         {projects.length > 0 ? (
           <View style={[styles.grid, width < 720 && styles.gridCompact]}>{projects.map((project) => <ProjectCard key={project.id} project={project} tasks={tasks} now={current} />)}</View>
         ) : (
-          <Text style={styles.empty}>No projects yet. Start one with a title, category, and deadline.</Text>
+          <Text style={styles.empty}>No deadlines yet. Start one with a title, category, and deadline.</Text>
         )}
       </View>
     </ScrollView>

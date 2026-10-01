@@ -5,10 +5,10 @@
 - Today, Calendar Week/Month, Projects, Project Detail.
 - In-memory mock data and core interactions.
 - Responsive layout and Day Orbit motion.
-- Task-to-week-slot scheduling without drag-and-drop.
+- Calendar view + event import to Tasks (task-to-week-slot time-blocking was built, then paused 2026-10-01).
 - Today Task action menu for moving unfinished work, Project attention lead-time control, and Day Mark concept comparisons.
 - Day Mark shipped as Watercolor wash after the study route comparison; collapsible history calendar (week on phone, month on desktop) on Today.
-- Today time-rail and "reserve time" interaction study was tried and parked after review — it didn't resonate; removed from the app (preserved in git history). Today scheduling stays on the Calendar tab for now.
+- Today time-rail and "reserve time" interaction study was tried and parked after review — it didn't resonate; removed from the app (preserved in git history). Time-blocking is paused until calendar write-back exists.
 - Local persistence (zustand `persist` + AsyncStorage), the real system clock in place of the fixed prototype date, project/step creation and deletion, and a Settings screen with sample-data/erase actions — done, so the owner can use Daymark day to day on their own device.
 - User-managed flat lists, per-list inline add on Today (replacing the bottom composer), tap-to-add routines, and mobile web fixes (no focus zoom, bottom bar hides while typing) — done after real phone use.
 

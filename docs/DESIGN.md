@@ -6,14 +6,14 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and concise weather context → Day Orbit and compact history calendar → upcoming deadlines → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
-- Week: period controls → day headers/all-day row → hour grid and blocks → scheduling affordance.
+- Today: date and concise weather context → Day Orbit and compact history calendar → deadlines (tap a card to expand its next steps in a panel below the strip; each step has a ☀︎ Today toggle) → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
+- Week: period controls → day headers/all-day row → hour grid and blocks (no scheduling affordance; events are tappable to import).
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
 - Project Detail: identity/deadline → progress → subtasks.
 
 ## Navigation
 
-Today, Calendar, and Projects are primary. Mobile uses a bottom bar of three equal-width tabs (icon and label centred, active shown by ink colour and a bolder label). Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
+Today, Calendar, and Deadlines (code: Project) are primary. Mobile uses a bottom bar of three equal-width tabs (icon and label centred, active shown by ink colour and a bolder label). Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
 
 ## Typography
 
@@ -71,7 +71,7 @@ Reduce motion (OS setting via `AccessibilityInfo`, or `prefers-reduced-motion` o
 
 ## Calendar interaction
 
-Week view prioritizes geometry: fixed time gutter, clear day columns, faint half-hour rules, and tinted blocks. External events use a neutral edge; task blocks use category color and a small task glyph. Scheduling is explicit: press Schedule, select one Task, then tap a free slot.
+Week view prioritizes geometry: fixed time gutter, clear day columns, faint half-hour rules, and tinted blocks. External events use a neutral edge; task blocks use category color and a small task glyph. The Calendar tab is for viewing and importing: tapping an event (week block, all-day chip, month line) opens a bottom sheet on phones (a centred card on desktop) with the event title/time and the same "Add to <Today | Tue, Oct 6>" pill and "or in" chips as Today's Schedule, adding a Task for the event's date. Existing TimeBlocks are legacy: tapping one shows its task, time and a quiet "Remove". There is no way to create TimeBlocks for now.
 
 Month cells show date, a small Day Orbit, up to three compact lines, then a `+N` disclosure. Deadlines use a small flag treatment, not an alarm-red card.
 
@@ -79,7 +79,7 @@ Today also includes a quieter completion-history calendar. Its cells favor the D
 
 Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
 
-A Today time rail and per-Task "Reserve time" tray were tried as a V0 interaction study and removed after review — the interaction didn't resonate with the product owner. Today scheduling goes through the Calendar tab's select-then-tap-slot flow; a different Today-native scheduling interaction may be explored later. The header's weather line stays labeled "sample weather" so it reads honestly as mock data.
+A Today time rail and per-Task "Reserve time" tray were tried as a V0 interaction study and removed after review — the interaction didn't resonate with the product owner. Time-blocking is paused (see `docs/DECISIONS.md`). The header's weather line stays labeled "sample weather" so it reads honestly as mock data.
 
 ## Today on phone (width < 760)
 
@@ -89,7 +89,7 @@ Order: date header, one compact summary row, compact Upcoming strip, then a two-
 - Upcoming deadline cards are compact: one-line title with `D−n`, then a progress bar, so tasks appear on the first screen.
 - Tasks | Schedule is a quiet underlined segmented header (Schedule shows the day's event count; Tasks shows "n left"). Tap to switch, or swipe horizontally. The swipe only claims clearly horizontal gestures (|dx| > 24 and > 2·|dy|), so vertical scroll and long-press row drag are untouched. Only the active page is mounted and the main ScrollView is the only vertical scroller.
 - Schedule page: the displayed day's CalendarEvents, all-day first, then timed events (time range under the title) with a neutral event rail (events are never list-colored). Empty state: "No events on this day." with a quiet "Connect a calendar in Settings" link.
-- Tapping an event expands it inline: an "Add to Today" pill for the default list (a list named Schedule/Calendar, else the list last used for an event, else the first) and "or in" chips for the other lists; one tap adds. Once added the row reads "Added" and is disabled.
+- Tapping an event expands it inline: an "Add to Today" pill for the default list (a list named Schedule/Calendar, else the list last used for an event import; with neither, the pill reads "Schedule (new)" and creates an active Schedule list in the next free colour as it adds) and "or in" chips for the other lists; one tap adds. Once added the row reads "Added" and is disabled.
 
 Desktop keeps the Day Mark card and history calendar side by side. The Schedule sits in a right-hand column beside the tasks at ≥ 1100px, and as a section below Upcoming between 760 and 1100px.
 
@@ -101,7 +101,7 @@ Desktop keeps the Day Mark card and history calendar side by side. The Schedule 
 
 ## Components
 
-`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `SchedulePanel`, and `QuickAdd`.
+`AppShell`, `Navigation`, `ScreenHeader`, `DeadlineStrip`, `TaskSection`, `TaskRow`, `CheckControl`, `DayOrbit`, `HistoryCalendar`, `ProjectProgress`, `WeekGrid`, `CalendarBlock`, `MonthGrid`, `EventActions`, `EventSheet`, and `QuickAdd`.
 
 ## Lists, inline add, routines
 

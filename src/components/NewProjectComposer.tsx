@@ -32,16 +32,16 @@ export function NewProjectComposer({ categories, onCreate }: NewProjectComposerP
 
   return (
     <>
-      <Pressable accessibilityLabel="New project" onPress={() => setOpen(true)} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
+      <Pressable accessibilityLabel="New deadline" onPress={() => setOpen(true)} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
         <Ionicons name="add" size={17} color={themeColors.ink} />
-        <Text style={[styles.triggerText, { color: themeColors.ink }]}>New project</Text>
+        <Text style={[styles.triggerText, { color: themeColors.ink }]}>New deadline</Text>
       </Pressable>
       {open ? (
         <Modal transparent visible animationType="fade" onRequestClose={reset}>
           <View style={styles.shade}>
             <View style={styles.card}>
-              <View style={styles.cardHeader}><Text style={styles.cardTitle}>New project</Text><Pressable accessibilityLabel="Close" onPress={reset}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
-              <TextInput autoFocus value={title} onChangeText={setTitle} placeholder="Project title" placeholderTextColor={colors.muted} style={styles.input} />
+              <View style={styles.cardHeader}><Text style={styles.cardTitle}>New deadline</Text><Pressable accessibilityLabel="Close" onPress={reset}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
+              <TextInput autoFocus value={title} onChangeText={setTitle} placeholder="Deadline title" placeholderTextColor={colors.muted} style={styles.input} />
               <Text style={styles.label}>Category</Text>
               <View style={styles.categories}>{activeCategories.map((item) => { const palette = category(item.colorKey); const selected = item.id === categoryId; return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Choose ${item.name} category`} accessibilityState={{ selected }} onPress={() => setCategoryId(item.id)} style={[styles.categoryChip, { backgroundColor: selected ? palette.soft : colors.track }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={[styles.categoryText, { color: selected ? palette.ink : colors.muted }]}>{item.name}</Text></Pressable>; })}</View>
               <Text style={styles.label}>Deadline</Text>
@@ -50,7 +50,7 @@ export function NewProjectComposer({ categories, onCreate }: NewProjectComposerP
                 <Text style={styles.dateButtonText}>{deadline ? format(new Date(`${deadline}T00:00:00`), 'EEEE, MMMM d') : 'Choose a date'}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" disabled={!title.trim() || !deadline} onPress={submit} style={[styles.save, (!title.trim() || !deadline) && styles.saveDisabled]}>
-                <Text style={styles.saveText}>Create project</Text>
+                <Text style={styles.saveText}>Create deadline</Text>
               </Pressable>
             </View>
           </View>
