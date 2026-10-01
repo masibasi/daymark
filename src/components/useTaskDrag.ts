@@ -12,10 +12,14 @@ const EDGE = 60;
 const MAX_SCROLL_STEP = 14;
 
 export interface DropTarget { categoryId: string; colorKey: CategoryColorKey; index: number; beforeId?: string; afterId?: string; empty?: boolean }
-interface DragState { draggingId?: string; draggingCategoryId?: string; target: DropTarget | null }
+interface DragState { draggingId?: string; draggingCategoryId?: string; editingId?: string; target: DropTarget | null }
 
 export const useDragStore = create<DragState>(() => ({ target: null }));
 export const dragY = new Animated.Value(0);
+
+// Browsers fire a click after a long-press drag is released; tap handlers on a row ignore it via this stamp.
+let lastDragEndAt = 0;
+export const justDragged = () => Date.now() - lastDragEndAt < 500;
 
 interface Box { top: number; bottom: number }
 interface SectionGeo extends Box { categoryId: string; colorKey: CategoryColorKey; droppable: boolean; rows: Array<Box & { id: string }> }
@@ -112,6 +116,7 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
     const finish = (blockedAnimation: boolean) => {
       const s = session.current;
       session.current = null;
+      lastDragEndAt = Date.now();
       if (s?.timer) clearInterval(s.timer);
       const clear = () => {
         useDragStore.setState({ draggingId: undefined, draggingCategoryId: undefined, target: null });
@@ -181,7 +186,7 @@ export function useDragRow(taskId: string, categoryId: string) {
   const state = useRef<{ timer?: ReturnType<typeof setTimeout>; active: boolean; pointer: number }>({ active: false, pointer: 0 }).current;
 
   const responder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => useDragStore.getState().editingId !== latest.current.taskId,
     onPanResponderGrant: (event) => {
       state.active = false;
       state.pointer = event.nativeEvent.pageY;

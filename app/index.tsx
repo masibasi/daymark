@@ -35,6 +35,7 @@ export default function TodayScreen() {
   const maxScrollY = useRef(0);
   const viewportHeight = useRef(0);
   const [addingListId, setAddingListId] = useState<string | null>(null);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
@@ -108,6 +109,9 @@ export default function TodayScreen() {
               selectedDate={selectedTodayDate}
               projectNames={projectNames}
               adding={addingListId === group.category.id}
+              editingList={editingListId === group.category.id}
+              onToggleEditList={() => setEditingListId((current) => (current === group.category.id ? null : group.category.id))}
+              onCloseEditList={() => setEditingListId((current) => (current === group.category.id ? null : current))}
               onOpenAdd={() => setAddingListId(group.category.id)}
               onCloseAdd={() => setAddingListId((current) => (current === group.category.id ? null : current))}
               onAddTask={addTask}

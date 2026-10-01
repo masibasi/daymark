@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react';
-import { Animated, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { DatePickerModal } from './DatePickerModal';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { useDaymarkStore } from '@/store/useDaymarkStore';
+import { justDragged, useDragStore } from './useTaskDrag';
 
 interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; onSaveRoutine?: () => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
 
@@ -19,6 +21,37 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
   const paletteFor = useCategoryPalette();
   const palette = paletteFor(task.categoryId);
   const complete = Boolean(task.completedAt);
+  const renameTask = useDaymarkStore((state) => state.renameTask);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.title);
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>();
+  const inputRef = useRef<TextInput>(null);
+  const finished = useRef(false);
+
+  // Title edit: tap the title (or "Edit" in the menu). Saves on Enter/blur, empty reverts, Escape cancels.
+  const startEdit = () => {
+    setMenuOpen(false);
+    setDraft(task.title);
+    setSelection({ start: task.title.length, end: task.title.length });
+    finished.current = false;
+    useDragStore.setState({ editingId: task.id });
+    setEditing(true);
+  };
+  const stopEdit = (save: boolean) => {
+    if (finished.current) return;
+    finished.current = true;
+    if (save && draft.trim()) renameTask(task.id, draft);
+    useDragStore.setState({ editingId: undefined });
+    setEditing(false);
+  };
+  useEffect(() => () => { if (useDragStore.getState().editingId === task.id) useDragStore.setState({ editingId: undefined }); }, [task.id]);
+  useEffect(() => {
+    if (!editing || Platform.OS !== 'web') return;
+    const input = inputRef.current as unknown as HTMLInputElement | null;
+    input?.setSelectionRange?.(task.title.length, task.title.length);
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Web fires a click after a long-press drag is released; only a real tap edits.
+  const titleTap = Platform.OS === 'web' ? ({ onClick: () => { if (!justDragged()) startEdit(); } } as object) : { onPress: startEdit };
 
   const toggle = () => {
     Animated.sequence([
@@ -47,7 +80,7 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
     }
     node.measureInWindow((x, y, width, height) => { setAnchor({ x, y, width, height }); setMenuOpen(true); });
   };
-  const menuItems = (onMove ? 3 : 0) + (onSaveRoutine ? 1 : 0) + (onDelete ? 1 : 0);
+  const menuItems = 1 + (onMove ? 3 : 0) + (onSaveRoutine ? 1 : 0) + (onDelete ? 1 : 0);
   const menuHeight = menuItems * 38 + space.xs * 2 + 2;
   const below = anchor.y + anchor.height + 4;
   const menuTop = below + menuHeight > viewport.height - space.md ? Math.max(space.md, anchor.y - menuHeight - 4) : below;
@@ -68,7 +101,14 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
         </Animated.View>
       </Pressable>
       <View style={styles.copy}>
-        <Text style={[styles.title, complete && styles.complete]} numberOfLines={2}>{task.title}</Text>
+        {editing ? (
+          <TextInput
+            ref={inputRef} autoFocus value={draft} onChangeText={setDraft} selection={selection} onSelectionChange={() => setSelection(undefined)} selectTextOnFocus={false}
+            onSubmitEditing={() => stopEdit(true)} onBlur={() => stopEdit(true)} returnKeyType="done" submitBehavior="submit" blurOnSubmit
+            onKeyPress={(event) => { if (event.nativeEvent.key === 'Escape') stopEdit(false); }}
+            accessibilityLabel={`Edit title of ${task.title}`} style={[styles.title, styles.titleInput, complete && styles.complete]}
+          />
+        ) : <Text {...titleTap} style={[styles.title, complete && styles.complete]} numberOfLines={2}>{task.title}</Text>}
         {projectTitle ? (
           <View style={styles.metaRow}>
             <Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text>
@@ -76,11 +116,12 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
         ) : null}
       </View>
       {trailing}
-      {(onMove || onDelete || onSaveRoutine) && !complete ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${task.title}`} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable> : null}
+      {(onMove || onDelete || onSaveRoutine) && !complete && !editing ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${task.title}`} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable> : null}
     </View>
     {menuOpen && (onMove || onDelete || onSaveRoutine) ? <Modal transparent visible animationType="none" onRequestClose={() => setMenuOpen(false)}>
     <Pressable accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
     <View style={[styles.actions, { top: menuTop, right: menuRight }]}>
+      <Pressable accessibilityRole="button" onPress={startEdit} style={styles.action}><Ionicons name="pencil-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Edit</Text></Pressable>
       {onMove ? <Pressable accessibilityRole="button" onPress={() => move(format(addDays(parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd')), 1), 'yyyy-MM-dd'))} style={styles.action}><Ionicons name="arrow-forward-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Tomorrow</Text></Pressable> : null}
       {onMove ? <Pressable accessibilityRole="button" onPress={() => { setPickerOpen(true); setMenuOpen(false); }} style={styles.action}><Ionicons name="calendar-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Choose date</Text></Pressable> : null}
       {onMove ? <Pressable accessibilityRole="button" onPress={() => move()} style={styles.action}><Ionicons name="remove-circle-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Remove from day</Text></Pressable> : null}
@@ -98,6 +139,7 @@ const styles = StyleSheet.create({
   check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
   title: { ...type.bodyMedium, color: colors.ink, fontFamily },
+  titleInput: { padding: 0, margin: 0, minHeight: 21, fontSize: 16, outlineStyle: 'none' as never, ...Platform.select({ web: { userSelect: 'text', WebkitUserSelect: 'text' } as object, default: {} }) },
   complete: { color: colors.muted },
   meta: { ...type.meta, color: colors.muted, marginTop: 1, fontFamily },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },

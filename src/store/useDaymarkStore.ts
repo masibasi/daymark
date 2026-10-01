@@ -54,6 +54,7 @@ interface DaymarkState {
   deleteProject: (projectId: string) => void;
   addProjectTask: (projectId: string, title: string) => void;
   deleteTask: (taskId: string) => void;
+  renameTask: (taskId: string, title: string) => void;
   loadSampleData: () => void;
   eraseAllData: () => void;
   applyRemoteItems: (changes: RemoteChange[]) => void;
@@ -226,6 +227,13 @@ export const useDaymarkStore = create<DaymarkState>()(
         const project = state.projects.find((item) => item.id === projectId);
         if (!project || !title.trim()) return state;
         return { tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId }] };
+      }),
+      // Title only: never touches completedAt, order, or list. Empty titles are ignored.
+      renameTask: (taskId, title) => set((state) => {
+        const clean = title.trim();
+        const task = state.tasks.find((item) => item.id === taskId);
+        if (!clean || !task || task.title === clean) return state;
+        return { tasks: state.tasks.map((item) => item.id === taskId ? { ...item, title: clean } : item) };
       }),
       deleteTask: (taskId) => set((state) => {
         const index = state.tasks.findIndex((task) => task.id === taskId);

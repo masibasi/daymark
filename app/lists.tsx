@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
   const removeRoutine = useDaymarkStore((state) => state.removeRoutine);
   const [name, setName] = useState(category.name);
   const [picking, setPicking] = useState(false);
+  useEffect(() => setName(category.name), [category.name]);
   const palette = categoryPalette[category.colorKey];
 
   const commit = () => {
