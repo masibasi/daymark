@@ -29,7 +29,8 @@
 
 ## V1 — Google Calendar and public beta
 
-- Google Calendar provider, duplicate protection, sync status, onboarding.
+- Done early (2026-10-01, awaiting the owner's real-feed test): read-only Google/Apple/Outlook calendars via secret iCal feeds and the `calendar-feed` Edge Function.
+- Still open: Google OAuth provider and write-back (only if needed), duplicate protection for scheduled blocks, onboarding.
 - Beta-ready reliability, accessibility, performance, and support surfaces.
 
 ## Later

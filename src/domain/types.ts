@@ -54,13 +54,25 @@ export interface TimeBlock {
 
 export interface CalendarEvent {
   id: string;
-  provider: 'mock' | 'google';
+  provider: 'mock' | 'google' | 'ics';
   externalId: string;
+  // Which CalendarFeed produced it (ics only).
+  feedId?: string;
+  location?: string;
   title: string;
   startAt: ISODateTime;
   endAt: ISODateTime;
   allDay: boolean;
   colorKey?: 'event';
+}
+
+// A read-only iCal feed the owner pasted in Settings. Synced as the `calendarFeeds` preference row; the URL is a secret.
+export interface CalendarFeed {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  colorHint?: string;
 }
 
 export type CalendarView = 'week' | 'month';

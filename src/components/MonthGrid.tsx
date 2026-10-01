@@ -1,7 +1,7 @@
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
-import { selectDayOrbit } from '@/domain/selectors';
+import { selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
@@ -23,7 +23,7 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks }: MonthGrid
       <View style={styles.weekdays}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <Text key={day} style={styles.weekday}>{compact ? day[0] : day}</Text>)}</View>
       <View style={styles.grid}>
         {days.map((day) => {
-          const dayEvents = events.filter((event) => isSameDay(parseISO(event.startAt), day));
+          const dayEvents = selectEventsOnDay(events, day);
           const dayBlocks = blocks.filter((block) => isSameDay(parseISO(block.startAt), day));
           const deadlines = projects.filter((project) => isSameDay(parseISO(project.deadline), day));
           const items = [

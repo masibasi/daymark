@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addMonths, addWeeks, format, parseISO, subMonths, subWeeks } from 'date-fns';
+import { addMonths, addWeeks, endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { MonthGrid } from '@/components/MonthGrid';
 import { SchedulePanel } from '@/components/SchedulePanel';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { WeekGrid } from '@/components/WeekGrid';
+import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -26,6 +27,11 @@ export default function CalendarScreen() {
   const events = useDaymarkStore((state) => state.events);
   const blocks = useDaymarkStore((state) => state.timeBlocks);
   const anchor = parseISO(dateString);
+  // Week: the shown week +-1 week. Month: the visible 6-week grid +-1 week (both stay under the function's 62-day cap).
+  useCalendarEvents(
+    subWeeks(view === 'week' ? startOfWeek(anchor, { weekStartsOn: 1 }) : startOfWeek(startOfMonth(anchor)), 1),
+    addWeeks(view === 'week' ? endOfWeek(anchor, { weekStartsOn: 1 }) : endOfWeek(endOfMonth(anchor)), 1),
+  );
   const move = (direction: -1 | 1) => setDate((view === 'week' ? (direction < 0 ? subWeeks : addWeeks) : (direction < 0 ? subMonths : addMonths))(anchor, 1).toISOString());
 
   const schedule = (startAt: string, endAt: string) => {

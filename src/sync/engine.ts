@@ -46,6 +46,7 @@ function trackChanges(prev: DomainState, next: DomainState) {
     changed ||= upserted.length > 0 || removed.length > 0;
   }
   if (prev.dayMarkVariant !== next.dayMarkVariant) { markDirty('preference', 'dayMarkVariant', false); changed = true; }
+  if (prev.calendarFeeds !== next.calendarFeeds) { markDirty('preference', 'calendarFeeds', false); changed = true; }
   if (!changed) return;
   saveState();
   if (signedIn()) schedulePush();
@@ -63,6 +64,7 @@ function markEverythingDirty() {
   const all = collections(current);
   kinds.forEach((kind) => all[kind].forEach((item) => markDirty(kind, item.id, false, undefined, EPOCH)));
   markDirty('preference', 'dayMarkVariant', false, undefined, EPOCH);
+  markDirty('preference', 'calendarFeeds', false, undefined, EPOCH);
 }
 
 async function pull() {
@@ -93,7 +95,7 @@ async function pull() {
 // Current local value for a dirty entry (tombstones use the last known copy).
 function rowData(entry: DirtyEntry, current: DomainState): unknown {
   if (entry.deleted) return entry.data ?? {};
-  if (entry.kind === 'preference') return { value: current.dayMarkVariant };
+  if (entry.kind === 'preference') return { value: entry.id === 'calendarFeeds' ? current.calendarFeeds : current.dayMarkVariant };
   return collections(current)[entry.kind].find((item) => item.id === entry.id);
 }
 

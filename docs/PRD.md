@@ -58,7 +58,7 @@ The first user is an individual balancing study, career, personal, and routine w
 ## V1 scope
 
 - Account management beyond email/password (password reset, multiple profiles).
-- Google Calendar read/write through a provider boundary.
+- Real calendars (Google, Apple, Outlook) shown read-only via secret iCal feeds (done 2026-10-01, see ARCHITECTURE "Calendar feeds"); Google OAuth and write-back through the provider boundary if needed later.
 - Production-grade local persistence and conflict handling.
 - Public beta quality, accessibility, onboarding, and empty states.
 
@@ -68,7 +68,7 @@ Daymark is not intended to match the arbitrary list hierarchy of a general todo 
 
 ## Non-goals
 
-No real provider integration (auth and item sync via Supabase are allowed since 2026-09-30), social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
+No OAuth calendar provider or calendar write-back (auth and item sync via Supabase are allowed since 2026-09-30, and read-only iCal feeds through a Supabase Edge Function since 2026-10-01), social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
 
 ## V0 acceptance criteria
 

@@ -2,11 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { format, parseISO, setHours } from 'date-fns';
-import type { CalendarEvent, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, Task, TimeBlock } from '@/domain/types';
+import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
 import { sortTasksByOrder } from '@/domain/selectors';
-import { applyChanges, type RemoteChange } from '@/sync/merge';
+import { applyChanges, sameData, type RemoteChange } from '@/sync/merge';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks } from './mockData';
 
 // What the last delete removed, so Undo can put it back exactly (same ids, order, completedAt). Never persisted.
@@ -20,6 +20,8 @@ interface DaymarkState {
   tasks: Task[];
   timeBlocks: TimeBlock[];
   events: CalendarEvent[];
+  calendarFeeds: CalendarFeed[];
+  feedErrors: Record<string, string>;
   calendarView: CalendarView;
   calendarDate: string;
   scheduleTaskId?: string;
@@ -56,13 +58,17 @@ interface DaymarkState {
   addProjectTask: (projectId: string, title: string) => void;
   deleteTask: (taskId: string) => void;
   renameTask: (taskId: string, title: string) => void;
+  addCalendarFeed: (name: string, url: string) => void;
+  setCalendarFeedEnabled: (id: string, enabled: boolean) => void;
+  removeCalendarFeed: (id: string) => void;
+  applyFeedEvents: (feedIds: string[], windowStart: string, windowEnd: string, loaded: CalendarEvent[], errors: Record<string, string>) => void;
   loadSampleData: () => void;
   eraseAllData: () => void;
   applyRemoteItems: (changes: RemoteChange[]) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 4;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -97,7 +103,9 @@ export const useDaymarkStore = create<DaymarkState>()(
       projects: [],
       tasks: [],
       timeBlocks: [],
-      events: initialEvents,
+      events: [],
+      calendarFeeds: [],
+      feedErrors: {},
       calendarView: 'week',
       calendarDate: now().toISOString(),
       selectedTodayDate: todayKey(),
@@ -254,6 +262,22 @@ export const useDaymarkStore = create<DaymarkState>()(
           toast: makeToast(`Deleted "${task.title}"`, true),
         };
       }),
+      addCalendarFeed: (name, url) => set((state) => ({ calendarFeeds: [...state.calendarFeeds, { id: newId('feed'), name: name.trim() || 'Calendar', url, enabled: true }] })),
+      setCalendarFeedEnabled: (id, enabled) => set((state) => ({ calendarFeeds: state.calendarFeeds.map((feed) => feed.id === id ? { ...feed, enabled } : feed) })),
+      removeCalendarFeed: (id) => set((state) => ({
+        calendarFeeds: state.calendarFeeds.filter((feed) => feed.id !== id),
+        events: state.events.filter((event) => event.feedId !== id),
+        feedErrors: Object.fromEntries(Object.entries(state.feedErrors).filter(([feedId]) => feedId !== id)),
+      })),
+      // Fetched feed events for [windowStart, windowEnd): replace that window for the loaded feeds, keep everything else
+      // (other windows, feeds that errored this round, sample events). Events of removed or disabled feeds are dropped.
+      applyFeedEvents: (feedIds, windowStart, windowEnd, loaded, errors) => set((state) => {
+        const live = new Set(state.calendarFeeds.filter((feed) => feed.enabled).map((feed) => feed.id));
+        const replaced = new Set(feedIds.filter((id) => !(id in errors)));
+        const kept = state.events.filter((event) => event.provider !== 'ics' || (event.feedId !== undefined && live.has(event.feedId) && !(replaced.has(event.feedId) && event.startAt < windowEnd && event.endAt > windowStart)));
+        const known = new Set(kept.map((event) => event.id));
+        return { events: [...kept, ...loaded.filter((event) => event.feedId !== undefined && live.has(event.feedId) && !known.has(event.id))], feedErrors: errors };
+      }),
       loadSampleData: () => set((state) => {
         const missing = initialCategories.filter((category) => !state.categories.some((item) => item.id === category.id));
         const base = state.categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
@@ -261,9 +285,10 @@ export const useDaymarkStore = create<DaymarkState>()(
           // Sample data uses the four default lists, so bring back any of them that were archived too.
           categories: [...state.categories.map((category) => initialCategories.some((item) => item.id === category.id) ? { ...category, archived: false } : category), ...missing.map((category, index) => ({ ...category, order: base + index }))],
           projects: initialProjects, tasks: initialTasks, timeBlocks: initialTimeBlocks,
+          events: [...state.events.filter((event) => event.provider !== 'mock'), ...initialEvents],
         };
       }),
-      eraseAllData: () => set({ projects: [], tasks: [], timeBlocks: [], lastDeleted: null, toast: null }),
+      eraseAllData: () => set((state) => ({ projects: [], tasks: [], timeBlocks: [], events: state.events.filter((event) => event.provider !== 'mock'), lastDeleted: null, toast: null })),
       // Synced rows from another device. Upserts/removes by id per kind; leaves `order` and all derived rules alone.
       applyRemoteItems: (changes) => set((state) => {
         const of = (kind: RemoteChange['kind']) => changes.filter((change) => change.kind === kind);
@@ -273,9 +298,11 @@ export const useDaymarkStore = create<DaymarkState>()(
         const timeBlocks = applyChanges(state.timeBlocks, of('timeBlock'));
         const routines = applyChanges(state.routines, of('routine'));
         const variant = of('preference').find((change) => change.id === 'dayMarkVariant' && !change.deleted)?.data as { value?: DayMarkVariant } | undefined;
+        const feedsRow = of('preference').find((change) => change.id === 'calendarFeeds' && !change.deleted)?.data as { value?: CalendarFeed[] } | undefined;
+        const calendarFeeds = Array.isArray(feedsRow?.value) && !sameData(feedsRow.value, state.calendarFeeds) ? feedsRow.value : state.calendarFeeds;
         const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current'].includes(variant.value) ? variant.value : state.dayMarkVariant;
-        if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant) return state;
-        return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant };
+        if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant && calendarFeeds === state.calendarFeeds) return state;
+        return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant, calendarFeeds };
       }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
@@ -290,11 +317,12 @@ export const useDaymarkStore = create<DaymarkState>()(
         tasks: state.tasks,
         timeBlocks: state.timeBlocks,
         dayMarkVariant: state.dayMarkVariant,
+        calendarFeeds: state.calendarFeeds,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       migrate: (persisted, version) => {
         const old = (persisted ?? {}) as Partial<DaymarkState>;
-        if (version === 2) return old as DaymarkState; // v2 -> v3: Task.order is optional, nothing to rewrite.
+        if (version === 2 || version === 3) return old as DaymarkState; // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to [].
         if (version === 1 && Array.isArray(old.categories)) {
           return {
             ...old,

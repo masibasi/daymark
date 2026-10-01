@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
+import { checkFeedUrl } from '@/calendar/feedUrl';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { confirmAction } from '@/domain/confirm';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -67,6 +68,69 @@ function AccountSection() {
   );
 }
 
+// Read-only iCal feeds. The secret URL lives only in the owner's account (RLS-protected preference row) and is fetched server-side.
+function CalendarsSection() {
+  const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
+  const feeds = useDaymarkStore((state) => state.calendarFeeds);
+  const feedErrors = useDaymarkStore((state) => state.feedErrors);
+  const addCalendarFeed = useDaymarkStore((state) => state.addCalendarFeed);
+  const setEnabled = useDaymarkStore((state) => state.setCalendarFeedEnabled);
+  const removeCalendarFeed = useDaymarkStore((state) => state.removeCalendarFeed);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState<string>();
+
+  const add = () => {
+    const checked = checkFeedUrl(url);
+    if ('error' in checked) { setError(checked.error); return; }
+    if (feeds.length >= 10) { setError('You can connect up to 10 calendars.'); return; }
+    addCalendarFeed(name, checked.url);
+    setName(''); setUrl(''); setError(undefined); setAdding(false);
+  };
+  const remove = async (id: string, label: string) => {
+    if (await confirmAction('Remove calendar', `Remove "${label}"? Its events disappear from Daymark; your calendar itself is untouched.`, 'Remove')) removeCalendarFeed(id);
+  };
+
+  if (!signedIn) {
+    return <View style={styles.section}><View style={styles.row}><Text style={styles.rowTitle}>Calendars</Text><Text style={styles.rowHint}>Sign in to connect your calendars.</Text></View></View>;
+  }
+  return (
+    <View style={styles.section}>
+      <View style={[styles.row, (feeds.length > 0 || adding) && styles.rowBorder]}>
+        <Text style={styles.rowTitle}>Calendars</Text>
+        <Text style={styles.rowHint}>Show Google or Apple Calendar events on your Schedule. Read-only: Daymark never changes your calendars.</Text>
+      </View>
+      {feeds.map((feed, index) => (
+        <View key={feed.id} style={[styles.row, styles.feedRow, (index < feeds.length - 1 || adding) && styles.rowBorder]}>
+          <View style={styles.rowCopy}>
+            <Text style={styles.rowTitle} numberOfLines={1}>{feed.name}</Text>
+            {feedErrors[feed.id] && feed.enabled ? <Text style={[styles.rowHint, styles.danger]}>{feedErrors[feed.id]}</Text> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${feed.name}`} onPress={() => { void remove(feed.id, feed.name); }}><Text style={[styles.rowHint, styles.danger]}>Remove</Text></Pressable>
+          </View>
+          <Switch accessibilityLabel={`Show ${feed.name}`} value={feed.enabled} onValueChange={(value) => setEnabled(feed.id, value)} trackColor={{ true: colors.ink, false: colors.line }} thumbColor={colors.paper} {...{ activeThumbColor: colors.paper }} />
+        </View>
+      ))}
+      {adding ? (
+        <View style={styles.form}>
+          <TextInput value={name} onChangeText={setName} placeholder="Name (e.g. School)" placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} />
+          <TextInput value={url} onChangeText={setUrl} placeholder="iCal link (https:// or webcal://)" placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} keyboardType="url" onSubmitEditing={add} />
+          <Text style={styles.rowHint}>Google: Settings › your calendar › "Secret address in iCal format". Apple: Calendar › ⓘ › Public Calendar › Share Link. This link is private; it is stored only in your account and never shown to anyone else.</Text>
+          {error ? <Text accessibilityLiveRegion="polite" style={[styles.rowHint, styles.danger]}>{error}</Text> : null}
+          <View style={styles.buttons}>
+            <Pressable accessibilityRole="button" onPress={add} style={({ pressed }) => [styles.button, styles.buttonPrimary, pressed && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>Add</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setAdding(false); setError(undefined); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Cancel</Text></Pressable>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.actions}>
+          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Add calendar</Text></Pressable>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const loadSampleData = useDaymarkStore((state) => state.loadSampleData);
   const eraseAllData = useDaymarkStore((state) => state.eraseAllData);
@@ -86,12 +150,13 @@ export default function SettingsScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <ScreenHeader eyebrow="Daymark" title="Settings" subtitle={signedIn ? 'Synced to your account and kept on this device.' : 'Data is saved only on this device/browser.'} />
       <AccountSection />
+      <CalendarsSection />
       <View style={styles.section}>
         <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onLoadSample} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your projects, tasks, and time blocks with sample data.</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your projects, tasks, and time blocks with sample data and sample events.</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onEraseAll} style={styles.row}>
           <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all projects, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
@@ -108,7 +173,8 @@ const styles = StyleSheet.create({
   section: { marginTop: space.xl, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper, overflow: 'hidden' },
   row: { paddingVertical: space.md, paddingHorizontal: space.lg, gap: 2 },
   rowBorder: { borderBottomWidth: 1, borderColor: colors.line },
-  rowCopy: { gap: 2 },
+  rowCopy: { flex: 1, gap: 2 },
+  feedRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowTitle: { ...type.bodyMedium, color: colors.ink, fontFamily },
   danger: { color: colors.danger },
   rowHint: { ...type.meta, color: colors.muted, fontFamily },

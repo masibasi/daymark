@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { addMinutes, eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, parseISO, setHours, setMinutes, startOfWeek } from 'date-fns';
+import { selectEventsOnDay } from '@/domain/selectors';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
 import { colors, fontFamily, type } from '@/theme/tokens';
 import { CalendarBlock } from './CalendarBlock';
@@ -35,7 +36,7 @@ export function WeekGrid({ anchor, events, blocks, tasks, scheduleTaskId, onSche
       <View style={styles.allDayRow}>
         <Text style={styles.allDayLabel}>all-day</Text>
         {days.map((day) => {
-          const dayEvents = events.filter((event) => event.allDay && isSameDay(parseISO(event.startAt), day));
+          const dayEvents = selectEventsOnDay(events, day).filter((event) => event.allDay);
           return <View key={day.toISOString()} style={styles.allDayCell}>{dayEvents.map((event) => <CalendarBlock key={event.id} event={event} compact />)}</View>;
         })}
       </View>
