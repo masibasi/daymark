@@ -5,3 +5,6 @@ dist/
 web-build/
 *.log
 
+
+# Local-only design references (third-party screenshots; keep out of the public repo)
+ui-references/
