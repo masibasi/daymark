@@ -4,7 +4,7 @@ Guidance for Codex (and future engineers) working in this repo. Read `docs/PRD.m
 
 ## Goals
 
-Daymark is a calm, personal productivity app: daily todos + deadline-driven projects + calendar scheduling, unified by the **Day Mark** — a list-segmented completion ring. It is not a SaaS project-management tool, not social, not gamified. See `docs/PRD.md` for full product context.
+Daymark is a calm, personal productivity app: daily todos + folders (optional deadlines) + calendar scheduling, unified by the **Day Mark** — a list-segmented completion ring. It is not a SaaS project-management tool, not social, not gamified. See `docs/PRD.md` for full product context.
 
 ## Design principles (see docs/DESIGN.md for detail)
 
@@ -25,7 +25,11 @@ Daymark is a calm, personal productivity app: daily todos + deadline-driven proj
 
 ## Scope boundaries (hard limits — do not add without explicit user request)
 
-Supabase email/password auth and item sync are allowed (owner request 2026-09-30; local-first, the app must keep working signed out, see `docs/ARCHITECTURE.md` "Sync"). Read-only iCal feeds (Google/iCloud/Outlook secret links) fetched by the `calendar-feed` Supabase Edge Function are allowed (owner request 2026-10-01); still no OAuth calendar API, no calendar write-back, no other backend, no push notifications, no social features (feeds/followers/sharing), no gamification (confetti/XP/streaks/badges). Drag-and-drop is allowed only to reorder Tasks within Today's lists and move them between lists (owner request 2026-09-30; completed and project tasks may reorder but never change list). Calendar is view + import (tap an event to add it to a day as a Task); no time-blocking for now; no other drag-and-drop (see `docs/DECISIONS.md`). See `docs/ROADMAP.md` for what's deferred vs. permanently out of scope — read it before assuming something is "just not built yet."
+Supabase email/password auth and item sync are allowed (owner request 2026-09-30; local-first, the app must keep working signed out, see `docs/ARCHITECTURE.md` "Sync"). Read-only iCal feeds (Google/iCloud/Outlook secret links) fetched by the `calendar-feed` Supabase Edge Function are allowed (owner request 2026-10-01); still no OAuth calendar API, no calendar write-back, no other backend, no push notifications, no social features (feeds/followers/sharing), no gamification (confetti/XP/streaks/badges). Drag-and-drop is allowed only to reorder Tasks within Today's lists and move them between lists (owner request 2026-09-30; completed and project tasks may reorder but never change list), to drop a Task onto a folder card in Today's folder strip, and to reorder folders on the Folders tab (owner requests 2026-10-01). Calendar is view + import (tap an event to add it to a day as a Task); no time-blocking for now; no other drag-and-drop (see `docs/DECISIONS.md`). See `docs/ROADMAP.md` for what's deferred vs. permanently out of scope — read it before assuming something is "just not built yet."
+
+## Folders (code: `Project`)
+
+The UI says "Folders"; the entity stays `Project` (route `/projects`). A folder may or may not have a `deadline`. Folder order comes from one selector, `selectFolders` / `selectFolderGroups` (pinned by `order`, then dated by deadline, then undated by `order`); never sort folders inline. A step is still one Task with `projectId` (placed on a day only via `scheduledDate`). Past days keep what was left undone through `Task.missedOn`; nothing auto-clears dates (see `docs/DECISIONS.md`).
 
 ## Coding standards
 

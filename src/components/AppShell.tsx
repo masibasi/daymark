@@ -12,7 +12,7 @@ import { UndoToast } from './UndoToast';
 const navItems = [
   { href: '/', label: 'Today', icon: 'sunny-outline', activeIcon: 'sunny' },
   { href: '/calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar' },
-  { href: '/projects', label: 'Deadlines', icon: 'layers-outline', activeIcon: 'layers' },
+  { href: '/projects', label: 'Folders', icon: 'folder-outline', activeIcon: 'folder' },
 ] as const;
 
 export function AppShell({ children }: PropsWithChildren) {

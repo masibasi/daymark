@@ -28,12 +28,19 @@ export function selectCategoryColorKey(categories: Category[], categoryId: Categ
 }
 
 // Today's sections: every active list (even when empty) plus any archived list that has tasks that day.
-export function selectTodaySections(tasks: Task[], categories: Category[]): Array<{ category: Category; tasks: Task[] }> {
+// `missed` are the day's missed tasks (see selectMissedOnDay): shown muted under their list, and they keep an archived list visible.
+export function selectTodaySections(tasks: Task[], categories: Category[], missed: Task[] = []): Array<{ category: Category; tasks: Task[]; missed: Task[] }> {
   return categories
     .slice()
     .sort((a, b) => a.order - b.order)
-    .map((category) => ({ category, tasks: sortTasksByOrder(tasks.filter((task) => task.categoryId === category.id)) }))
-    .filter((group) => !group.category.archived || group.tasks.length > 0);
+    .map((category) => ({ category, tasks: sortTasksByOrder(tasks.filter((task) => task.categoryId === category.id)), missed: missed.filter((task) => task.categoryId === category.id) }))
+    .filter((group) => !group.category.archived || group.tasks.length > 0 || group.missed.length > 0);
+}
+
+// Tasks that were left incomplete on `day` and moved off it later. They count as planned (not completed) for that day forever.
+export function selectMissedOnDay(tasks: Task[], day: Date): Task[] {
+  const key = format(day, 'yyyy-MM-dd');
+  return tasks.filter((task) => task.scheduledDate !== key && task.missedOn?.includes(key));
 }
 
 export function selectRoutinesForList(routines: Routine[], categoryId: CategoryId): Routine[] {
@@ -54,11 +61,49 @@ export function selectProjectProgress(tasks: Task[], projectId: string): { compl
   return { completed: projectTasks.filter((task) => Boolean(task.completedAt)).length, total: projectTasks.length };
 }
 
+// Active folders with a deadline that has not passed, soonest first.
 export function selectUpcomingProjects(projects: Project[], now: Date, limit = 3): Project[] {
   return projects
-    .filter((project) => project.status === 'active' && differenceInCalendarDays(parseISO(project.deadline), startOfDay(now)) >= 0)
-    .sort((a, b) => a.deadline.localeCompare(b.deadline))
+    .filter((project) => project.status === 'active' && project.deadline !== undefined && differenceInCalendarDays(parseISO(project.deadline), startOfDay(now)) >= 0)
+    .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
     .slice(0, limit);
+}
+
+const byOrder = (a: Project, b: Project) => (a.order ?? 1e9) - (b.order ?? 1e9);
+
+// Folder ordering, single source of truth. Pinned (manual order), then dated (deadline ascending, overdue first), then undated (manual order).
+export function selectFolderGroups(projects: Project[]): { pinned: Project[]; dated: Project[]; undated: Project[] } {
+  const active = projects.filter((project) => project.status !== 'archived');
+  return {
+    pinned: active.filter((project) => project.pinned).sort(byOrder),
+    dated: active.filter((project) => !project.pinned && project.deadline).sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? '') || byOrder(a, b)),
+    undated: active.filter((project) => !project.pinned && !project.deadline).sort(byOrder),
+  };
+}
+
+export function selectFolders(projects: Project[]): Project[] {
+  const { pinned, dated, undated } = selectFolderGroups(projects);
+  return [...pinned, ...dated, ...undated];
+}
+
+export function selectArchivedFolders(projects: Project[]): Project[] {
+  return projects.filter((project) => project.status === 'archived').sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
+}
+
+// Today's strip: pinned folders and every folder with a deadline; undated unpinned folders stay on the Folders tab.
+export function selectTodayFolders(projects: Project[]): Project[] {
+  return selectFolders(projects).filter((project) => project.pinned || project.deadline);
+}
+
+// A dated folder whose steps are all done asks once whether to archive it (Keep silences it until a new step is added). Undated folders never ask.
+export function selectCompletionPrompt(project: Project, tasks: Task[]): boolean {
+  if (!project.deadline || project.completionAcknowledged || project.status !== 'active') return false;
+  const progress = selectProjectProgress(tasks, project.id);
+  return progress.total > 0 && progress.completed === progress.total;
+}
+
+export function selectDeadlineLabel(days: number): string {
+  return days < 0 ? `Overdue · ${-days} day${days === -1 ? '' : 's'}` : days === 0 ? 'Due today' : `D−${days}`;
 }
 
 export function selectDeadlineDays(deadline: string, now: Date): number {
@@ -73,7 +118,9 @@ export function selectDeadlineTone(days: number, attentionDays = 7): 'muted' | '
 }
 
 export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[]): DayOrbitSegment[] {
-  const relevant = tasks.filter((task) => task.scheduledDate === format(day, 'yyyy-MM-dd'));
+  // Planned for the day: scheduled on it, or left incomplete on it and moved off later (never counted as completed unless completedAt is that day).
+  const key = format(day, 'yyyy-MM-dd');
+  const relevant = tasks.filter((task) => task.scheduledDate === key || task.missedOn?.includes(key));
   if (relevant.length === 0) return [];
   return categories.slice().sort((a, b) => a.order - b.order).flatMap((category) => {
     const categoryTasks = relevant.filter((task) => task.categoryId === category.id);
@@ -106,4 +153,14 @@ export function selectEventsOnDay(events: CalendarEvent[], day: Date): CalendarE
 export function selectTaskFromEvent(tasks: Task[], eventId: string, day: Date): Task | undefined {
   const key = format(day, 'yyyy-MM-dd');
   return tasks.find((task) => task.sourceEventId === eventId && task.scheduledDate === key);
+}
+
+// Incomplete tasks left on the most recent past day (within 7 days) that has any; null when that day was dismissed.
+export function selectCarryover(tasks: Task[], today: string, dismissed: string[]): { day: string; tasks: Task[] } | null {
+  for (let back = 1; back <= 7; back += 1) {
+    const day = format(addDays(parseISO(today), -back), 'yyyy-MM-dd');
+    const left = tasks.filter((task) => task.scheduledDate === day && !task.completedAt);
+    if (left.length > 0) return dismissed.includes(day) ? null : { day, tasks: sortTasksByOrder(left) };
+  }
+  return null;
 }

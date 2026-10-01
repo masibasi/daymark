@@ -25,7 +25,7 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPres
         {days.map((day) => {
           const dayEvents = selectEventsOnDay(events, day);
           const dayBlocks = blocks.filter((block) => isSameDay(parseISO(block.startAt), day));
-          const deadlines = projects.filter((project) => isSameDay(parseISO(project.deadline), day));
+          const deadlines = projects.filter((project) => project.status !== 'archived' && project.deadline && isSameDay(parseISO(project.deadline), day));
           const items: { id: string; title: string; color: string; onPress?: () => void }[] = [
             ...deadlines.map((project) => ({ id: project.id, title: `Due · ${project.title}`, color: paletteFor(project.categoryId).solid })),
             ...dayEvents.map((event) => ({ id: event.id, title: event.title, color: colors.event, onPress: () => onEventPress(event, day) })),

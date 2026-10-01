@@ -67,8 +67,8 @@ export function DragRow({ taskId, categoryId, colorKey, children }: PropsWithChi
 }
 
 const styles = StyleSheet.create({
-  row: { ...Platform.select({ web: { userSelect: 'none', WebkitTouchCallout: 'none' } as object, default: {} }) },
-  lifted: { zIndex: 50, elevation: 8, backgroundColor: colors.paper, borderRadius: radius.sm, shadowColor: colors.ink, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+  row: { ...Platform.select({ web: { userSelect: 'none', WebkitTouchCallout: 'none', cursor: 'grab' } as object, default: {} }) },
+  lifted: { ...Platform.select({ web: { cursor: 'grabbing' } as object, default: {} }), zIndex: 50, elevation: 8, backgroundColor: colors.paper, borderRadius: radius.sm, shadowColor: colors.ink, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   line: { position: 'absolute', left: 0, right: 0, height: 1.5, borderRadius: 1, zIndex: 60 },
   lineBottom: { bottom: -1 },
 });

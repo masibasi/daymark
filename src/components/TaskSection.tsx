@@ -5,6 +5,7 @@ import type { Category, Routine, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
 import { DragRow } from './DragRow';
 import { GhostRoutineRow } from './GhostRoutineRow';
+import { MissedRow } from './MissedRow';
 import { InlineAdd } from './InlineAdd';
 import { ListQuickEdit } from './ListQuickEdit';
 import { RowPresence, isQuietEnter } from './RowPresence';
@@ -14,6 +15,8 @@ import { TaskDragContext, justDragged, useDragStore } from './useTaskDrag';
 interface TaskSectionProps {
   category: Category;
   tasks: Task[];
+  // Tasks left undone on this (past) day that have since moved; shown muted and inert.
+  missed: Task[];
   routines: Routine[];
   ghosts: Routine[];
   selectedDate: string;
@@ -34,7 +37,7 @@ interface TaskSectionProps {
   onReveal: (node: View | null) => void;
 }
 
-export function TaskSection({ category, tasks, routines, ghosts, selectedDate, projectNames, adding, editingList, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, onRemoveRoutine, onReveal }: TaskSectionProps) {
+export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, onRemoveRoutine, onReveal }: TaskSectionProps) {
   const palette = categoryPalette[category.colorKey];
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   const controller = useContext(TaskDragContext);
@@ -62,7 +65,7 @@ export function TaskSection({ category, tasks, routines, ghosts, selectedDate, p
     <>
       <View style={[styles.dot, { backgroundColor: palette.solid }]} />
       <Text style={styles.name}>{category.name}</Text>
-      {tasks.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length}</Text> : null}
+      {tasks.length + missed.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length + missed.length}</Text> : null}
     </>
   );
 
@@ -88,10 +91,12 @@ export function TaskSection({ category, tasks, routines, ghosts, selectedDate, p
             onSaveRoutine={hasRoutine(task.title) ? undefined : () => onAddRoutine(task.title, category.id)}
             selectedDate={selectedDate}
             projectTitle={task.projectId ? projectNames[task.projectId] : undefined}
+            canMoveToFolder
           />
           </DragRow>
           </RowPresence>
         ))}
+        {missed.map((task) => <MissedRow key={task.id} task={task} colorKey={category.colorKey} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
         {ghosts.map((routine) => (
           <GhostRoutineRow key={routine.id} routine={routine} colorKey={category.colorKey} onAdd={() => onAddFromRoutine(routine.id)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRemove={() => onRemoveRoutine(routine.id)} />
         ))}

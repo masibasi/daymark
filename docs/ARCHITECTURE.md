@@ -9,8 +9,8 @@ Expo + React Native + React Native Web with TypeScript and Expo Router. Screens 
 ```ts
 Category { id: string, name, colorKey, order, archived? }   // UI name: "List"
 Routine { id, title, categoryId, order }
-Project { id, title, categoryId, deadline, status, notes?, attentionDays? }
-Task { id, title, categoryId, projectId?, scheduledDate?, completedAt?, routineId?, sourceEventId?, order? }
+Project { id, title, categoryId, deadline?, status, notes?, attentionDays?, pinned?, order?, archivedAt?, completionAcknowledged? }   // UI name: "Folder"
+Task { id, title, categoryId, projectId?, scheduledDate?, completedAt?, routineId?, sourceEventId?, order?, missedOn? }
 TimeBlock { id, taskId, startAt, endAt, externalCalendarEventId? }
 CalendarEvent { id, provider, externalId, title, startAt, endAt, allDay, colorKey? }
 ```
@@ -30,7 +30,7 @@ Relationships:
 
 ## Local persistence
 
-The store is wrapped with zustand's `persist` middleware, backed by `@react-native-async-storage/async-storage` (which reads/writes `localStorage` on web) under the key `daymark-v0`, schema `version: 4` (v1 → v2 keeps data, guarantees every category has `order`, and adds `routines`; v2/v3 → v4 pass through and `calendarFeeds` defaults to `[]`). `partialize` persists only `categories`, `routines`, `projects`, `tasks`, `timeBlocks`, and `dayMarkVariant`, and `calendarFeeds` — durable user data and preferences. Calendar `events`, `feedErrors`, `calendarView, `calendarDate`, `scheduleTaskId`, and `selectedTodayDate` are session/view state and are never persisted. An unrecognized stored version is replaced by a safe empty state via `migrate` rather than crashing. `app/_layout.tsx` reads a `hasHydrated` flag (set from `onRehydrateStorage`) and renders only a blank canvas until hydration completes, so the first paint never flashes stale or wrong data.
+The store is wrapped with zustand's `persist` middleware, backed by `@react-native-async-storage/async-storage` (which reads/writes `localStorage` on web) under the key `daymark-v0`, schema `version: 5` (v1 → v2 keeps data, guarantees every category has `order`, and adds `routines`; v2/v3 → v4 pass through and `calendarFeeds` defaults to `[]`; v4 → v5 keeps every project and its deadline and assigns `order` by deadline, other new fields are optional). `partialize` persists only `categories`, `routines`, `projects`, `tasks`, `timeBlocks`, and `dayMarkVariant`, and `calendarFeeds`, and `carryoverDismissed` (day keys, last 14) — durable user data and preferences. Calendar `events`, `feedErrors`, `calendarView, `calendarDate`, `scheduleTaskId`, and `selectedTodayDate` are session/view state and are never persisted. An unrecognized stored version is replaced by a safe empty state via `migrate` rather than crashing. `app/_layout.tsx` reads a `hasHydrated` flag (set from `onRehydrateStorage`) and renders only a blank canvas until hydration completes, so the first paint never flashes stale or wrong data.
 
 On first run (nothing in storage yet), the store starts with four default lists (Study, Career, Personal, Health; the Health list keeps id `routine`) and empty `projects`/`tasks`/`timeBlocks`. `events` starts empty: with no calendar feeds connected the Schedule shows nothing (mock events appear only through "Load sample data"). Settings offers `loadSampleData()` (replaces projects/tasks/timeBlocks with the `mockData` samples) and `eraseAllData()` (clears them back to empty), both used from `app/settings.tsx` behind a confirmation.
 
@@ -42,11 +42,25 @@ Time-blocking is paused (2026-10-01, see `docs/DECISIONS.md`): nothing creates T
 
 `moveTaskToDate` changes the existing Task's `scheduledDate` and keeps its `projectId`. The V0 action ignores completed Tasks so moving a historical completion cannot silently rewrite completion history; reopening the Task makes it movable again.
 
-`attentionDays` controls when an individual Project first receives a deadline tint. Missing values use seven days. The D−3 and D−1 urgency steps remain fixed in the prototype; changing the lead time does not change the underlying deadline. A Project whose deadline has passed keeps appearing (it is excluded only from the Today "Upcoming" strip, via `selectUpcomingProjects`); `ProjectCard` and Project Detail show it as "Overdue · D+n" in the danger label color instead of a negative `D−n`, with the card itself staying neutral.
+`attentionDays` controls when an individual Project first receives a deadline tint. Missing values use seven days. The D−3 and D−1 urgency steps remain fixed in the prototype; changing the lead time does not change the underlying deadline. A Project whose deadline has passed keeps appearing (it is excluded only from the Today "Upcoming" strip, via `selectUpcomingProjects`); `ProjectCard` and Folder Detail show it as "Overdue · n days" in the danger label color instead of a negative `D−n` (Folder Detail also shows a calm "Past due · Move deadline / Remove deadline" notice while steps are open), with the card itself staying neutral.
 
 There is exactly one Day Orbit calculation. It uses `completedAt` only; `scheduledDate` is never a completion fallback.
 
 `addProject` creates a Project with `status: 'active'`. `deleteProject` also removes that Project's Tasks and those Tasks' TimeBlocks. `addProjectTask` creates a Task on that Project with no `scheduledDate` (it does not appear on Today until explicitly added). `deleteTask` also removes that Task's TimeBlocks. `TaskRow` accepts an optional `onDelete`; when passed (Today and Project Detail both pass it), its `…` menu gets a confirmed "Delete" action, still hidden for completed Tasks to protect completion history. A shared `DatePickerModal` component (used by `TaskRow`'s "Choose date" action and the Projects screen's new-project composer) is the one month-grid date picker implementation.
+
+## Folders
+
+`Project.deadline` is optional. Ordering has one source, `selectFolderGroups` / `selectFolders` in `src/domain/selectors.ts`: active (non-archived) folders are pinned first (by `order`), then folders with a deadline ascending (overdue first), then undated folders by `order`; `selectArchivedFolders` lists archived ones (`status: 'archived'`, `archivedAt`); `selectTodayFolders` is pinned + dated (Today's strip). `selectDeadlineLabel` formats "D−3" / "Due today" / "Overdue · 2 days"; `selectCompletionPrompt` is true for a dated, active folder with ≥1 step, all complete, and not `completionAcknowledged`. Actions: `addProject` (returns the id), `renameProject`, `setProjectDeadline` (undefined removes it), `setProjectPinned` (joins the end of its new group), `archiveProject` (Undo toast via `lastDeleted`), `restoreProject`, `acknowledgeCompletion` (cleared again by `addProjectTask` / `moveTaskToFolder`), `moveFolder(id, toIndex, 'pinned' | 'undated')` (renumbers `order` within the group; dated folders sort by deadline, so only pinned and undated groups reorder), and `moveTaskToFolder(taskId, projectId)`. Folder rows sync as `project` items as before (whole object, so new fields ride along).
+
+`moveTaskToFolder` sets `projectId`, takes the folder's `categoryId`, clears `scheduledDate`/`order`, refuses completed tasks, and raises an Undo toast (`lastDeleted.kind === 'move'` restores the exact previous task and the folder's acknowledgement).
+
+## Missed days and carry-over
+
+Nothing auto-clears a past `scheduledDate`, so a past day keeps its denominator. When an incomplete Task is moved off a day before the real today (`moveTaskToDate`, remove-from-day, `setTaskOnToday`, `moveTaskToFolder`, so also Bring to today / Back to folder), that day key is appended to `Task.missedOn`; moving off today or a future day records nothing (a plan adjustment). `selectDayOrbit(day)` (still the only Day Mark calculation) counts tasks scheduled on the day or whose `missedOn` contains it as planned, and completed only when `completedAt` is that day; `selectMissedOnDay` lists the moved-away tasks for muted rows on a past day. `selectCarryover(tasks, today, dismissed)` returns the incomplete tasks left on the most recent past day within 7 days (null if that day is in `carryoverDismissed`), which drives the banner on the real today (`dismissCarryover(day)` keeps the last 14).
+
+## Drag controller
+
+`src/components/useTaskDrag.ts` is shared by Today and the Folders tab. Sections register as drop groups (task lists on Today; `pinned` and `undated` on Folders, which only accept their own rows); Today's strip also registers folder cards (`registerFolder`), measured at drag start, and the pointer's x/y is hit-tested against them (`hoverFolderId`, `onDropFolder`). Touch starts after a ~300 ms long press; on web with a mouse (last `pointerdown` reported `pointerType: 'mouse'`) after ~120 ms or 4 px of movement. The click that browsers fire after a drag is suppressed only if the pointer actually moved (or for touch).
 
 ## Calendar provider abstraction
 
@@ -79,7 +93,8 @@ Code is in `src/sync/`. `merge.ts` holds the pure rules (diffing, `decideRemote`
 - A TimeBlock ending does not complete its Task.
 - Removing a Task from Today does not remove it from its Project or Calendar.
 - Reopening a Task clears `completedAt` and updates completion history.
-- Archived projects remain historical but do not appear as upcoming.
+- Archived folders (`status: 'archived'`) leave Today and the Folders list, stay in the collapsed Archive section, and can be restored or deleted.
+- Moving a task off a past day keeps that day's count (`missedOn`); only tasks moved off today or the future are quietly replanned.
 - Deleted provider events must not delete Tasks.
 - Time zones and all-day event boundaries need explicit provider normalization before real sync.
 

@@ -5,12 +5,16 @@ import { format, parseISO, setHours } from 'date-fns';
 import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
-import { sortTasksByOrder } from '@/domain/selectors';
+import { selectFolderGroups, sortTasksByOrder } from '@/domain/selectors';
 import { applyChanges, sameData, type RemoteChange } from '@/sync/merge';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks } from './mockData';
 
 // What the last delete removed, so Undo can put it back exactly (same ids, order, completedAt). Never persisted.
-type LastDeleted = { kind: 'task'; task: Task; timeBlocks: TimeBlock[]; index: number } | { kind: 'routine'; routine: Routine; index: number };
+type LastDeleted =
+  | { kind: 'task'; task: Task; timeBlocks: TimeBlock[]; index: number }
+  | { kind: 'routine'; routine: Routine; index: number }
+  | { kind: 'archive'; project: Project }
+  | { kind: 'move'; task: Task; project: Project };
 export interface Toast { id: number; message: string; undoable: boolean }
 
 interface DaymarkState {
@@ -27,6 +31,8 @@ interface DaymarkState {
   selectedTodayDate: string;
   dayMarkVariant: DayMarkVariant;
   hasHydrated: boolean;
+  // Past days whose "unfinished from …" banner the user dismissed (last 14 kept).
+  carryoverDismissed: string[];
   lastDeleted: LastDeleted | null;
   toast: Toast | null;
   toggleTask: (taskId: string) => void;
@@ -52,7 +58,19 @@ interface DaymarkState {
   moveTaskToDate: (taskId: string, date?: string) => void;
   setProjectAttentionDays: (projectId: string, days: number) => void;
   setDayMarkVariant: (variant: DayMarkVariant) => void;
-  addProject: (input: { title: string; categoryId: CategoryId; deadline: string }) => void;
+  // Returns the new folder's id.
+  addProject: (input: { title: string; categoryId: CategoryId; deadline?: string; pinned?: boolean }) => string;
+  renameProject: (projectId: string, title: string) => void;
+  setProjectDeadline: (projectId: string, deadline?: string) => void;
+  setProjectPinned: (projectId: string, pinned: boolean) => void;
+  archiveProject: (projectId: string) => void;
+  restoreProject: (projectId: string) => void;
+  acknowledgeCompletion: (projectId: string) => void;
+  // Manual order within the pinned group or the undated group; `toIndex` counts the group without the moved folder.
+  moveFolder: (projectId: string, toIndex: number, group: 'pinned' | 'undated') => void;
+  // Puts an incomplete task into a folder (list follows the folder) and takes it off its day. False when it can't move.
+  moveTaskToFolder: (taskId: string, projectId: string) => boolean;
+  dismissCarryover: (day: string) => void;
   deleteProject: (projectId: string) => void;
   addProjectTask: (projectId: string, title: string) => void;
   deleteTask: (taskId: string) => void;
@@ -67,7 +85,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 4;
+const STORAGE_VERSION = 5;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -75,6 +93,14 @@ const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastC
 // Order for a task newly placed at the end of a list on a day (max + 1).
 const nextOrder = (tasks: Task[], day: string, categoryId: CategoryId, excludeId?: string) =>
   tasks.reduce((max, task) => task.scheduledDate === day && task.categoryId === categoryId && task.id !== excludeId && task.order !== undefined ? Math.max(max, task.order) : max, -1) + 1;
+
+// Moving an incomplete task off a past day records that day as missed so the day keeps showing it (3/5 stays 3/5).
+// Moving off today or a future day is just replanning and records nothing.
+const leaveDay = (task: Task, nextDate: string | undefined): Task => {
+  const from = task.scheduledDate;
+  if (!from || from === nextDate || task.completedAt || from >= todayKey() || task.missedOn?.includes(from)) return task;
+  return { ...task, missedOn: [...(task.missedOn ?? []), from] };
+};
 
 // Same stamp toggleTask uses: real time for today, noon for a browsed day.
 const completionStamp = (day: string) => (day === todayKey() ? now() : setHours(parseISO(day), 12)).toISOString();
@@ -85,6 +111,8 @@ const randomPart = () => {
   return bytes ? `${bytes[0].toString(36)}${bytes[1].toString(36)}` : `${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
 };
 const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${randomPart()}`;
+
+const nextProjectOrder = (projects: Project[]) => projects.reduce((max, project) => Math.max(max, project.order ?? -1), -1) + 1;
 
 const activeOrdered = (categories: Category[]) => categories.filter((category) => !category.archived).sort((a, b) => a.order - b.order);
 
@@ -110,6 +138,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       selectedTodayDate: todayKey(),
       dayMarkVariant: 'wash',
       hasHydrated: false,
+      carryoverDismissed: [],
       lastDeleted: null,
       toast: null,
       toggleTask: (taskId) => set((state) => ({
@@ -122,7 +151,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       })),
       setTaskOnToday: (taskId, onToday) => set((state) => ({
         tasks: state.tasks.map((task) => task.id === taskId
-          ? { ...task, scheduledDate: onToday ? todayKey() : undefined, order: onToday ? nextOrder(state.tasks, todayKey(), task.categoryId, task.id) : undefined }
+          ? { ...leaveDay(task, onToday ? todayKey() : undefined), scheduledDate: onToday ? todayKey() : undefined, order: onToday ? nextOrder(state.tasks, todayKey(), task.categoryId, task.id) : undefined }
           : task),
       })),
       // Legacy blocks only: nothing creates TimeBlocks any more (time-blocking is paused), but existing ones can be removed.
@@ -209,6 +238,8 @@ export const useDaymarkStore = create<DaymarkState>()(
       undoDelete: () => set((state) => {
         const deleted = state.lastDeleted;
         if (!deleted) return state;
+        if (deleted.kind === 'archive') return { projects: state.projects.map((project) => project.id === deleted.project.id ? deleted.project : project), lastDeleted: null, toast: null };
+        if (deleted.kind === 'move') return { tasks: state.tasks.map((task) => task.id === deleted.task.id ? deleted.task : task), projects: state.projects.map((project) => project.id === deleted.project.id ? deleted.project : project), lastDeleted: null, toast: null };
         if (deleted.kind === 'routine') {
           const routines = state.routines.slice();
           routines.splice(Math.min(deleted.index, routines.length), 0, deleted.routine);
@@ -223,16 +254,85 @@ export const useDaymarkStore = create<DaymarkState>()(
       setSelectedTodayDate: (selectedTodayDate) => set({ selectedTodayDate: format(parseISO(selectedTodayDate), 'yyyy-MM-dd') }),
       moveTaskToDate: (taskId, date) => set((state) => ({
         tasks: state.tasks.map((task) => task.id === taskId && !task.completedAt
-          ? { ...task, scheduledDate: date ? format(parseISO(date), 'yyyy-MM-dd') : undefined, order: date ? nextOrder(state.tasks, format(parseISO(date), 'yyyy-MM-dd'), task.categoryId, task.id) : undefined }
+          ? { ...leaveDay(task, date ? format(parseISO(date), 'yyyy-MM-dd') : undefined), scheduledDate: date ? format(parseISO(date), 'yyyy-MM-dd') : undefined, order: date ? nextOrder(state.tasks, format(parseISO(date), 'yyyy-MM-dd'), task.categoryId, task.id) : undefined }
           : task),
       })),
       setProjectAttentionDays: (projectId, days) => set((state) => ({
         projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
       })),
       setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
-      addProject: ({ title, categoryId, deadline }) => set((state) => ({
-        projects: [...state.projects, { id: newId('project'), title: title.trim(), categoryId, deadline, status: 'active' }],
+      addProject: ({ title, categoryId, deadline, pinned }) => {
+        const id = newId('project');
+        set((state) => ({
+          projects: [...state.projects, { id, title: title.trim(), categoryId, status: 'active', order: nextProjectOrder(state.projects), ...(deadline ? { deadline } : {}), ...(pinned ? { pinned: true } : {}) }],
+        }));
+        return id;
+      },
+      renameProject: (projectId, title) => set((state) => {
+        const clean = title.trim();
+        const project = state.projects.find((item) => item.id === projectId);
+        if (!clean || !project || project.title === clean) return state;
+        return { projects: state.projects.map((item) => item.id === projectId ? { ...item, title: clean } : item) };
+      }),
+      setProjectDeadline: (projectId, deadline) => set((state) => ({
+        projects: state.projects.map((project) => {
+          if (project.id !== projectId) return project;
+          const { deadline: _old, completionAcknowledged: _ack, ...rest } = project;
+          return deadline ? { ...rest, deadline } : rest;
+        }),
       })),
+      setProjectPinned: (projectId, pinned) => set((state) => ({
+        projects: state.projects.map((project) => {
+          if (project.id !== projectId || Boolean(project.pinned) === pinned) return project;
+          const { pinned: _pinned, ...rest } = project;
+          // Joins the end of whichever group it lands in.
+          return pinned ? { ...rest, pinned: true, order: nextProjectOrder(state.projects) } : { ...rest, order: nextProjectOrder(state.projects) };
+        }),
+      })),
+      archiveProject: (projectId) => set((state) => {
+        const project = state.projects.find((item) => item.id === projectId);
+        if (!project || project.status === 'archived') return state;
+        return {
+          projects: state.projects.map((item) => item.id === projectId ? { ...item, status: 'archived' as const, archivedAt: now().toISOString() } : item),
+          lastDeleted: { kind: 'archive', project },
+          toast: makeToast(`Archived "${project.title}"`, true),
+        };
+      }),
+      restoreProject: (projectId) => set((state) => ({
+        projects: state.projects.map((project) => {
+          if (project.id !== projectId || project.status !== 'archived') return project;
+          const { archivedAt: _archivedAt, ...rest } = project;
+          return { ...rest, status: 'active' as const };
+        }),
+      })),
+      acknowledgeCompletion: (projectId) => set((state) => ({ projects: state.projects.map((project) => project.id === projectId ? { ...project, completionAcknowledged: true } : project) })),
+      moveFolder: (projectId, toIndex, group) => set((state) => {
+        const groups = selectFolderGroups(state.projects);
+        const list = (group === 'pinned' ? groups.pinned : groups.undated).slice();
+        const from = list.findIndex((project) => project.id === projectId);
+        if (from < 0) return state;
+        const [moved] = list.splice(from, 1);
+        list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, moved);
+        const orders = new Map(list.map((project, index) => [project.id, index]));
+        if (!state.projects.some((project) => orders.has(project.id) && project.order !== orders.get(project.id))) return state;
+        return { projects: state.projects.map((project) => orders.has(project.id) && project.order !== orders.get(project.id) ? { ...project, order: orders.get(project.id) } : project) };
+      }),
+      moveTaskToFolder: (taskId, projectId) => {
+        const state = get();
+        const task = state.tasks.find((item) => item.id === taskId);
+        const project = state.projects.find((item) => item.id === projectId);
+        if (!task || task.completedAt || !project || project.status === 'archived') return false;
+        const { scheduledDate: _date, order: _order, ...rest } = leaveDay(task, undefined);
+        set({
+          tasks: state.tasks.map((item) => item.id === taskId ? { ...rest, projectId, categoryId: project.categoryId } : item),
+          // A new open step re-opens the "all steps done" question.
+          projects: project.completionAcknowledged ? state.projects.map((item) => item.id === projectId ? { ...item, completionAcknowledged: false } : item) : state.projects,
+          lastDeleted: { kind: 'move', task, project },
+          toast: makeToast(`Moved to "${project.title}"`, true),
+        });
+        return true;
+      },
+      dismissCarryover: (day) => set((state) => state.carryoverDismissed.includes(day) ? state : { carryoverDismissed: [...state.carryoverDismissed, day].slice(-14) }),
       deleteProject: (projectId) => set((state) => {
         const taskIds = new Set(state.tasks.filter((task) => task.projectId === projectId).map((task) => task.id));
         return {
@@ -244,7 +344,10 @@ export const useDaymarkStore = create<DaymarkState>()(
       addProjectTask: (projectId, title) => set((state) => {
         const project = state.projects.find((item) => item.id === projectId);
         if (!project || !title.trim()) return state;
-        return { tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId }] };
+        return {
+          tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId }],
+          projects: project.completionAcknowledged ? state.projects.map((item) => item.id === projectId ? { ...item, completionAcknowledged: false } : item) : state.projects,
+        };
       }),
       // Title only: never touches completedAt, order, or list. Empty titles are ignored.
       renameTask: (taskId, title) => set((state) => {
@@ -320,19 +423,23 @@ export const useDaymarkStore = create<DaymarkState>()(
         timeBlocks: state.timeBlocks,
         dayMarkVariant: state.dayMarkVariant,
         calendarFeeds: state.calendarFeeds,
+        carryoverDismissed: state.carryoverDismissed,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
+      // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
+      // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
       migrate: (persisted, version) => {
-        const old = (persisted ?? {}) as Partial<DaymarkState>;
-        if (version === 2 || version === 3) return old as DaymarkState; // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to [].
+        let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
-          return {
-            ...old,
-            categories: old.categories.map((category, index) => ({ ...category, order: typeof category.order === 'number' ? category.order : index })),
-            routines: [],
-          } as DaymarkState;
+          old = { ...old, categories: old.categories.map((category, index) => ({ ...category, order: typeof category.order === 'number' ? category.order : index })), routines: [] };
+        } else if (version < 1 || version > 4) {
+          return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'wash' as DayMarkVariant } as unknown as DaymarkState;
         }
-        return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'wash' as DayMarkVariant } as unknown as DaymarkState;
+        if (Array.isArray(old.projects)) {
+          const ranked = old.projects.slice().sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
+          old = { ...old, projects: old.projects.map((project) => ({ ...project, order: typeof project.order === 'number' ? project.order : ranked.indexOf(project) })) };
+        }
+        return old as DaymarkState;
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

@@ -2,7 +2,7 @@
 
 ## Vision
 
-Daymark is a personal productivity app that joins daily tasks, persistent deadline-driven projects, and calendar scheduling into one calm loop: decide what matters, reserve time, do the work, and see the day take shape.
+Daymark is a personal productivity app that joins daily tasks, folders of longer-running work (with optional deadlines), and calendar scheduling into one calm loop: decide what matters, do the work, and see the day take shape. It is built for flexible planners (a J who acts like a P, or a P who acts like a J): keep work loosely in containers and pull items into a day as needed.
 
 ## Target user
 
@@ -18,7 +18,7 @@ The first user is an individual balancing study, career, personal, and routine w
 ## Core concepts
 
 - **Task:** something to accomplish. It may stand alone or belong to a Project.
-- **Project (shown as "Deadline" in the UI):** persistent deadline-driven work with progress and subtasks.
+- **Project (shown as "Folder" in the UI; Korean 폴더):** a container of steps with progress. It may or may not have a deadline; it can be pinned to Today, reordered, and archived.
 - **TimeBlock:** time reserved to work on a Task. It does not imply completion.
 - **CalendarEvent:** an external commitment. It is not automatically a Task.
 - **Day Orbit:** a category-segmented completion mark based only on `completedAt`.
@@ -28,7 +28,11 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can see urgent projects before today's ordinary tasks.
 - I can complete and reopen a task and see today's Orbit update.
 - I can scan a compact month of completion marks and open any day to review its tasks.
-- I can open a project, complete subtasks, and place a subtask on Today without duplication.
+- I can open a folder, complete steps, and place a step on Today without duplication.
+- I can keep a folder with no deadline (e.g. groceries), pin it so it shows on Today, and reorder pinned and undated folders by dragging.
+- When every step of a dated folder is done, I am quietly asked once whether to archive it (Archive / Keep); folders without a deadline never ask.
+- I can move a task into a folder from its `…` menu or by dropping it on a folder card on Today; it leaves the day and joins the folder (Undo available).
+- A past day keeps showing what I left undone on it (3 of 5 stays 3 of 5), even after I move those tasks; today offers "N unfinished from yesterday" with Bring to today / Back to folder / Leave.
 - I can switch between week and month calendars.
 - I can distinguish external events from task work blocks.
 - I can tap an event in the Calendar tab and add it as a Task for that event's day. Time-blocking is paused.
@@ -40,7 +44,7 @@ The first user is an individual balancing study, career, personal, and routine w
 
 ## V0 scope
 
-- Responsive Today, Calendar Week, Calendar Month, Deadlines, and Deadline Detail.
+- Responsive Today, Calendar Week, Calendar Month, Folders, and Folder Detail.
 - Local persistence (zustand `persist` + AsyncStorage): the app survives a reload and is genuinely usable day to day, still with no backend or account.
 - The real system clock, not a fixed prototype date, drives "today" everywhere except the mock calendar events and the Day Mark study route.
 - Task completion, project progress, add-to-Today, and mock scheduling.
@@ -48,7 +52,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Per-list inline add on Today: every active list is a section ending in a quiet "+ Add" row that opens an inline input for the displayed day; Enter adds and keeps the input open for rapid entry.
 - Routines: one-tap templates for things done often. They appear as faint ghost rows at the end of a list on today and future days; tapping one creates a normal Task for that day (tapping its circle creates it already done). Nothing is auto-generated.
 - Mobile web polish: inputs are 16px so iOS Safari does not zoom, and the phone bottom bar hides while typing.
-- Creating a Project (title, category, deadline) and adding/deleting its steps from Project Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
+- Creating a folder (title, list, optional deadline, optional pin) and adding/deleting its steps from Folder Detail; deleting a Project or a Task from Today or Project Detail, with confirmation.
 - A Settings screen to load sample data or erase all data, with confirmation, plus an optional Account section: sign in with email and password to sync lists, projects, tasks, time blocks, and routines across devices (Supabase; owner request 2026-09-30). The app is fully usable signed out.
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation, collapsible to one week (default on phone) or expanded to the full month (default on desktop).
@@ -68,12 +72,12 @@ Daymark is not intended to match the arbitrary list hierarchy of a general todo 
 
 ## Non-goals
 
-No OAuth calendar provider or calendar write-back (auth and item sync via Supabase are allowed since 2026-09-30, and read-only iCal feeds through a Supabase Edge Function since 2026-10-01), social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists (owner request 2026-09-30); Calendar scheduling remains select-then-tap.
+No OAuth calendar provider or calendar write-back (auth and item sync via Supabase are allowed since 2026-09-30, and read-only iCal feeds through a Supabase Edge Function since 2026-10-01), social features, teams, AI scheduling, notifications, analytics, streaks, or points in V0. Drag-and-drop is limited to ordering and moving Tasks within Today's lists, dropping a Task on a folder card in Today's strip, and reordering folders on the Folders tab (owner requests 2026-09-30 and 2026-10-01); Calendar scheduling remains select-then-tap.
 
 ## V0 acceptance criteria
 
 - The app runs on Expo Web with no TypeScript errors.
-- Today, Week, Month, Projects, and Project Detail are reachable on mobile and desktop.
+- Today, Week, Month, Folders, and Folder Detail are reachable on mobile and desktop.
 - Completing a task updates its state and the Day Orbit.
 - Selecting a date in Today's history calendar shows that date's tasks and completion mark.
 - Project subtasks are shared Task records; adding one to Today does not duplicate it.

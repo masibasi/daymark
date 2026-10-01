@@ -24,10 +24,18 @@ export interface Project {
   id: string;
   title: string;
   categoryId: CategoryId;
-  deadline: ISODate;
+  // Optional: a Folder may or may not have a deadline.
+  deadline?: ISODate;
   status: 'active' | 'done' | 'archived';
   notes?: string;
   attentionDays?: number;
+  // Pinned folders show on Today even without a deadline.
+  pinned?: boolean;
+  // Manual position within its group (pinned, or undated); dated folders sort by deadline instead.
+  order?: number;
+  archivedAt?: ISODateTime;
+  // Set by "Keep" on the all-steps-done prompt; cleared when a new step is added.
+  completionAcknowledged?: boolean;
 }
 
 export interface Task {
@@ -42,6 +50,8 @@ export interface Task {
   sourceEventId?: string;
   // Position within its list on its scheduled day (0-based). Unordered tasks sort first, in array order.
   order?: number;
+  // Past days this task was left incomplete on before being moved off (the day keeps showing it as planned, not done).
+  missedOn?: ISODate[];
 }
 
 export interface TimeBlock {

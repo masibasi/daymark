@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { format, parseISO } from 'date-fns';
+import { DatePickerModal } from '@/components/DatePickerModal';
 import { TaskRow } from '@/components/TaskRow';
-import { selectDeadlineDays, selectProjectProgress, selectProjectTasks } from '@/domain/selectors';
+import { selectDeadlineDays, selectDeadlineLabel, selectProjectProgress, selectProjectTasks } from '@/domain/selectors';
 import { now, todayKey } from '@/domain/clock';
 import { confirmAction } from '@/domain/confirm';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -21,14 +22,24 @@ export default function ProjectDetailScreen() {
   const addProjectTask = useDaymarkStore((state) => state.addProjectTask);
   const deleteTask = useDaymarkStore((state) => state.deleteTask);
   const deleteProject = useDaymarkStore((state) => state.deleteProject);
+  const renameProject = useDaymarkStore((state) => state.renameProject);
+  const setProjectDeadline = useDaymarkStore((state) => state.setProjectDeadline);
+  const setProjectPinned = useDaymarkStore((state) => state.setProjectPinned);
+  const archiveProject = useDaymarkStore((state) => state.archiveProject);
+  const restoreProject = useDaymarkStore((state) => state.restoreProject);
   const paletteFor = useCategoryPalette();
   const [stepTitle, setStepTitle] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const project = projects.find((item) => item.id === id);
-  if (!project) return <View style={styles.empty}><Text>Deadline not found.</Text></View>;
+  const [draft, setDraft] = useState(project?.title ?? '');
+  useEffect(() => { setDraft(project?.title ?? ''); }, [project?.title]);
+  if (!project) return <View style={styles.empty}><Text>Folder not found.</Text></View>;
   const projectTasks = selectProjectTasks(tasks, project.id);
+  const openTasks = projectTasks.filter((task) => !task.completedAt);
+  const doneTasks = projectTasks.filter((task) => task.completedAt);
   const progress = selectProjectProgress(tasks, project.id);
   const percent = progress.total ? progress.completed / progress.total : 0;
-  const days = selectDeadlineDays(project.deadline, now());
+  const days = project.deadline ? selectDeadlineDays(project.deadline, now()) : undefined;
   const palette = paletteFor(project.categoryId);
 
   const addStep = () => {
@@ -38,37 +49,74 @@ export default function ProjectDetailScreen() {
   };
 
   const removeProject = async () => {
-    const confirmed = await confirmAction('Delete deadline', `Delete "${project.title}" and its ${projectTasks.length} step${projectTasks.length === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
+    const confirmed = await confirmAction('Delete folder', `Delete "${project.title}" and its ${projectTasks.length} step${projectTasks.length === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
     if (confirmed) { deleteProject(project.id); router.replace('/projects'); }
+  };
+  const commitTitle = () => { if (draft.trim()) renameProject(project.id, draft); else setDraft(project.title); };
+  const archived = project.status === 'archived';
+  const stepRow = (task: (typeof projectTasks)[number]) => {
+    const onToday = task.scheduledDate === todayKey();
+    return <TaskRow key={task.id} task={task} onToggle={() => toggleTask(task.id)} onDelete={() => deleteTask(task.id)} trailing={task.completedAt
+      ? <Text style={styles.doneDate}>{format(parseISO(task.completedAt), 'MMM d')}</Text>
+      : <Pressable accessibilityLabel={onToday ? `Remove ${task.title} from Today` : `Add ${task.title} to Today`} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}><Ionicons name={onToday ? 'sunny' : 'sunny-outline'} size={16} color={onToday ? palette.solid : colors.muted} /><Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? 'Today' : 'Add'}</Text></Pressable>} />;
   };
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.page}>
-        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Deadlines</Text></Pressable>
+        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Folders</Text></Pressable>
         <View style={styles.hero}>
           <View style={[styles.categoryMark, { backgroundColor: palette.solid }]} />
-          <Text style={[styles.kicker, days < 0 && styles.kickerOverdue]}>Due {format(parseISO(project.deadline), 'EEEE, MMMM d')} · {days < 0 ? `Overdue · D+${Math.abs(days)}` : `D−${days}`}</Text>
-          <Text style={styles.title}>{project.title}</Text>
-          <Text style={styles.notes}>{project.notes}</Text>
+          <Text style={[styles.kicker, days !== undefined && days < 0 && styles.kickerOverdue]}>{project.deadline && days !== undefined ? `Due ${format(parseISO(project.deadline), 'EEEE, MMMM d')} · ${selectDeadlineLabel(days)}` : 'Folder · No deadline'}</Text>
+          <TextInput value={draft} onChangeText={setDraft} onBlur={commitTitle} onSubmitEditing={commitTitle} accessibilityLabel="Folder name" placeholder="Folder name" placeholderTextColor={colors.muted} style={styles.title} />
+          {project.notes ? <Text style={styles.notes}>{project.notes}</Text> : null}
+          <View style={styles.metaRow}>
+            <Ionicons name="calendar-outline" size={16} color={colors.muted} />
+            {project.deadline ? (
+              <>
+                <Text style={styles.metaText}>Due {format(parseISO(project.deadline), 'EEE, MMM d')}</Text>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Change</Text></Pressable>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>Remove</Text></Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.metaText}>No deadline</Text>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Add</Text></Pressable>
+              </>
+            )}
+            <View style={styles.metaSpacer} />
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(project.pinned) }} accessibilityLabel={project.pinned ? 'Unpin from Today' : 'Pin to Today'} onPress={() => setProjectPinned(project.id, !project.pinned)} style={[styles.pinToggle, project.pinned && styles.pinToggleOn]}>
+              <Ionicons name={project.pinned ? 'pin' : 'pin-outline'} size={14} color={project.pinned ? colors.ink : colors.muted} />
+              <Text style={[styles.pinText, project.pinned && styles.pinTextOn]}>{project.pinned ? 'Pinned' : 'Pin'}</Text>
+            </Pressable>
+          </View>
+          {archived ? <View style={styles.notice}><Text style={styles.noticeText}>Archived</Text><Pressable accessibilityRole="button" hitSlop={8} onPress={() => restoreProject(project.id)}><Text style={styles.link}>Restore</Text></Pressable></View> : null}
+          {!archived && days !== undefined && days < 0 && openTasks.length > 0 ? (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>Past due</Text>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Move deadline</Text></Pressable>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>Remove deadline</Text></Pressable>
+            </View>
+          ) : null}
           <View style={styles.progressRow}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progressText}>{progress.completed} of {progress.total} complete</Text></View>
-          <View style={styles.attention}><Text style={styles.attentionTitle}>Emphasize this deadline from</Text><View style={styles.attentionChoices}>{[3, 7, 14, 30].map((lead) => <Pressable key={lead} accessibilityRole="button" accessibilityState={{ selected: (project.attentionDays ?? 7) === lead }} onPress={() => setProjectAttentionDays(project.id, lead)} style={[styles.attentionChoice, (project.attentionDays ?? 7) === lead && styles.attentionChoiceSelected]}><Text style={[styles.attentionChoiceText, (project.attentionDays ?? 7) === lead && styles.attentionChoiceTextSelected]}>{lead} days</Text></Pressable>)}</View></View>
+          {project.deadline ? <View style={styles.attention}><Text style={styles.attentionTitle}>Emphasize this deadline from</Text><View style={styles.attentionChoices}>{[3, 7, 14, 30].map((lead) => <Pressable key={lead} accessibilityRole="button" accessibilityState={{ selected: (project.attentionDays ?? 7) === lead }} onPress={() => setProjectAttentionDays(project.id, lead)} style={[styles.attentionChoice, (project.attentionDays ?? 7) === lead && styles.attentionChoiceSelected]}><Text style={[styles.attentionChoiceText, (project.attentionDays ?? 7) === lead && styles.attentionChoiceTextSelected]}>{lead} days</Text></Pressable>)}</View></View> : null}
         </View>
         <View style={styles.taskHeader}><Text style={styles.sectionTitle}>Steps</Text><Text style={styles.hint}>Add any step to Today without making a copy.</Text></View>
         <View style={styles.taskList}>
           {projectTasks.length === 0 ? <Text style={styles.emptySteps}>No steps yet. Add the first one below.</Text> : null}
-          {projectTasks.map((task) => {
-            const onToday = task.scheduledDate === todayKey();
-            return <TaskRow key={task.id} task={task} onToggle={() => toggleTask(task.id)} onDelete={() => deleteTask(task.id)} trailing={task.completedAt
-              ? <Text style={styles.doneDate}>{format(parseISO(task.completedAt), 'MMM d')}</Text>
-              : <Pressable accessibilityLabel={onToday ? `Remove ${task.title} from Today` : `Add ${task.title} to Today`} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}><Ionicons name={onToday ? 'sunny' : 'sunny-outline'} size={16} color={onToday ? palette.solid : colors.muted} /><Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? 'Today' : 'Add'}</Text></Pressable>} />;
-          })}
+          {openTasks.map(stepRow)}
+          {doneTasks.length > 0 ? <Text style={styles.doneLabel}>Done</Text> : null}
+          {doneTasks.map(stepRow)}
           <View style={styles.addStepRow}>
             <TextInput value={stepTitle} onChangeText={setStepTitle} onSubmitEditing={addStep} placeholder="Add a step" placeholderTextColor={colors.muted} style={styles.addStepInput} />
             <Pressable accessibilityLabel="Save step" onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={17} color={colors.paper} /></Pressable>
           </View>
         </View>
-        <Pressable accessibilityRole="button" onPress={removeProject} style={styles.deleteProject}><Text style={styles.deleteProjectText}>Delete deadline</Text></Pressable>
+        <View style={styles.footer}>
+          {archived ? null : <Pressable accessibilityRole="button" onPress={() => archiveProject(project.id)} style={styles.footerAction}><Text style={styles.footerText}>Archive folder</Text></Pressable>}
+          <Pressable accessibilityRole="button" onPress={removeProject} style={styles.footerAction}><Text style={styles.deleteProjectText}>Delete folder</Text></Pressable>
+        </View>
       </View>
+      {pickerOpen ? <DatePickerModal title={project.deadline ? 'Move the deadline' : 'Set a deadline'} initialMonth={project.deadline ? parseISO(project.deadline) : now()} onPick={(date) => { setProjectDeadline(project.id, date); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} /> : null}
     </ScrollView>
   );
 }
@@ -82,7 +130,18 @@ const styles = StyleSheet.create({
   categoryMark: { width: 42, height: 6, borderRadius: 3, marginBottom: space.lg },
   kicker: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
   kickerOverdue: { color: colors.danger },
-  title: { ...type.display, color: colors.ink, marginTop: space.xs, fontFamily },
+  title: { ...type.display, color: colors.ink, marginTop: space.xs, padding: 0, outlineStyle: 'none' as never, fontFamily },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs, minHeight: 40, marginTop: space.sm },
+  metaText: { ...type.body, color: colors.inkSoft, fontFamily },
+  metaSpacer: { flex: 1 },
+  link: { ...type.bodyMedium, color: colors.ink, textDecorationLine: 'underline', fontFamily },
+  pinToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: space.sm, borderRadius: radius.round, backgroundColor: colors.track },
+  pinToggleOn: { backgroundColor: colors.canvasMuted, borderWidth: 1, borderColor: colors.lineStrong },
+  pinText: { ...type.meta, color: colors.muted, fontFamily },
+  pinTextOn: { color: colors.ink },
+  notice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.md, minHeight: 40, marginTop: space.sm, paddingHorizontal: space.sm, borderRadius: radius.md, backgroundColor: colors.canvasMuted, borderWidth: 1, borderColor: colors.line },
+  noticeText: { ...type.body, color: colors.inkSoft, fontFamily },
+  doneLabel: { ...type.meta, color: colors.muted, marginTop: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderColor: colors.line, fontFamily },
   notes: { ...type.body, color: colors.inkSoft, marginTop: space.sm, maxWidth: 580, fontFamily },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
   progressTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' },
@@ -106,7 +165,9 @@ const styles = StyleSheet.create({
   addStepRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderColor: colors.line },
   addStepInput: { flex: 1, minHeight: 40, ...type.bodyMedium, fontSize: 16, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
   addStepButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  deleteProject: { alignSelf: 'center', marginTop: space.xl },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: space.xl, marginTop: space.xl },
+  footerAction: { paddingVertical: space.xs },
+  footerText: { ...type.bodyMedium, color: colors.inkSoft, fontFamily },
   deleteProjectText: { ...type.bodyMedium, color: colors.danger, fontFamily },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

@@ -108,7 +108,7 @@ export function StudyPhone({ dir, scheme, width }: { dir: StudyDirection; scheme
     );
   };
 
-  const tabs = [{ label: 'Today', icon: 'sunny', on: true }, { label: 'Calendar', icon: 'calendar-outline', on: false }, { label: 'Deadlines', icon: 'layers-outline', on: false }] as const;
+  const tabs = [{ label: 'Today', icon: 'sunny', on: true }, { label: 'Calendar', icon: 'calendar-outline', on: false }, { label: 'Folders', icon: 'folder-outline', on: false }] as const;
 
   return (
     <View style={[styles.frame, { width, borderColor: c.lineStrong }, s.page]}>

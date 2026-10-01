@@ -10,10 +10,10 @@ export const initialCategories: Category[] = [
 ];
 
 export const initialProjects: Project[] = [
-  { id: 'agentic-ai', title: 'Agentic AI Assignment', categoryId: 'study', deadline: '2026-09-27', status: 'active', notes: 'Build, deploy, and record the final MCP demo.' },
-  { id: 'iui-project', title: 'IUI Project', categoryId: 'study', deadline: '2026-10-03', status: 'active', notes: 'Prototype and evaluate the interaction flow.' },
-  { id: 'portfolio', title: 'Portfolio refresh', categoryId: 'career', deadline: '2026-10-14', status: 'active', notes: 'Tighten case studies before recruiting season.' },
-  { id: 'move-plan', title: 'October move', categoryId: 'personal', deadline: '2026-10-20', status: 'active' },
+  { id: 'agentic-ai', order: 0, title: 'Agentic AI Assignment', categoryId: 'study', deadline: '2026-09-27', status: 'active', notes: 'Build, deploy, and record the final MCP demo.' },
+  { id: 'iui-project', order: 1, title: 'IUI Project', categoryId: 'study', deadline: '2026-10-03', status: 'active', notes: 'Prototype and evaluate the interaction flow.' },
+  { id: 'portfolio', order: 2, title: 'Portfolio refresh', categoryId: 'career', deadline: '2026-10-14', status: 'active', notes: 'Tighten case studies before recruiting season.' },
+  { id: 'move-plan', order: 3, title: 'October move', categoryId: 'personal', deadline: '2026-10-20', status: 'active' },
 ];
 
 export const initialTasks: Task[] = [

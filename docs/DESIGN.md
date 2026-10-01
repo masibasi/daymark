@@ -6,14 +6,14 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and concise weather context → Day Orbit and compact history calendar → deadlines (tap a card to expand its next steps in a panel below the strip; each step has a ☀︎ Today toggle) → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
+- Today: date and concise weather context → Day Orbit and compact history calendar → the folder strip (pinned folders and every folder with a deadline; tap a card to expand its next steps in a panel below the strip; each step has a ☀︎ Today toggle; a quiet "All folders" link ends the strip) → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
 - Week: period controls → day headers/all-day row → hour grid and blocks (no scheduling affordance; events are tappable to import).
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
-- Project Detail: identity/deadline → progress → subtasks.
+- Folder Detail: editable title, list dot, deadline row ("No deadline · Add" / "Due Sun, Oct 5 · Change · Remove"), pin toggle → progress → steps (open first, done below) → Archive / Delete.
 
 ## Navigation
 
-Today, Calendar, and Deadlines (code: Project) are primary. Mobile uses a bottom bar of three equal-width tabs (icon and label centred, active shown by ink colour and a bolder label). Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
+Today, Calendar, and Folders (code: Project; icon `folder-outline`) are primary. Mobile uses a bottom bar of three equal-width tabs (icon and label centred, active shown by ink colour and a bolder label). Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
 
 ## Typography
 
@@ -46,11 +46,27 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 The Orbit is drawn as Watercolor wash, the shipped default after comparing four treatments on the `/daymark-lab` study route. Each category keeps its own ribbon-band arc in a softened `mark` tone, sized by share and filled by completion; a pale wash bleeds inward from each arc's own segment, so colors touch at their boundaries but never mix or overlap into a blended mass. The large Today mark breathes almost imperceptibly; calendar-size and history marks stay static for clarity and performance. Completion history is derived from `completedAt` only. The other three studies (Soft ribbon, Glass vessel, and the original baseline) remain on the lab route for reference and comparison, not as live alternatives.
 
+## Folders tab
+
+A single spacious column (max 760px). Sections: "Pinned" (if any), "Folders" (dated by deadline, then undated by manual order), and a collapsed "Archive (n)" disclosure with Restore and Delete per row. A card has the list-colour rail and dot, a deadline label ("Due Oct 3 · D−2", "Overdue · 4 days") or "No deadline", a title (pin glyph before it when pinned), and a progress bar with "3 of 7" ("Empty" for a folder without steps). The card `…` menu: Pin/Unpin, Move up/down (pinned and undated groups), Archive, Delete. Pinned and undated folders reorder by drag (mouse: lifts after ~120 ms or 4 px of movement; touch: ~300 ms long-press; `cursor: grab` on web); dated folders order by deadline and do not drag. Only the card body opens the folder; the `…` menu and the completion row never do.
+
+## Folder completion prompt
+
+A folder with a deadline whose steps are all done (at least one step) shows one calm inline row, in the Today panel and on its Folders card: "All steps done · Archive · Keep". No modal, no celebration. Archive moves it to the Archive section with an Undo toast; Keep stores `completionAcknowledged` so it does not ask again until a new step is added. Folders without a deadline never prompt; with nothing open they show "Nothing left · Add" in the panel and "Empty" on the card when they have no steps.
+
+## Source label on task rows
+
+A task that belongs to a folder shows, under its title, a muted 12px meta line: a tiny `folder-outline` icon plus the folder name.
+
+## Carry-over banner and past days
+
+On the real today, a slim inline note at the top of the task area says "2 unfinished from yesterday" (or "from Tue") for the most recent past day (within 7 days) that has incomplete tasks, plain and folder tasks alike. Actions: "Bring to today", "Back to folder" (only when some are folder tasks; clears their `scheduledDate`), and "Leave" (dismisses that day). Calm surface, no red. A past day lists tasks that were left undone on it and have since moved as muted, inert rows ("→ moved to Oct 3", "→ back in <folder>"); they count as planned, not completed, in that day's mark and "x of y".
+
 ## Deadline urgency
 
-Deadline cards are neutral surfaces (`colors.paper` on `colors.line`) at every urgency step — the card itself never tints. Urgency is carried only by the `D−n` label color: muted gray for distant work, soft ink inside the attention window, full ink at D−3, and danger red at D−1/due-today. Urgency increases through label color alone, not surface tint, size, flashing, or an all-red screen.
+Folder cards with a deadline are neutral surfaces (`colors.paper` on `colors.line`) at every urgency step — the card itself never tints. Urgency is carried only by the `D−n` label color: muted gray for distant work, soft ink inside the attention window, full ink at D−3, and danger red at D−1/due-today. Urgency increases through label color alone, not surface tint, size, flashing, or an all-red screen.
 
-Each Project can choose when the label starts to darken: 3, 7, 14, or 30 days before its deadline. This preference is shown in Project Detail ("Emphasize this deadline from") and updates the Today preview immediately.
+Each Project can choose when the label starts to darken: 3, 7, 14, or 30 days before its deadline. This preference is shown in Folder Detail ("Emphasize this deadline from", only when the folder has a deadline) and updates the Today preview immediately. A folder without a deadline shows no urgency label at all.
 
 ## Task interaction
 
@@ -108,6 +124,6 @@ Desktop keeps the Day Mark card and history calendar side by side. The Schedule 
 Each list section on Today ends with a muted "+ Add" row aligned with task titles, its circle slot holding a small plus. Tapping it becomes an inline input (font 16, no border box) with an empty check-circle in the list's colour; while open, a "Save as routine" text action sits below. Routines not yet added for a today/future day appear above the "+ Add" row as ghost rows: same height as a task, dashed faint circle in the list colour, muted title, a tiny repeat icon, and a `…` with "Remove routine". Tap the row to add it, tap the circle to add it done. The opened input scrolls into comfortable view above the keyboard. The List management screen mirrors Settings: spacious cards with colour dot (swatch picker), editable name, up/down controls, routines with × and a quiet Remove. On phones the bottom bar hides while typing.
 
 
-## Drag and drop (Today only)
+## Drag and drop
 
-Long-press (~300 ms) a task row (not its circle or `…`) to lift it: slight 1.02 scale, faint ink shadow, paper background, following the pointer vertically. A 2px line in the target list's colour shows the drop position, including empty lists (drop on the list body or its "+ Add" area appends). Scrolling is locked while dragging and auto-scrolls near the viewport's top/bottom edges. Completed and project tasks stay in their list: an invalid drop snaps back with a toast. Ghost routine rows and "+ Add" rows are not draggable. Deleting a task or routine shows a bottom-centre ink toast ("Deleted …" + Undo, 5 s). Drag-and-drop is allowed here by owner request (2026-09-30); Calendar scheduling remains select-then-tap.
+On Today, long-press (~300 ms; with a mouse, hold ~120 ms or move 4 px) a task row (not its circle or `…`) to lift it: slight 1.02 scale, faint ink shadow, paper background, following the pointer vertically. A 2px line in the target list's colour shows the drop position, including empty lists (drop on the list body or its "+ Add" area appends). Scrolling is locked while dragging and auto-scrolls near the viewport's top/bottom edges. Completed and project tasks stay in their list: an invalid drop snaps back with a toast. Ghost routine rows and "+ Add" rows are not draggable. Deleting a task or routine shows a bottom-centre ink toast ("Deleted …" + Undo, 5 s). While a task is dragged, the folder cards in Today's strip become drop targets: the card under the pointer gets a ring in its list colour, and dropping moves the task into that folder (it leaves the day; Undo toast "Moved to <folder>"); a completed task snaps back. The task `…` menu offers the same as "Move to folder…" (a sheet of active folders plus "New folder…"). Drag-and-drop is allowed here by owner request (2026-09-30, 2026-10-01); Calendar scheduling remains select-then-tap. On web, a plain click still edits the title or toggles the check: a mouse press-and-release in place is never treated as a drag.

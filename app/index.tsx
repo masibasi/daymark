@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { addWeeks, endOfWeek, format, isSameDay, parseISO, startOfWeek, subWeeks } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
+import { CarryoverBanner } from '@/components/CarryoverBanner';
 import { Collapsible } from '@/components/Collapsible';
 import { CompactSummary } from '@/components/CompactSummary';
 import { DayOrbit } from '@/components/DayOrbit';
@@ -15,9 +16,9 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipePager } from '@/components/SwipePager';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
+import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
-import { now } from '@/domain/clock';
+import { now, todayKey } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { isReducedMotion } from '@/theme/useReducedMotion';
@@ -58,6 +59,9 @@ export default function TodayScreen() {
   const addTaskFromRoutine = useDaymarkStore((state) => state.addTaskFromRoutine);
   const removeRoutine = useDaymarkStore((state) => state.removeRoutine);
   const moveTaskInDay = useDaymarkStore((state) => state.moveTaskInDay);
+  const moveTaskToFolder = useDaymarkStore((state) => state.moveTaskToFolder);
+  const carryoverDismissed = useDaymarkStore((state) => state.carryoverDismissed);
+  const dismissCarryover = useDaymarkStore((state) => state.dismissCarryover);
   const showToast = useDaymarkStore((state) => state.showToast);
   const [scrollLocked, setScrollLocked] = useState(false);
   const scrollY = useRef(0);
@@ -72,11 +76,15 @@ export default function TodayScreen() {
   const selectedDate = parseISO(selectedTodayDate);
   useCalendarEvents(startOfWeek(subWeeks(selectedDate, 1), { weekStartsOn: 1 }), endOfWeek(addWeeks(selectedDate, 1), { weekStartsOn: 1 }));
   const dayTasks = selectTodayTasks(tasks, selectedDate);
-  const sections = selectTodaySections(dayTasks, categories);
-  const upcoming = selectUpcomingProjects(projects, now());
+  // A past day also remembers what was left undone on it (moved since): planned, never completed.
+  const missed = selectMissedOnDay(tasks, selectedDate);
+  const planned = dayTasks.length + missed.length;
+  const sections = selectTodaySections(dayTasks, categories, missed);
+  const folders = selectTodayFolders(projects);
   const segments = selectDayOrbit(tasks, selectedDate, categories);
-  const completed = selectCompletedCountOnDay(dayTasks, selectedDate);
+  const completed = selectCompletedCountOnDay([...dayTasks, ...missed], selectedDate);
   const isToday = isSameDay(selectedDate, now());
+  const carryover = isToday ? selectCarryover(tasks, todayKey(), carryoverDismissed) : null;
   const dayEvents = selectEventsOnDay(events, selectedDate);
   const drag = useTaskDragController({
     scrollRef,
@@ -88,7 +96,8 @@ export default function TodayScreen() {
       return !task || task.categoryId === toCategoryId || !(task.completedAt || task.projectId);
     }, []),
     onDrop: (taskId, toCategoryId, toIndex) => moveTaskInDay(taskId, toCategoryId, toIndex, selectedTodayDate),
-    onBlocked: () => showToast('Project and completed tasks stay in their list'),
+    onDropFolder: (taskId, folderId) => moveTaskToFolder(taskId, folderId),
+    onBlocked: () => showToast('Completed tasks and folder steps stay where they are'),
   });
   // Bring the opened inline input comfortably into view above the keyboard.
   const reveal = (node: View | null) => {
@@ -106,8 +115,8 @@ export default function TodayScreen() {
     <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
       <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
       <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
-      <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
-      <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
+      <Text style={styles.orbitNumber}>{completed} of {planned}</Text>
+      <Text style={styles.orbitCopy}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
       <View style={styles.legend}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
     </View>
   );
@@ -123,13 +132,22 @@ export default function TodayScreen() {
 
   const tasksColumn = (
     <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone]}>
+      {carryover ? (
+        <CarryoverBanner
+          day={carryover.day} tasks={carryover.tasks}
+          onBring={() => carryover.tasks.forEach((task) => moveTaskToDate(task.id, todayKey()))}
+          onBackToFolder={() => carryover.tasks.filter((task) => task.projectId).forEach((task) => moveTaskToDate(task.id))}
+          onLeave={() => dismissCarryover(carryover.day)}
+        />
+      ) : null}
       <FadeOnChange token={selectedTodayDate}>
-          {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>}
+          {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, planned - completed)} left</Text></View>}
           {sections.map((group) => (
             <TaskSection
               key={group.category.id}
               category={group.category}
               tasks={group.tasks}
+              missed={group.missed}
               routines={selectRoutinesForList(routines, group.category.id)}
               ghosts={group.category.archived ? [] : selectGhostRoutines(routines, dayTasks, group.category.id, selectedDate, now())}
               onToggle={toggleTask}
@@ -166,11 +184,11 @@ export default function TodayScreen() {
       <View ref={contentRef} collapsable={false} style={[styles.page, scheduleColumn && styles.pageWide]}>
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
 
-        {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={dayTasks.length} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
+        {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
 
-        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Deadlines</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to see its next steps</Text>}</View>
-        <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} compact={phone} />
+        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Folders</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to pull a step into today</Text>}</View>
+        <DeadlineStrip projects={folders} tasks={tasks} now={now()} compact={phone} />
 
         {!phone && !scheduleColumn ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}
 
@@ -183,7 +201,7 @@ export default function TodayScreen() {
               </PressableScale>
             ))}
             {indicatorReady ? <Animated.View pointerEvents="none" style={[styles.tabIndicator, { left: indicatorX, width: indicatorW }]} /> : null}
-            {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{Math.max(0, dayTasks.length - completed)} left</Text> : null}
+            {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{Math.max(0, planned - completed)} left</Text> : null}
           </View>
         ) : null}
 
