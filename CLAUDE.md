@@ -16,3 +16,10 @@ Hard rules:
 
 Run `npx expo start --web` and `npx tsc --noEmit` after meaningful changes. Visually verify mobile and desktop layouts before considering UI work complete.
 
+
+Working agreements (carry these into any session, local or cloud):
+
+- The owner plans with Opus and prefers implementation on Sonnet: delegate build work to a Sonnet subagent with a precise spec, then verify its claims yourself (typecheck, web export, browser at 375px and 1280px).
+- Commit each verified chunk with a clear message. Pushing `codex/v0-rebuild` auto-deploys to GitHub Pages (https://masibasi.github.io/daymark/), so push only working states.
+- Never sign in to Supabase or create accounts on the owner's behalf. Edge Function deploys need the owner's Supabase CLI login (`npx supabase functions deploy calendar-feed --project-ref ojsmbjerdquvtffqrxlq --use-api`).
+- `ui-references/` (third-party screenshots) is local-only and gitignored; ask the owner to share images when a reference is needed.
