@@ -42,6 +42,7 @@ interface DaymarkState {
   addRoutine: (title: string, categoryId: CategoryId) => void;
   removeRoutine: (id: string) => void;
   addTaskFromRoutine: (routineId: string, date: string, complete?: boolean) => void;
+  addTaskFromEvent: (event: Pick<CalendarEvent, 'id' | 'title'>, categoryId: CategoryId, date: string) => void;
   moveTaskInDay: (taskId: string, toCategoryId: CategoryId, toIndex: number, day: string) => boolean;
   undoDelete: () => void;
   showToast: (message: string) => void;
@@ -167,6 +168,13 @@ export const useDaymarkStore = create<DaymarkState>()(
         const task: Task = { id: newId('task'), title: routine.title, categoryId: routine.categoryId, scheduledDate: date, routineId, order: nextOrder(state.tasks, date, routine.categoryId) };
         if (complete) task.completedAt = completionStamp(date);
         return { tasks: [...state.tasks, task] };
+      }),
+      // Explicit user action only ("Add to Today" on an event). One task per event per day.
+      addTaskFromEvent: (event, categoryId, date) => set((state) => {
+        if (state.tasks.some((task) => task.sourceEventId === event.id && task.scheduledDate === date)) return state;
+        const category = state.categories.find((item) => item.id === categoryId);
+        if (!category || category.archived) return state;
+        return { tasks: [...state.tasks, { id: newId('task'), title: event.title.trim() || 'Event', categoryId, scheduledDate: date, sourceEventId: event.id, order: nextOrder(state.tasks, date, categoryId) }] };
       }),
       // Reorder within a list or move to another list on `day`. `toIndex` counts the target list without the moved task.
       // Completed tasks and project tasks may reorder but never change list. Returns false when nothing was changed.

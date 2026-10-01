@@ -53,12 +53,12 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
+  row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   pressed: { opacity: 0.6 },
   repeat: { pointerEvents: 'none' },
   check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, borderStyle: 'dashed', opacity: 0.45 },
   copy: { flex: 1, minWidth: 0 },
-  title: { ...type.bodyMedium, color: colors.muted, fontFamily },
+  title: { ...type.task, color: colors.muted, fontFamily },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   actions: { position: 'absolute', width: 192, padding: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   action: { height: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },

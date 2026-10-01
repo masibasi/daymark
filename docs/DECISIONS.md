@@ -29,6 +29,10 @@
 - **The Today time rail and "reserve time" tray were tried and parked.** A V0 study added a compact 8 AM–9 PM strip on Today plus a per-Task "Reserve time" tray, so a Task could pick up a TimeBlock without a trip to the Calendar tab. The product owner reviewed it and found the interaction didn't resonate; it has been removed (preserved in git history at commit `c673d1b`). Today scheduling goes through the Calendar tab's select-then-tap-slot flow for now; a different Today-native scheduling interaction may be revisited later.
 - **Project detail remains focused on mobile.** V0 keeps full-screen project detail. A desktop side panel is preferred over an expanding card because it preserves the deadline overview while allowing quick edits; this is a later interaction refinement.
 
+- **Phone Today is a compact summary plus a swipeable Tasks | Schedule pager (owner choice).** The big Day Mark and history calendar collapse into one summary row by default so tasks are on the first screen; the day's calendar events live on a second page instead of crowding Today.
+- **Events become Tasks only through an explicit "Add to Today".** Tapping an event offers the lists; choosing one creates a normal Task for the displayed day with `sourceEventId` set to the event id. One task per event per day; the event then shows "Added". External events are never converted automatically, and Tasks, TimeBlocks and CalendarEvents stay separate entities.
+- **Lists have twelve colors.** The palette grew from six to twelve distinct hues; existing colorKeys are unchanged.
+
 ## Technical
 
 - **Expo + React Native Web.** One TypeScript UI foundation across phone and web.

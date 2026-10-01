@@ -79,12 +79,12 @@ export function InlineAdd({ listName, colorKey, open, onOpen, onClose, onAddTask
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.xxs },
-  row: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xxs },
+  row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   pressed: { opacity: 0.6 },
   plus: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  addText: { ...type.bodyMedium, color: colors.muted, fontFamily },
+  addText: { ...type.task, color: colors.muted, fontFamily },
   check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7 },
-  input: { flex: 1, minWidth: 0, minHeight: 40, ...type.bodyMedium, fontSize: 16, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
+  input: { flex: 1, minWidth: 0, padding: 0, margin: 0, borderWidth: 0, minHeight: 22, backgroundColor: 'transparent', includeFontPadding: false, ...type.task, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
   done: { ...type.meta, color: colors.inkSoft, fontFamily },
   tray: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingLeft: 22 + space.sm, paddingBottom: space.xs },
   saveRoutine: { paddingVertical: 7, paddingHorizontal: 4 },

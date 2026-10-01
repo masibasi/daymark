@@ -35,6 +35,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - I can move unfinished work to another day without recreating it.
 - I can decide how early each Project starts appearing visually urgent.
 - I can open a Task's actions from Today and move it to tomorrow, choose a date, or remove it from the displayed day.
+- On my phone, Today shows a compact summary and a swipeable Tasks | Schedule pager; I can add a calendar event to my day as a Task in a list I choose, and it is marked as added.
 - I can collapse Today's history calendar to just the current week on my phone, or expand it to the full month, without losing my place.
 
 ## V0 scope

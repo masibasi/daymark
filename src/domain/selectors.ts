@@ -1,6 +1,6 @@
-import { differenceInCalendarDays, format, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, isSameDay, parseISO, startOfDay } from 'date-fns';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
-import type { Category, CategoryId, Project, Routine, Task } from './types';
+import type { CalendarEvent, Category, CategoryId, Project, Routine, Task } from './types';
 
 export interface DayOrbitSegment {
   categoryId: CategoryId;
@@ -91,4 +91,19 @@ export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
 export function selectGhostRoutines(routines: Routine[], tasks: Task[], categoryId: CategoryId, day: Date, today: Date): Routine[] {
   if (differenceInCalendarDays(day, today) < 0) return [];
   return selectRoutinesForList(routines, categoryId).filter((routine) => !selectRoutineAddedOnDay(tasks, routine.id, day));
+}
+
+// Events overlapping `day` (end exclusive): all-day first, then by start time.
+export function selectEventsOnDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
+  const start = startOfDay(day);
+  const end = addDays(start, 1);
+  return events
+    .filter((event) => parseISO(event.startAt) < end && parseISO(event.endAt) > start)
+    .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.startAt.localeCompare(b.startAt));
+}
+
+// The task the user explicitly created from this event on `day`, if any.
+export function selectTaskFromEvent(tasks: Task[], eventId: string, day: Date): Task | undefined {
+  const key = format(day, 'yyyy-MM-dd');
+  return tasks.find((task) => task.sourceEventId === eventId && task.scheduledDate === key);
 }

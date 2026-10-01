@@ -17,6 +17,9 @@ Today, Calendar, and Projects are primary. Mobile uses a bottom bar. Tablet and 
 
 ## Typography
 
+Task titles use `type.task` (16/22, semibold) everywhere: display row, inline title edit, inline add input, and ghost routine rows share identical size, weight, line height, padding and color, so entering or leaving edit mode never shifts the text (16px also stops iOS from zooming on focus). Task rows are a fixed 52px tall in every state.
+
+
 Use the platform sans-serif. Display 34/40 semibold; title 26/32 semibold; section 17/22 semibold; body 15/21 regular; meta 12/16 medium. Prefer sentence case and short labels.
 
 ## Spacing and shape
@@ -32,6 +35,8 @@ Base spacing steps: 4, 8, 12, 16, 24, 32, 48. Task rows are mostly borderless. R
 - Career: vivid rose.
 - Personal: fresh green.
 - Routine: violet.
+
+Lists choose from twelve distinct hues (`categoryPalette`): blue, rose, green, violet, amber, teal, orange, lime, yellow, magenta, brown, graphite. Each has solid, soft, ink and Day Mark `mark` tones for light and dark; marks stay clearly separable at the 22px history size. Light fills (yellow, lime) use dark ink for check marks. The first six keys are the original defaults, so stored colorKeys stay valid. Brown and graphite are list colors only; the theme itself stays neutral.
 
 The app follows the device color scheme. Theme colors must remain neutral; category color provides the personality. Do not reintroduce beige, cream, brown, or an overall warm cast.
 
@@ -62,6 +67,18 @@ Today also includes a quieter completion-history calendar. Its cells favor the D
 Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
 
 A Today time rail and per-Task "Reserve time" tray were tried as a V0 interaction study and removed after review — the interaction didn't resonate with the product owner. Today scheduling goes through the Calendar tab's select-then-tap-slot flow; a different Today-native scheduling interaction may be explored later. The header's weather line stays labeled "sample weather" so it reads honestly as mock data.
+
+## Today on phone (width < 760)
+
+Order: date header, one compact summary row, compact Upcoming strip, then a two-page "Tasks | Schedule" pager.
+
+- Summary row (collapsed by default, state kept for the session): small 44px Day Mark, "4 of 10", and this week's seven 22px day marks (tap one to change the displayed day). Tapping the left side or the chevron expands to the full Day Mark card plus history calendar; tap again to collapse.
+- Upcoming deadline cards are compact: one-line title with `D−n`, then a progress bar, so tasks appear on the first screen.
+- Tasks | Schedule is a quiet underlined segmented header (Schedule shows the day's event count; Tasks shows "n left"). Tap to switch, or swipe horizontally. The swipe only claims clearly horizontal gestures (|dx| > 24 and > 2·|dy|), so vertical scroll and long-press row drag are untouched. Only the active page is mounted and the main ScrollView is the only vertical scroller.
+- Schedule page: the displayed day's CalendarEvents, all-day first, then timed events (time range under the title) with a neutral event rail (events are never list-colored). Empty state: "No events on this day." with a quiet "Connect a calendar in Settings" link.
+- Tapping an event expands it inline: an "Add to Today" pill for the default list (a list named Schedule/Calendar, else the list last used for an event, else the first) and "or in" chips for the other lists; one tap adds. Once added the row reads "Added" and is disabled.
+
+Desktop keeps the Day Mark card and history calendar side by side. The Schedule sits in a right-hand column beside the tasks at ≥ 1100px, and as a section below Upcoming between 760 and 1100px.
 
 ## Responsive rules
 

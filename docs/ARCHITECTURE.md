@@ -10,7 +10,7 @@ Expo + React Native + React Native Web with TypeScript and Expo Router. Screens 
 Category { id: string, name, colorKey, order, archived? }   // UI name: "List"
 Routine { id, title, categoryId, order }
 Project { id, title, categoryId, deadline, status, notes?, attentionDays? }
-Task { id, title, categoryId, projectId?, scheduledDate?, completedAt?, routineId? }
+Task { id, title, categoryId, projectId?, scheduledDate?, completedAt?, routineId?, sourceEventId?, order? }
 TimeBlock { id, taskId, startAt, endAt, externalCalendarEventId? }
 CalendarEvent { id, provider, externalId, title, startAt, endAt, allDay, colorKey? }
 ```
@@ -22,6 +22,7 @@ Relationships:
 - TimeBlock always references a Task.
 - CalendarEvent is independent from Task and TimeBlock.
 - `scheduledDate` places the same Task on Today; it never creates a copy.
+- `sourceEventId` is set only by the explicit "Add to Today" action on a CalendarEvent (`addTaskFromEvent`); it is not a foreign key and the Task survives if the event disappears. `selectEventsOnDay` and `selectTaskFromEvent` derive the Schedule view and its "Added" state.
 
 ## State boundaries
 

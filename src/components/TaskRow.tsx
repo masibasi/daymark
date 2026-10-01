@@ -3,7 +3,7 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, Text, TextInput, useW
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
-import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { colors, fontFamily, onSolid, radius, space, type } from '@/theme/tokens';
 import { DatePickerModal } from './DatePickerModal';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -97,7 +97,7 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
     <View style={styles.row}>
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: complete }} accessibilityLabel={`Complete ${task.title}`} onPress={toggle} hitSlop={8}>
         <Animated.View style={[styles.check, { borderColor: palette.solid, backgroundColor: complete ? palette.solid : 'transparent', transform: [{ scale }] }]}>
-          {complete ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
+          {complete ? <Ionicons name="checkmark" size={14} color={onSolid(palette.solid)} /> : null}
         </Animated.View>
       </Pressable>
       <View style={styles.copy}>
@@ -135,11 +135,11 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
+  row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
-  title: { ...type.bodyMedium, color: colors.ink, fontFamily },
-  titleInput: { padding: 0, margin: 0, minHeight: 21, fontSize: 16, outlineStyle: 'none' as never, ...Platform.select({ web: { userSelect: 'text', WebkitUserSelect: 'text' } as object, default: {} }) },
+  title: { ...type.task, color: colors.ink, fontFamily },
+  titleInput: { padding: 0, margin: 0, borderWidth: 0, minHeight: 22, backgroundColor: 'transparent', includeFontPadding: false, outlineStyle: 'none' as never, ...Platform.select({ web: { userSelect: 'text', WebkitUserSelect: 'text' } as object, default: {} }) },
   complete: { color: colors.muted },
   meta: { ...type.meta, color: colors.muted, marginTop: 1, fontFamily },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },

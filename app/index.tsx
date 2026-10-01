@@ -4,25 +4,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
+import { CompactSummary } from '@/components/CompactSummary';
 import { DayOrbit } from '@/components/DayOrbit';
 import { HistoryCalendar } from '@/components/HistoryCalendar';
+import { ScheduleList } from '@/components/ScheduleList';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { SwipePager } from '@/components/SwipePager';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectGhostRoutines, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
+import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectRoutinesForList, selectTodaySections, selectTodayTasks, selectUpcomingProjects } from '@/domain/selectors';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 export default function TodayScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const wide = width >= 820;
+  const phone = width < 760;
+  const scheduleColumn = width >= 1100;
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [page, setPage] = useState<'tasks' | 'schedule'>('tasks');
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
   const routines = useDaymarkStore((state) => state.routines);
   const tasks = useDaymarkStore((state) => state.tasks);
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
+  const events = useDaymarkStore((state) => state.events);
+  const addTaskFromEvent = useDaymarkStore((state) => state.addTaskFromEvent);
   const toggleTask = useDaymarkStore((state) => state.toggleTask);
   const addTask = useDaymarkStore((state) => state.addTask);
   const addRoutine = useDaymarkStore((state) => state.addRoutine);
@@ -47,6 +56,7 @@ export default function TodayScreen() {
   const segments = selectDayOrbit(tasks, selectedDate, categories);
   const completed = selectCompletedCountOnDay(dayTasks, selectedDate);
   const isToday = isSameDay(selectedDate, now());
+  const dayEvents = selectEventsOnDay(events, selectedDate);
   const drag = useTaskDragController({
     scrollRef,
     getScrollY: () => scrollY.current,
@@ -69,33 +79,23 @@ export default function TodayScreen() {
   };
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
-  return (
-    <TaskDragContext.Provider value={drag}>
-    <ScrollView
-      ref={scrollRef} scrollEnabled={!scrollLocked} scrollEventThrottle={16}
-      onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
-      onLayout={(event) => { viewportHeight.current = event.nativeEvent.layout.height; }}
-      onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
-      contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      <View ref={contentRef} collapsable={false} style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
+  const selectDate = (date: Date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'));
 
-        <View style={[styles.overview, wide && styles.overviewWide]}>
-          <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
-            <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
-            <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
-            <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
-            <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
-            <View style={styles.legend}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
-          </View>
-          <HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={(date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'))} />
-        </View>
+  const orbitCard = (
+    <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
+      <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
+      <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
+      <Text style={styles.orbitNumber}>{completed} of {dayTasks.length}</Text>
+      <Text style={styles.orbitCopy}>{dayTasks.length === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
+      <View style={styles.legend}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+    </View>
+  );
 
-        <View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Upcoming</Text><Text style={styles.sectionHint}>Deadlines that need a little attention</Text></View>
-        <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} />
+  const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} isToday={isToday} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
-        <View style={styles.tasksColumn}>
-          <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>
+  const tasksColumn = (
+    <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone]}>
+          {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>}
           {sections.map((group) => (
             <TaskSection
               key={group.category.id}
@@ -122,7 +122,50 @@ export default function TodayScreen() {
             />
           ))}
           <Link href="/lists" style={styles.editLists}>Edit lists</Link>
-        </View>
+    </View>
+  );
+
+  return (
+    <TaskDragContext.Provider value={drag}>
+    <ScrollView
+      ref={scrollRef} scrollEnabled={!scrollLocked} scrollEventThrottle={16}
+      onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
+      onLayout={(event) => { viewportHeight.current = event.nativeEvent.layout.height; }}
+      onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
+      contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <View ref={contentRef} collapsable={false} style={[styles.page, scheduleColumn && styles.pageWide]}>
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
+
+        {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={dayTasks.length} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
+        {!phone || summaryOpen ? <View style={[styles.overview, wide && styles.overviewWide, phone && styles.overviewPhone]}>
+          {orbitCard}
+          <HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} />
+        </View> : null}
+
+        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Upcoming</Text>{phone ? null : <Text style={styles.sectionHint}>Deadlines that need a little attention</Text>}</View>
+        <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} compact={phone} />
+
+        {!phone && !scheduleColumn ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}
+
+        {phone ? (
+          <View style={styles.tabs}>
+            {(['tasks', 'schedule'] as const).map((key) => (
+              <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: page === key }} onPress={() => setPage(key)} style={[styles.tab, page === key && styles.tabActive]}>
+                <Text style={[styles.tabText, page === key && styles.tabTextActive]}>{key === 'tasks' ? 'Tasks' : 'Schedule'}</Text>
+                {key === 'schedule' && dayEvents.length > 0 ? <Text style={styles.tabCount}>{dayEvents.length}</Text> : null}
+              </Pressable>
+            ))}
+            {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{Math.max(0, dayTasks.length - completed)} left</Text> : null}
+          </View>
+        ) : null}
+
+        {phone ? (
+          <SwipePager minHeight={Math.round(height * 0.45)} index={page === 'tasks' ? 0 : 1} count={2} onChange={(next) => setPage(next === 0 ? 'tasks' : 'schedule')}>
+            {page === 'tasks' ? tasksColumn : <View style={styles.schedulePage}>{schedule}</View>}
+          </SwipePager>
+        ) : scheduleColumn ? (
+          <View style={styles.split}>{tasksColumn}<View style={styles.scheduleAside}><Text style={styles.sectionTitle}>Schedule</Text><View style={styles.scheduleAsideBody}>{schedule}</View></View></View>
+        ) : tasksColumn}
       </View>
     </ScrollView>
     </TaskDragContext.Provider>
@@ -131,10 +174,12 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   settingsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
+  pageWide: { maxWidth: 1240 },
   scroll: { flexGrow: 1 },
   scrollKeyboard: { paddingBottom: 320 },
   page: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
   overview: { gap: space.md, marginTop: space.lg },
+  overviewPhone: { marginTop: space.md },
   overviewWide: { flexDirection: 'row', alignItems: 'flex-start' },
   orbitCard: { minHeight: 304, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   orbitCardWide: { width: 300, height: 352 },
@@ -148,12 +193,26 @@ const styles = StyleSheet.create({
   legendDot: { width: 7, height: 7, borderRadius: 4 },
   legendText: { ...type.meta, color: colors.muted, fontFamily },
   upcomingHeader: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, marginTop: space.xl, marginBottom: space.sm },
+  upcomingHeaderPhone: { marginTop: space.md, marginBottom: space.xs },
   sectionLabel: { ...type.section, color: colors.ink, fontFamily },
   sectionHint: { ...type.meta, color: colors.muted, fontFamily },
   tasksColumn: { width: '100%', maxWidth: 700, marginTop: space.xl },
+  tasksColumnPhone: { marginTop: space.sm },
+  split: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xxl },
+  scheduleAside: { width: 340, marginTop: space.xl },
+  scheduleAsideBody: { marginTop: space.sm },
+  scheduleSection: { marginTop: space.xl, maxWidth: 700 },
+  schedulePage: { paddingTop: space.xs },
+  tabs: { flexDirection: 'row', gap: space.lg, marginTop: space.md, borderBottomWidth: 1, borderColor: colors.line },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, marginBottom: -1, borderBottomWidth: 2, borderColor: 'transparent' },
+  tabActive: { borderColor: colors.ink },
+  tabText: { ...type.bodyMedium, color: colors.muted, fontFamily },
+  tabTextActive: { color: colors.ink },
+  tabCount: { ...type.meta, color: colors.muted, fontFamily },
   tasksHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: space.lg },
   sectionTitle: { ...type.title, color: colors.ink, fontFamily },
   historyHint: { ...type.meta, color: colors.muted, marginTop: 2, fontFamily },
+  taskCountPhone: { marginTop: 0, alignSelf: 'center' },
   taskCount: { ...type.meta, color: colors.muted, marginLeft: 'auto', marginTop: 8, fontFamily },
   editLists: { ...type.meta, color: colors.muted, marginTop: space.md, alignSelf: 'flex-start', fontFamily },
 });
