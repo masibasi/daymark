@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Routine } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, radius, space, type, type CategoryColorKey } from '@/theme/tokens';
+import { categoryPalette, colors, fontFamily, motion, radius, space, type, type CategoryColorKey } from '@/theme/tokens';
+import { useReducedMotion } from '@/theme/useReducedMotion';
+import { quietNextEnter } from './RowPresence';
 
 interface GhostRoutineRowProps { routine: Routine; colorKey: CategoryColorKey; onAdd: () => void; onAddDone: () => void; onRemove: () => void }
 
@@ -13,6 +15,18 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
   const moreRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const becoming = useRef(new Animated.Value(0)).current;
+  const adding = useRef(false);
+  const reduced = useReducedMotion();
+
+  // The dashed faint circle crossfades to the solid list-coloured outline and the muted title to ink, then the real task row takes over.
+  const become = (commit: () => void) => {
+    if (adding.current) return;
+    adding.current = true;
+    quietNextEnter();
+    if (reduced) { commit(); return; }
+    Animated.timing(becoming, { toValue: 1, duration: motion.base, easing: motion.easeOut, useNativeDriver: false }).start(() => commit());
+  };
 
   const openMenu = () => {
     const node = moreRef.current;
@@ -32,12 +46,15 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
   return (
     <View>
       <View style={styles.row}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Add routine ${routine.title}`} onPress={onAdd} style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} />
-        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: false }} accessibilityLabel={`Add and complete ${routine.title}`} onPress={onAddDone} hitSlop={8}>
-          <View style={[styles.check, { borderColor: palette.solid }]} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Add routine ${routine.title}`} onPress={() => become(onAdd)} style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} />
+        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: false }} accessibilityLabel={`Add and complete ${routine.title}`} onPress={() => become(onAddDone)} hitSlop={8}>
+          <View style={styles.checkSlot}>
+            <Animated.View style={[styles.check, { borderColor: palette.solid, opacity: becoming.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }) }]} />
+            <Animated.View style={[styles.check, styles.checkSolid, { borderColor: palette.solid, opacity: becoming }]} />
+          </View>
         </Pressable>
         <View pointerEvents="none" style={styles.copy}>
-          <Text style={styles.title} numberOfLines={2}>{routine.title}</Text>
+          <Animated.Text style={[styles.title, { color: becoming.interpolate({ inputRange: [0, 1], outputRange: [colors.muted, colors.ink] }) }]} numberOfLines={2}>{routine.title}</Animated.Text>
         </View>
         <Ionicons name="repeat" size={12} color={colors.muted} style={styles.repeat} />
         <Pressable accessibilityRole="button" accessibilityLabel={`More options for routine ${routine.title}`} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable>
@@ -56,7 +73,9 @@ const styles = StyleSheet.create({
   row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
   pressed: { opacity: 0.6 },
   repeat: { pointerEvents: 'none' },
-  check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, borderStyle: 'dashed', opacity: 0.45 },
+  checkSlot: { width: 22, height: 22 },
+  check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, borderStyle: 'dashed' },
+  checkSolid: { position: 'absolute', top: 0, left: 0, borderStyle: 'solid' },
   copy: { flex: 1, minWidth: 0 },
   title: { ...type.task, color: colors.muted, fontFamily },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },

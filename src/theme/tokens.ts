@@ -1,4 +1,4 @@
-import { Appearance, Platform } from 'react-native';
+import { Appearance, Easing, Platform } from 'react-native';
 
 export const lightColors = {
   canvas: '#FFFFFF',
@@ -66,3 +66,14 @@ export const type = {
 } as const;
 
 export const fontFamily = Platform.select({ ios: 'System', android: 'sans-serif', web: 'system-ui' });
+
+// Shared motion: calm, ease-out, never celebratory. Durations in ms.
+export const motion = {
+  press: 110, quick: 160, base: 260, exit: 200, crossfade: 200, page: 300,
+  ring: 650, ringIn: 800, wash: 700, washDelay: 250, settle: 900,
+  easeOut: Easing.bezier(0.22, 1, 0.36, 1),
+  easeInOut: Easing.bezier(0.65, 0, 0.35, 1),
+  spring: { friction: 9, tension: 180 },
+  pressScale: 0.97, lift: 1.02, enterRise: 6, toastRise: 12, rippleGrow: 0.12, rippleOpacity: 0.25,
+} as const;
+export const nativeDriver = Platform.OS !== 'web';

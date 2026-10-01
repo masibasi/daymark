@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
+import { PressableScale } from './PressableScale';
 import { UndoToast } from './UndoToast';
 
 const navItems = [
@@ -31,10 +32,10 @@ export function AppShell({ children }: PropsWithChildren) {
           const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel={item.label} style={({ pressed }) => [styles.navItem, active && styles.navItemActive, pressed && styles.pressed]}>
+              <PressableScale accessibilityRole="link" accessibilityLabel={item.label} style={StyleSheet.flatten([desktop ? styles.navItem : styles.tabItem, active && desktop && styles.navItemActive])}>
                 <Ionicons name={(active ? item.activeIcon : item.icon) as never} size={desktop ? 21 : 22} color={active ? colors.ink : colors.muted} />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
-              </Pressable>
+              </PressableScale>
             </Link>
           );
         })}
@@ -62,12 +63,13 @@ const styles = StyleSheet.create({
   sideNav: { width: 86, paddingVertical: space.lg, alignItems: 'center', borderRightWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.paper },
   brandMark: { width: 42, height: 42, borderRadius: 15, textAlign: 'center', textAlignVertical: 'center', paddingTop: 7, overflow: 'hidden', backgroundColor: colors.ink, color: colors.paper, fontSize: 22, fontWeight: '800', fontFamily },
   sideItems: { flex: 1, justifyContent: 'center', gap: space.md },
-  bottomNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, paddingTop: space.xs, paddingHorizontal: space.lg, backgroundColor: colors.paper, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
-  bottomItems: { flexDirection: 'row', justifyContent: 'space-around' },
+  bottomNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, paddingTop: space.xs, backgroundColor: colors.paper, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
+  bottomItems: { flexDirection: 'row' },
+  tabItem: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
   navItem: { minWidth: 58, minHeight: 52, paddingHorizontal: space.xs, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', gap: 3 },
   navItemActive: { backgroundColor: colors.track },
   navLabel: { ...type.meta, fontSize: 10, color: colors.muted, fontFamily },
-  navLabelActive: { color: colors.ink },
+  navLabelActive: { color: colors.ink, fontWeight: '800' },
   avatar: { width: 38, height: 38, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.profile },
   avatarText: { ...type.meta, color: colors.ink, fontFamily },
   pressed: { opacity: 0.65 },

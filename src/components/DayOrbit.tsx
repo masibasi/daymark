@@ -1,9 +1,10 @@
-import { AccessibilityInfo, Animated, Platform } from 'react-native';
+import { Animated, Platform, View } from 'react-native';
 import { useEffect, useId, useRef, useState } from 'react';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
-import { categoryPalette, colors, darkColors, lightColors, type CategoryColorKey } from '@/theme/tokens';
+import { categoryPalette, colors, darkColors, lightColors, motion, type CategoryColorKey } from '@/theme/tokens';
+import { useReducedMotion } from '@/theme/useReducedMotion';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 
 interface DayOrbitProps {
@@ -15,11 +16,72 @@ interface DayOrbitProps {
   scheme?: 'light' | 'dark';
 }
 
+// Tweens each category's arc length (and the wash fade) when the segments change on the animated mark. Arcs stay contiguous because
+// offsets are derived from the tweened lengths. Driven by one Animated.Value + a listener (cheap: one state update per frame, large mark only).
+function useTweenedArcs(keys: string[], targets: number[], enabled: boolean) {
+  const shown = useRef<Record<string, number>>({});
+  const washShown = useRef(0);
+  const [, setFrame] = useState(0);
+  const progress = useRef(new Animated.Value(1)).current;
+  const wash = useRef(new Animated.Value(0)).current;
+  const first = useRef(true);
+  const sig = `${keys.join('|')}:${targets.map((t) => t.toFixed(2)).join(',')}`;
+  useEffect(() => {
+    const to: Record<string, number> = {};
+    keys.forEach((key, index) => { to[key] = targets[index]; });
+    const washTarget = targets.some((t) => t > 0.01) ? 1 : 0;
+    if (!enabled) { shown.current = to; washShown.current = washTarget; first.current = false; return undefined; }
+    const from = { ...shown.current };
+    const isFirst = first.current;
+    first.current = false;
+    const arcId = progress.addListener(({ value }) => {
+      const next: Record<string, number> = {};
+      keys.forEach((key) => { const start = from[key] ?? 0; next[key] = start + (to[key] - start) * value; });
+      shown.current = next;
+      setFrame((frame) => frame + 1);
+    });
+    const washId = wash.addListener(({ value }) => { washShown.current = value; setFrame((frame) => frame + 1); });
+    progress.setValue(0);
+    const duration = isFirst ? motion.ringIn : motion.ring;
+    const growing = washTarget > washShown.current;
+    const animation = Animated.parallel([
+      Animated.timing(progress, { toValue: 1, duration, easing: motion.easeOut, useNativeDriver: false }),
+      Animated.timing(wash, { toValue: washTarget, delay: growing ? (isFirst ? duration - 200 : motion.washDelay) : 0, duration: growing ? motion.wash : motion.base, easing: motion.easeOut, useNativeDriver: false }),
+    ]);
+    animation.start();
+    return () => { animation.stop(); progress.removeListener(arcId); wash.removeListener(washId); };
+  }, [sig, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!enabled) return { lengths: targets, wash: 1 };
+  return { lengths: keys.map((key) => shown.current[key] ?? 0), wash: washShown.current };
+}
+
+// One soft ring that expands ~12% outward from the mark and fades. Rendered in its own larger layer so it is never clipped.
+function Ripple({ size, radiusValue, color, fireKey }: { size: number; radiusValue: number; color: string; fireKey: number }) {
+  const [value, setValue] = useState(-1);
+  useEffect(() => {
+    if (fireKey === 0) return undefined;
+    const driver = new Animated.Value(0);
+    const id = driver.addListener(({ value: next }) => setValue(next));
+    const animation = Animated.timing(driver, { toValue: 1, duration: motion.settle, easing: motion.easeOut, useNativeDriver: false });
+    animation.start(({ finished }) => { if (finished) setValue(-1); });
+    return () => { animation.stop(); driver.removeListener(id); };
+  }, [fireKey]);
+  if (value < 0 || value >= 1) return null;
+  const pad = size * 0.25;
+  const outer = size + pad * 2;
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: -pad, top: -pad, width: outer, height: outer }}>
+      <Svg width={outer} height={outer} viewBox={`0 0 ${outer} ${outer}`}>
+        <Circle cx={outer / 2} cy={outer / 2} r={radiusValue * (1 + motion.rippleGrow * value)} fill="none" stroke={color} strokeWidth={1.25} opacity={motion.rippleOpacity * (1 - value)} />
+      </Svg>
+    </View>
+  );
+}
 
 export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false, variant, scheme }: DayOrbitProps) {
   const storeVariant = useDaymarkStore((s) => s.dayMarkVariant);
   const activeVariant = variant ?? storeVariant;
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const reduceMotion = useReducedMotion();
   const clipId = `liquid-${useId().replace(/:/g, '')}`;
   const radiusValue = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radiusValue;
@@ -35,12 +97,21 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   const markColor = (colorKey: CategoryColorKey) => (isDark ? categoryPalette[colorKey].markDark : categoryPalette[colorKey].markLight);
   let completedOffset = 0;
 
+  const tweenEnabled = animate && !reduceMotion && activeVariant !== 'current';
+  const arcs = useTweenedArcs(segments.map((segment) => segment.categoryId), segments.map((segment) => circumference * segment.share * segment.completion), tweenEnabled);
+  const [rippleKey, setRippleKey] = useState(0);
+  const wasComplete = useRef(complete);
+  const shareSig = segments.map((segment) => `${segment.categoryId}:${segment.share.toFixed(4)}`).join('|');
+  const lastShareSig = useRef(shareSig);
   useEffect(() => {
-    if (!animate) return undefined;
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => subscription.remove();
-  }, [animate]);
+    const before = wasComplete.current;
+    const sameDay = lastShareSig.current === shareSig; // a different set of tasks (another day) is a navigation, not a completion
+    wasComplete.current = complete;
+    lastShareSig.current = shareSig;
+    if (!animate || reduceMotion || before || !complete || !sameDay) return undefined;
+    const timer = setTimeout(() => setRippleKey((key) => key + 1), motion.ring * 0.75);
+    return () => clearTimeout(timer);
+  }, [complete, shareSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!animate || reduceMotion) return undefined;
@@ -120,14 +191,16 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   }
 
   // Shared ribbon-band ring: contiguous mark-colored arcs on a neutral track, in category order.
-  const ringArcs = segments.map((segment) => {
-    const fillDash = circumference * segment.share * segment.completion;
+  const ringArcs = segments.map((segment, index) => {
+    const fillDash = arcs.lengths[index];
     const start = completedOffset;
     completedOffset += fillDash;
     return { segment, fillDash, start };
   });
 
   const center = size / 2;
+  const dominantSegment = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
+  const ripple = animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment.colorKey)} fireKey={rippleKey} /> : null;
   const label = `${Math.round(completion * 100)} percent complete daily mark`;
 
   if (activeVariant === 'ribbon') {
@@ -145,6 +218,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           ) : null)}
           {complete ? <Circle cx={center} cy={center} r={innerRadius} fill="none" stroke={activeColors.ink} strokeWidth={1} opacity={0.08} /> : null}
         </Svg>
+        {ripple}
       </Animated.View>
     );
   }
@@ -175,6 +249,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
             />
           ) : null}
         </Svg>
+        {ripple}
       </Animated.View>
     );
   }
@@ -182,9 +257,10 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   // wash: pigment bleeds inward from each category's own painted arc in stacked, fading bands.
   // Bands follow the ring's arc fractions, so neighbouring categories touch but never overlap or mix.
   const washLayers = size < 30 ? 2 : 4;
-  const washDepth = innerRadius * (0.32 + 0.4 * completion);
-  const washOpacity = (size < 30 ? 0.12 : 0.15) * (complete ? 1.15 : 1);
-  const washBands = completion > 0 ? Array.from({ length: washLayers }, (_, layer) => {
+  const shownCompletion = ringArcs.reduce((total, arc) => total + arc.fillDash, 0) / circumference;
+  const washDepth = innerRadius * (0.32 + 0.4 * shownCompletion);
+  const washOpacity = (size < 30 ? 0.12 : 0.15) * (complete ? 1.15 : 1) * arcs.wash;
+  const washBands = shownCompletion > 0.0005 ? Array.from({ length: washLayers }, (_, layer) => {
     const bandWidth = washDepth / washLayers;
     const bandRadius = innerRadius - bandWidth * (layer + 0.5);
     const bandCircumference = 2 * Math.PI * bandRadius;
@@ -216,6 +292,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           />
         ) : null)}
       </Svg>
+      {ripple}
     </Animated.View>
   );
 }

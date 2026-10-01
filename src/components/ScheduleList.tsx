@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { format, parseISO } from 'date-fns';
@@ -68,18 +69,18 @@ export function ScheduleList({ events, day, tasks, categories, isToday, onAdd }:
             </Pressable>
             {open && preferred ? (
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel={`${addLabel} in ${preferred.name}`} onPress={() => add(preferred.id)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
+                <PressableScale accessibilityRole="button" accessibilityLabel={`${addLabel} in ${preferred.name}`} onPress={() => add(preferred.id)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
                   <View style={[styles.dot, { backgroundColor: categoryPalette[preferred.colorKey].solid }]} />
                   <Text style={styles.addText}>{addLabel} · {preferred.name}</Text>
-                </Pressable>
+                </PressableScale>
                 {others.length > 0 ? (
                   <View style={styles.chips}>
                     <Text style={styles.chipsLabel}>or in</Text>
                     {others.map((category) => (
-                      <Pressable key={category.id} accessibilityRole="button" accessibilityLabel={`${addLabel} in ${category.name}`} onPress={() => add(category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: categoryPalette[category.colorKey].soft }, pressed && styles.pressed]}>
+                      <PressableScale key={category.id} accessibilityRole="button" accessibilityLabel={`${addLabel} in ${category.name}`} onPress={() => add(category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: categoryPalette[category.colorKey].soft }, pressed && styles.pressed]}>
                         <View style={[styles.chipDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} />
                         <Text style={[styles.chipText, { color: categoryPalette[category.colorKey].ink }]}>{category.name}</Text>
-                      </Pressable>
+                      </PressableScale>
                     ))}
                   </View>
                 ) : null}

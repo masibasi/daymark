@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { colors, fontFamily, motion, nativeDriver, radius, space, type } from '@/theme/tokens';
+import { useReducedMotion } from '@/theme/useReducedMotion';
+import { PressableScale } from './PressableScale';
 
 const DISMISS_MS = 5000;
 
@@ -11,21 +13,39 @@ export function UndoToast({ bottom }: { bottom: number }) {
   const undoDelete = useDaymarkStore((state) => state.undoDelete);
   const dismissToast = useDaymarkStore((state) => state.dismissToast);
   const opacity = useRef(new Animated.Value(0)).current;
+  const rise = useRef(new Animated.Value(motion.toastRise)).current;
+  const reduced = useReducedMotion();
+  // Keep the last toast mounted while it slides back down.
+  const [shown, setShown] = useState(toast);
 
   useEffect(() => {
-    if (!toast) return undefined;
+    if (!toast) {
+      if (!shown) return undefined;
+      const out = Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: motion.quick, easing: motion.easeOut, useNativeDriver: nativeDriver }),
+        Animated.timing(rise, { toValue: reduced ? 0 : motion.toastRise, duration: motion.quick, easing: motion.easeOut, useNativeDriver: nativeDriver }),
+      ]);
+      out.start(({ finished }) => { if (finished) setShown(null); });
+      return () => out.stop();
+    }
+    setShown(toast);
     opacity.setValue(0);
-    Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: Platform.OS !== 'web' }).start();
+    rise.setValue(reduced ? 0 : motion.toastRise);
+    const inn = Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: motion.base, easing: motion.easeOut, useNativeDriver: nativeDriver }),
+      Animated.timing(rise, { toValue: 0, duration: motion.base, easing: motion.easeOut, useNativeDriver: nativeDriver }),
+    ]);
+    inn.start();
     const timer = setTimeout(dismissToast, DISMISS_MS);
-    return () => clearTimeout(timer);
+    return () => { inn.stop(); clearTimeout(timer); };
   }, [toast?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!toast) return null;
+  if (!shown) return null;
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { bottom }]}>
-      <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { opacity }]}>
-        <Text style={styles.text} numberOfLines={1}>{toast.message}</Text>
-        {toast.undoable ? <Pressable accessibilityRole="button" accessibilityLabel="Undo" onPress={undoDelete} hitSlop={8}><Text style={styles.undo}>Undo</Text></Pressable> : null}
+      <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { opacity, transform: [{ translateY: rise }] }]}>
+        <Text style={styles.text} numberOfLines={1}>{shown.message}</Text>
+        {shown.undoable ? <PressableScale accessibilityRole="button" accessibilityLabel="Undo" onPress={undoDelete} hitSlop={8}><Text style={styles.undo}>Undo</Text></PressableScale> : null}
       </Animated.View>
     </View>
   );

@@ -13,7 +13,7 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Navigation
 
-Today, Calendar, and Projects are primary. Mobile uses a bottom bar. Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
+Today, Calendar, and Projects are primary. Mobile uses a bottom bar of three equal-width tabs (icon and label centred, active shown by ink colour and a bolder label). Tablet and desktop use a compact left rail. Settings lives behind the small profile control.
 
 ## Typography
 
@@ -55,6 +55,19 @@ Each Project can choose when the label starts to darken: 3, 7, 14, or 30 days be
 ## Task interaction
 
 Task rows use a tactile circular check, title, optional project context, and a quiet schedule action. On completion: check scales and fills, text softens, and the Orbit updates in 300–450ms. The persistent Day Mark motion is slow and ambient, never celebratory. No strike-through or celebration effects.
+
+## Motion
+
+Calm, ease-out, never celebratory (no confetti, bounce, or badges). Shared tokens live in `motion` (`src/theme/tokens.ts`): press 110, quick 160, base 260, exit 200, crossfade 200, page 300, ring 650 (first draw 800), wash 700 after a 250 delay, settle 900; easing `easeOut` = bezier(0.22, 1, 0.36, 1); spring friction 9 / tension 180; press scale 0.97; lift 1.02.
+
+- Day Mark (large Today mark only; calendar marks never animate): arcs tween from old to new length (contiguous, growth draws forward, uncompleting retracts), draw in from 0 on mount, watercolor bands fade in after the arc settles, one faint ripple (dominant mark colour, <= 0.25 opacity, +12% radius, 900 ms) when the day becomes fully complete.
+- Check control: spring settle 0.86 -> 1, fill and tick ease in, title colour eases to muted. Reverses on uncomplete.
+- Task rows fade and rise 6 px on entering (add, routine, undo, Add to Today) and collapse height + fade before deletion or move-away; the store action runs after the exit. Ghost routines crossfade dashed -> solid and muted -> ink before becoming a task.
+- Undo toast slides 12 px and fades. Phone summary expands with measured height + opacity and a rotating chevron. Tasks | Schedule pages follow the finger, snap with ease-out, and the underline slides between labels. Changing the day crossfades the list.
+- Drag: the lifted row springs to 1.02 with a soft shadow and settles with a spring; other rows slide to open a gap at the insertion point (and close the hole left behind), with a thin insertion line.
+- Pressables on primary buttons, chips and nav items scale to 0.97.
+
+Reduce motion (OS setting via `AccessibilityInfo`, or `prefers-reduced-motion` on web): no tweens, ripple, slides, lifts or springs; state changes are instant, with only short fades for deletion and the day crossfade.
 
 ## Calendar interaction
 

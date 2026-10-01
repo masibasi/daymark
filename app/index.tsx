@@ -1,12 +1,15 @@
-import { useCallback, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { addWeeks, endOfWeek, format, isSameDay, parseISO, startOfWeek, subWeeks } from 'date-fns';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
+import { Collapsible } from '@/components/Collapsible';
 import { CompactSummary } from '@/components/CompactSummary';
 import { DayOrbit } from '@/components/DayOrbit';
+import { FadeOnChange } from '@/components/FadeOnChange';
 import { HistoryCalendar } from '@/components/HistoryCalendar';
+import { PressableScale } from '@/components/PressableScale';
 import { ScheduleList } from '@/components/ScheduleList';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipePager } from '@/components/SwipePager';
@@ -16,7 +19,8 @@ import { selectCompletedCountOnDay, selectActiveCategories, selectDayOrbit, sele
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { categoryPalette, colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
+import { isReducedMotion } from '@/theme/useReducedMotion';
 
 export default function TodayScreen() {
   const { width, height } = useWindowDimensions();
@@ -25,6 +29,21 @@ export default function TodayScreen() {
   const scheduleColumn = width >= 1100;
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [page, setPage] = useState<'tasks' | 'schedule'>('tasks');
+  const tabBox = useRef<Record<string, { x: number; width: number }>>({});
+  const indicatorX = useRef(new Animated.Value(0)).current;
+  const indicatorW = useRef(new Animated.Value(0)).current;
+  const [indicatorReady, setIndicatorReady] = useState(false);
+  // The underline slides between the Tasks and Schedule labels.
+  const moveIndicator = useCallback((key: string, animated: boolean) => {
+    const box = tabBox.current[key];
+    if (!box) return;
+    if (!animated || isReducedMotion()) { indicatorX.setValue(box.x); indicatorW.setValue(box.width); setIndicatorReady(true); return; }
+    Animated.parallel([
+      Animated.timing(indicatorX, { toValue: box.x, duration: motion.page, easing: motion.easeOut, useNativeDriver: false }),
+      Animated.timing(indicatorW, { toValue: box.width, duration: motion.page, easing: motion.easeOut, useNativeDriver: false }),
+    ]).start();
+  }, [indicatorX, indicatorW]);
+  useEffect(() => { moveIndicator(page, indicatorReady); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
   const routines = useDaymarkStore((state) => state.routines);
@@ -93,10 +112,18 @@ export default function TodayScreen() {
     </View>
   );
 
+  const overview = (
+    <View style={[styles.overview, wide && styles.overviewWide, phone && styles.overviewPhone]}>
+      {orbitCard}
+      <HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} />
+    </View>
+  );
+
   const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} isToday={isToday} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
   const tasksColumn = (
     <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone]}>
+      <FadeOnChange token={selectedTodayDate}>
           {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, dayTasks.length - completed)} left</Text></View>}
           {sections.map((group) => (
             <TaskSection
@@ -124,6 +151,7 @@ export default function TodayScreen() {
             />
           ))}
           <Link href="/lists" style={styles.editLists}>Edit lists</Link>
+      </FadeOnChange>
     </View>
   );
 
@@ -139,10 +167,7 @@ export default function TodayScreen() {
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={dayTasks.length} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
-        {!phone || summaryOpen ? <View style={[styles.overview, wide && styles.overviewWide, phone && styles.overviewPhone]}>
-          {orbitCard}
-          <HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} />
-        </View> : null}
+        {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
 
         <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Upcoming</Text>{phone ? null : <Text style={styles.sectionHint}>Deadlines that need a little attention</Text>}</View>
         <DeadlineStrip projects={upcoming} tasks={tasks} now={now()} compact={phone} />
@@ -152,11 +177,12 @@ export default function TodayScreen() {
         {phone ? (
           <View style={styles.tabs}>
             {(['tasks', 'schedule'] as const).map((key) => (
-              <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: page === key }} onPress={() => setPage(key)} style={[styles.tab, page === key && styles.tabActive]}>
+              <PressableScale key={key} accessibilityRole="tab" accessibilityState={{ selected: page === key }} onPress={() => setPage(key)} onLayout={(event) => { const { x, width } = event.nativeEvent.layout; tabBox.current[key] = { x, width }; if (key === page) moveIndicator(key, false); }} style={styles.tab}>
                 <Text style={[styles.tabText, page === key && styles.tabTextActive]}>{key === 'tasks' ? 'Tasks' : 'Schedule'}</Text>
                 {key === 'schedule' && dayEvents.length > 0 ? <Text style={styles.tabCount}>{dayEvents.length}</Text> : null}
-              </Pressable>
+              </PressableScale>
             ))}
+            {indicatorReady ? <Animated.View pointerEvents="none" style={[styles.tabIndicator, { left: indicatorX, width: indicatorW }]} /> : null}
             {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{Math.max(0, dayTasks.length - completed)} left</Text> : null}
           </View>
         ) : null}
@@ -206,8 +232,8 @@ const styles = StyleSheet.create({
   scheduleSection: { marginTop: space.xl, maxWidth: 700 },
   schedulePage: { paddingTop: space.xs },
   tabs: { flexDirection: 'row', gap: space.lg, marginTop: space.md, borderBottomWidth: 1, borderColor: colors.line },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, marginBottom: -1, borderBottomWidth: 2, borderColor: 'transparent' },
-  tabActive: { borderColor: colors.ink },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, marginBottom: -1 },
+  tabIndicator: { position: 'absolute', bottom: -1, height: 2, backgroundColor: colors.ink },
   tabText: { ...type.bodyMedium, color: colors.muted, fontFamily },
   tabTextActive: { color: colors.ink },
   tabCount: { ...type.meta, color: colors.muted, fontFamily },

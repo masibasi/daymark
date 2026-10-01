@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface SegmentedControlProps<T extends string> { value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }
@@ -7,9 +8,9 @@ export function SegmentedControl<T extends string>({ value, options, onChange }:
   return (
     <View style={styles.root}>
       {options.map((option) => (
-        <Pressable key={option.value} accessibilityRole="button" onPress={() => onChange(option.value)} style={[styles.option, value === option.value && styles.active]}>
+        <PressableScale key={option.value} accessibilityRole="button" onPress={() => onChange(option.value)} style={[styles.option, value === option.value && styles.active]}>
           <Text style={[styles.label, value === option.value && styles.activeLabel]}>{option.label}</Text>
-        </Pressable>
+        </PressableScale>
       ))}
     </View>
   );

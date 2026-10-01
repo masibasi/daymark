@@ -12,9 +12,10 @@ const EDGE = 60;
 const MAX_SCROLL_STEP = 14;
 
 export interface DropTarget { categoryId: string; colorKey: CategoryColorKey; index: number; beforeId?: string; afterId?: string; empty?: boolean }
-interface DragState { draggingId?: string; draggingCategoryId?: string; editingId?: string; target: DropTarget | null }
+// `shifts`: net row displacement in dragged-row heights (+1 opens the gap below the insertion point, -1 closes the hole left behind); `snap` skips the settle animation after a successful drop.
+interface DragState { draggingId?: string; draggingCategoryId?: string; editingId?: string; target: DropTarget | null; shifts: Record<string, number>; dragHeight: number; snap: boolean }
 
-export const useDragStore = create<DragState>(() => ({ target: null }));
+export const useDragStore = create<DragState>(() => ({ target: null, shifts: {}, dragHeight: 0, snap: false }));
 export const dragY = new Animated.Value(0);
 
 // Browsers fire a click after a long-press drag is released; tap handlers on a row ignore it via this stamp.
@@ -23,7 +24,7 @@ export const justDragged = () => Date.now() - lastDragEndAt < 500;
 
 interface Box { top: number; bottom: number }
 interface SectionGeo extends Box { categoryId: string; colorKey: CategoryColorKey; droppable: boolean; rows: Array<Box & { id: string }> }
-interface Session { taskId: string; categoryId: string; startPointer: number; startScroll: number; pointer: number; sections: SectionGeo[]; viewport: Box; drop: { categoryId: string; index: number; blocked: boolean } | null; timer?: ReturnType<typeof setInterval> }
+interface Session { taskId: string; categoryId: string; startPointer: number; startScroll: number; pointer: number; sections: SectionGeo[]; viewport: Box; drop: { categoryId: string; index: number; blocked: boolean } | null; dragHeight: number; closeIds: Set<string>; shiftKey: string; timer?: ReturnType<typeof setInterval> }
 
 export interface TaskDragController {
   registerRow: (id: string, categoryId: string, node: View | null) => void;
@@ -94,6 +95,14 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
       const index = chosen.rows.filter((row) => (row.top + row.bottom) / 2 < py).length;
       s.drop = { categoryId: chosen.categoryId, index, blocked };
       const next: DropTarget | null = blocked ? null : { categoryId: chosen.categoryId, colorKey: chosen.colorKey, index, beforeId: chosen.rows[index]?.id, afterId: index >= chosen.rows.length ? chosen.rows[chosen.rows.length - 1]?.id : undefined, empty: chosen.rows.length === 0 };
+      // Rows from the insertion point on move down to open a gap; rows below the dragged row's old slot move up to close its hole.
+      const shifts: Record<string, number> = {};
+      if (next) {
+        s.closeIds.forEach((id) => { shifts[id] = (shifts[id] ?? 0) - 1; });
+        chosen.rows.slice(index).forEach((row) => { shifts[row.id] = (shifts[row.id] ?? 0) + 1; });
+      }
+      const shiftKey = Object.entries(shifts).filter(([, amount]) => amount !== 0).map(([id, amount]) => `${id}:${amount}`).join(',');
+      if (shiftKey !== s.shiftKey) { s.shiftKey = shiftKey; useDragStore.setState({ shifts, dragHeight: s.dragHeight }); }
       const prev = useDragStore.getState().target;
       if (prev?.categoryId !== next?.categoryId || prev?.index !== next?.index || prev?.beforeId !== next?.beforeId || prev?.afterId !== next?.afterId || (prev === null) !== (next === null)) useDragStore.setState({ target: next });
     };
@@ -119,11 +128,11 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
       lastDragEndAt = Date.now();
       if (s?.timer) clearInterval(s.timer);
       const clear = () => {
-        useDragStore.setState({ draggingId: undefined, draggingCategoryId: undefined, target: null });
+        useDragStore.setState({ draggingId: undefined, draggingCategoryId: undefined, target: null, shifts: {}, snap: !blockedAnimation });
         opts.current.setScrollLocked(false);
         if (Platform.OS === 'web' && typeof document !== 'undefined') document.body.style.userSelect = '';
       };
-      if (blockedAnimation) Animated.timing(dragY, { toValue: 0, duration: 140, useNativeDriver: false }).start(clear);
+      if (blockedAnimation) { useDragStore.setState({ shifts: {} }); Animated.timing(dragY, { toValue: 0, duration: 140, useNativeDriver: false }).start(clear); }
       else { dragY.setValue(0); clear(); }
     };
 
@@ -134,16 +143,18 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
         const row = rows.get(taskId);
         if (!row || session.current) return;
         const startScroll = opts.current.getScrollY();
-        const s: Session = { taskId, categoryId: row.categoryId, startPointer: pointerY, startScroll, pointer: pointerY, sections: [], viewport: { top: 0, bottom: 10000 }, drop: null };
+        const dragMeasure = measure(row.node); // before the lift scales the row
+        const s: Session = { taskId, categoryId: row.categoryId, startPointer: pointerY, startScroll, pointer: pointerY, sections: [], viewport: { top: 0, bottom: 10000 }, drop: null, dragHeight: 0, closeIds: new Set(), shiftKey: '' };
         session.current = s;
         dragY.setValue(0);
-        useDragStore.setState({ draggingId: taskId, draggingCategoryId: row.categoryId, target: null });
+        useDragStore.setState({ draggingId: taskId, draggingCategoryId: row.categoryId, target: null, shifts: {}, dragHeight: 0, snap: false });
         opts.current.setScrollLocked(true);
         if (Platform.OS === 'web' && typeof document !== 'undefined') document.body.style.userSelect = 'none';
         s.timer = setInterval(tick, 16);
         // Rects are stored in content coordinates (window position + scroll offset at measure time).
         void Promise.all([
           scrollViewport(opts.current.scrollRef.current),
+          dragMeasure,
           ...Array.from(sections.entries()).map(async ([categoryId, section]) => {
             const box = await measure(section.node);
             const rowBoxes = await Promise.all(Array.from(rows.entries()).filter(([id, item]) => item.categoryId === categoryId && id !== taskId).map(async ([id, item]) => ({ id, box: await measure(item.node) })));
@@ -154,10 +165,15 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
             };
             return geo;
           }),
-        ]).then(([viewport, ...geos]) => {
+        ]).then(([viewport, dragBox, ...geos]) => {
           if (session.current !== s) return;
           if (viewport) s.viewport = viewport;
           s.sections = (geos as Array<SectionGeo | null>).flatMap((geo) => geo ? [geo] : []).sort((a, b) => a.top - b.top);
+          if (dragBox) {
+            s.dragHeight = dragBox.bottom - dragBox.top;
+            const source = s.sections.find((section) => section.categoryId === s.categoryId);
+            source?.rows.filter((item) => item.top > dragBox.top + startScroll - 1).forEach((item) => s.closeIds.add(item.id));
+          }
           refresh();
         });
       },

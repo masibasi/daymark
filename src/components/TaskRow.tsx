@@ -3,7 +3,9 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, Text, TextInput, useW
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
-import { colors, fontFamily, onSolid, radius, space, type } from '@/theme/tokens';
+import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
+import { useToggleProgress } from '@/theme/useToggleProgress';
+import { CheckControl } from './CheckControl';
 import { DatePickerModal } from './DatePickerModal';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -12,7 +14,6 @@ import { justDragged, useDragStore } from './useTaskDrag';
 interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; onSaveRoutine?: () => void; selectedDate?: string; projectTitle?: string; trailing?: React.ReactNode }
 
 export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selectedDate, projectTitle, trailing }: TaskRowProps) {
-  const scale = useRef(new Animated.Value(1)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const moreRef = useRef<View>(null);
@@ -21,6 +22,8 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
   const paletteFor = useCategoryPalette();
   const palette = paletteFor(task.categoryId);
   const complete = Boolean(task.completedAt);
+  const softened = useToggleProgress(complete, motion.base);
+  const titleColor = softened.interpolate({ inputRange: [0, 1], outputRange: [colors.ink, colors.muted] });
   const renameTask = useDaymarkStore((state) => state.renameTask);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
@@ -54,10 +57,6 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
   const titleTap = Platform.OS === 'web' ? ({ onClick: () => { if (!justDragged()) startEdit(); } } as object) : { onPress: startEdit };
 
   const toggle = () => {
-    Animated.sequence([
-      Animated.timing(scale, { toValue: 0.82, duration: 100, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.spring(scale, { toValue: 1, friction: 5, tension: 220, useNativeDriver: Platform.OS !== 'web' }),
-    ]).start();
     onToggle();
     setMenuOpen(false);
   };
@@ -96,9 +95,7 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
     <View>
     <View style={styles.row}>
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: complete }} accessibilityLabel={`Complete ${task.title}`} onPress={toggle} hitSlop={8}>
-        <Animated.View style={[styles.check, { borderColor: palette.solid, backgroundColor: complete ? palette.solid : 'transparent', transform: [{ scale }] }]}>
-          {complete ? <Ionicons name="checkmark" size={14} color={onSolid(palette.solid)} /> : null}
-        </Animated.View>
+        <CheckControl checked={complete} color={palette.solid} />
       </Pressable>
       <View style={styles.copy}>
         {editing ? (
@@ -108,7 +105,7 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
             onKeyPress={(event) => { if (event.nativeEvent.key === 'Escape') stopEdit(false); }}
             accessibilityLabel={`Edit title of ${task.title}`} style={[styles.title, styles.titleInput, complete && styles.complete]}
           />
-        ) : <Text {...titleTap} style={[styles.title, complete && styles.complete]} numberOfLines={2}>{task.title}</Text>}
+        ) : <Animated.Text {...titleTap} style={[styles.title, { color: titleColor }]} numberOfLines={2}>{task.title}</Animated.Text>}
         {projectTitle ? (
           <View style={styles.metaRow}>
             <Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text>
@@ -136,7 +133,6 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
 
 const styles = StyleSheet.create({
   row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs },
-  check: { width: 22, height: 22, borderRadius: radius.round, borderWidth: 1.7, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
   title: { ...type.task, color: colors.ink, fontFamily },
   titleInput: { padding: 0, margin: 0, borderWidth: 0, minHeight: 22, backgroundColor: 'transparent', includeFontPadding: false, outlineStyle: 'none' as never, ...Platform.select({ web: { userSelect: 'text', WebkitUserSelect: 'text' } as object, default: {} }) },
