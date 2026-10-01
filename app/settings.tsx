@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { checkFeedUrl } from '@/calendar/feedUrl';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { DayOrbit } from '@/components/DayOrbit';
+import { PressableScale } from '@/components/PressableScale';
 import { confirmAction } from '@/domain/confirm';
+import type { DayOrbitSegment } from '@/domain/selectors';
+import type { DayMarkVariant } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { signIn, signOut, signUp, syncNow } from '@/sync/engine';
 import { useSyncStatus } from '@/sync/syncStore';
@@ -131,6 +135,53 @@ function CalendarsSection() {
   );
 }
 
+const markStyles: Array<{ variant: DayMarkVariant; label: string }> = [
+  { variant: 'wash', label: 'Watercolor wash' },
+  { variant: 'ribbon', label: 'Soft ribbon' },
+  { variant: 'glass', label: 'Glass vessel' },
+  { variant: 'current', label: 'Classic' },
+];
+
+// A realistic partly-done day: three lists, mixed completion.
+const previewSegments: DayOrbitSegment[] = [
+  { categoryId: 'study', colorKey: 'study', share: 0.4, completion: 1 },
+  { categoryId: 'career', colorKey: 'career', share: 0.35, completion: 0.5 },
+  { categoryId: 'personal', colorKey: 'personal', share: 0.25, completion: 0 },
+];
+const sampleDay: DayOrbitSegment[] = [
+  { categoryId: 'study', colorKey: 'study', share: 0.5, completion: 1 },
+  { categoryId: 'personal', colorKey: 'personal', share: 0.5, completion: 0.5 },
+];
+
+function AppearanceSection() {
+  const { width } = useWindowDimensions();
+  const variant = useDaymarkStore((state) => state.dayMarkVariant);
+  const setVariant = useDaymarkStore((state) => state.setDayMarkVariant);
+  const tileWidth = width >= 700 ? '23%' : '47.5%';
+  return (
+    <View style={styles.section}>
+      <View style={styles.form}>
+        <Text style={styles.rowTitle}>Day Mark style</Text>
+        <Text style={styles.rowHint}>How your day's progress looks on Today and in the calendar.</Text>
+        <View style={styles.tiles}>
+          {markStyles.map(({ variant: option, label }) => {
+            const selected = option === variant;
+            return (
+              <PressableScale key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={label} onPress={() => setVariant(option)} style={[styles.tile, { width: tileWidth }, selected && styles.tileSelected]}>
+                {selected ? <View style={styles.tileCheck}><Text style={styles.tileCheckText}>✓</Text></View> : null}
+                <DayOrbit variant={option} segments={previewSegments} size={72} strokeWidth={6.8} animate={selected} />
+                <DayOrbit variant={option} segments={sampleDay} size={22} strokeWidth={3.5} />
+                <Text style={[styles.tileLabel, selected && styles.tileLabelSelected]}>{label}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+        <Text style={styles.rowHint}>More themes coming later.</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const loadSampleData = useDaymarkStore((state) => state.loadSampleData);
   const eraseAllData = useDaymarkStore((state) => state.eraseAllData);
@@ -151,6 +202,7 @@ export default function SettingsScreen() {
       <ScreenHeader eyebrow="Daymark" title="Settings" subtitle={signedIn ? 'Synced to your account and kept on this device.' : 'Data is saved only on this device/browser.'} />
       <AccountSection />
       <CalendarsSection />
+      <AppearanceSection />
       <View style={styles.section}>
         <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
@@ -179,6 +231,13 @@ const styles = StyleSheet.create({
   rowTitle: { ...type.bodyMedium, color: colors.ink, fontFamily },
   danger: { color: colors.danger },
   rowHint: { ...type.meta, color: colors.muted, fontFamily },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginVertical: space.xs },
+  tile: { alignItems: 'center', gap: space.xs, paddingVertical: space.md, paddingHorizontal: space.xs, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.canvas },
+  tileSelected: { borderColor: colors.accent },
+  tileCheck: { position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: radius.round, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  tileCheckText: { fontSize: 11, lineHeight: 14, color: colors.white, fontFamily },
+  tileLabel: { ...type.meta, color: colors.muted, textAlign: 'center', fontFamily },
+  tileLabelSelected: { color: colors.ink },
   form: { padding: space.lg, gap: space.sm },
   input: { minHeight: 44, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.canvas, color: colors.ink, fontSize: 16, fontFamily },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },

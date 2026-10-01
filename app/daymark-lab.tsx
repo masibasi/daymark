@@ -73,7 +73,7 @@ export default function DayMarkLab() {
       <Link href="/" style={styles.back}>← Today</Link>
       <Text style={styles.eyebrow}>VISUAL STUDY · V0</Text>
       <Text style={styles.title}>Day Mark studies</Text>
-      <Text style={styles.intro}>Four treatments of the same completion data, at Today size and at calendar size, in light and dark.</Text>
+      <Text style={styles.intro}>Four treatments of the same completion data, at Today size and at calendar size, in light and dark. You choose your Day Mark style in Settings → Appearance.</Text>
       {concepts.map((concept, index) => {
         const isActive = dayMarkVariant === concept.variant;
         return (
@@ -133,7 +133,7 @@ export default function DayMarkLab() {
         <Text style={styles.description}>The same Upcoming card at each urgency step, with the default seven-day attention window. Check that D−3 and D−1 feel noticeable without making the page anxious.</Text>
         <View style={styles.toneStrip}><DeadlineStrip projects={toneSamples} tasks={[]} now={prototypeDate} /></View>
       </View>
-      <Text style={styles.footer}>Choosing a study here only changes this prototype session; nothing is saved.</Text>
+      <Text style={styles.footer}>Pick your style in Settings → Appearance.</Text>
     </View>
   </ScrollView>;
 }

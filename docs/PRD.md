@@ -57,6 +57,7 @@ The first user is an individual balancing study, career, personal, and routine w
 - Original Day Orbit on Today and Month.
 - Compact completion-history calendar on Today with date navigation, collapsible to one week (default on phone) or expanded to the full month (default on desktop).
 - Visual study route comparing Day Mark directions at 0, 25, 50, and 100 percent completion; Watercolor wash is the shipped default, chosen after that comparison.
+- Settings → Appearance: choose the Day Mark style (wash, ribbon, glass, classic); more themes later.
 - Desktop sidebar and mobile bottom navigation.
 
 ## V1 scope

@@ -44,7 +44,11 @@ Category colors appear in checks, small rails, project accents, TimeBlocks, and 
 
 ## Day Orbit
 
-The Orbit is drawn as Watercolor wash, the shipped default after comparing four treatments on the `/daymark-lab` study route. Each category keeps its own ribbon-band arc in a softened `mark` tone, sized by share and filled by completion; a pale wash bleeds inward from each arc's own segment, so colors touch at their boundaries but never mix or overlap into a blended mass. The large Today mark breathes almost imperceptibly; calendar-size and history marks stay static for clarity and performance. Completion history is derived from `completedAt` only. The other three studies (Soft ribbon, Glass vessel, and the original baseline) remain on the lab route for reference and comparison, not as live alternatives.
+The Orbit is drawn as Watercolor wash, the shipped default after comparing four treatments on the `/daymark-lab` study route. Each category keeps its own ribbon-band arc in a softened `mark` tone, sized by share and filled by completion; a pale wash bleeds inward from each arc's own segment, so colors touch at their boundaries but never mix or overlap into a blended mass. The large Today mark breathes almost imperceptibly; calendar-size and history marks stay static for clarity and performance. Completion history is derived from `completedAt` only. The other studies (Soft ribbon, Glass vessel, and the original baseline, labelled Classic) are live alternatives chosen in Settings → Appearance; the `/daymark-lab` route stays as a comparison study.
+
+## Appearance (Settings)
+
+A section after Calendars titled Appearance, with a row of option tiles (2 per row on phone, 4 on desktop). Each tile shows the style name, a 72px live Day Mark in a realistic partly-done day, and a 22px calendar-size sample. The selected tile has an accent ring and a small check, and only its preview breathes (not under reduce-motion). Tapping selects immediately; the choice is the persisted, synced `dayMarkVariant` preference and applies to Today and every history/week mark. A quiet line reads "More themes coming later." No paywall UI.
 
 ## Folders tab
 
