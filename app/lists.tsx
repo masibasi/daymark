@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { RoutineRepeatPicker } from '@/components/RoutineRepeatPicker';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { confirmAction } from '@/domain/confirm';
-import { selectActiveCategories, selectRoutinesForList } from '@/domain/selectors';
+import { selectActiveCategories, selectRepeatSummary, selectRoutinesForList } from '@/domain/selectors';
 import type { Category, Routine } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryColorKeys, categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -18,6 +19,7 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
   const removeRoutine = useDaymarkStore((state) => state.removeRoutine);
   const [name, setName] = useState(category.name);
   const [picking, setPicking] = useState(false);
+  const [repeatFor, setRepeatFor] = useState<string | null>(null);
   useEffect(() => setName(category.name), [category.name]);
   const palette = categoryPalette[category.colorKey];
 
@@ -53,12 +55,16 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
           <Text style={styles.routinesLabel}>Routines</Text>
           {routines.map((routine) => (
             <View key={routine.id} style={[styles.chip, { backgroundColor: palette.soft }]}>
-              <Text style={[styles.chipText, { color: palette.ink }]}>{routine.title}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Repeat for ${routine.title}: ${selectRepeatSummary(routine.repeat)}`} onPress={() => setRepeatFor(routine.id)} style={styles.chipMain}>
+                <Text style={[styles.chipText, { color: palette.ink }]}>{routine.title}</Text>
+                <Text style={[styles.chipRepeat, { color: palette.ink }]}>{selectRepeatSummary(routine.repeat)}</Text>
+              </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Remove routine ${routine.title}`} onPress={() => removeRoutine(routine.id)} hitSlop={8}><Ionicons name="close" size={14} color={palette.ink} /></Pressable>
             </View>
           ))}
         </View>
       ) : null}
+      {repeatFor ? <RoutineRepeatPicker routineId={repeatFor} onClose={() => setRepeatFor(null)} /> : null}
       {onlyOne ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${category.name}`} onPress={remove} style={styles.remove}><Text style={styles.removeText}>Remove</Text></Pressable>}
     </View>
   );
@@ -119,7 +125,9 @@ const styles = StyleSheet.create({
   routines: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: space.sm, paddingLeft: 22 + space.sm },
   routinesLabel: { ...type.meta, color: colors.muted, fontFamily },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingLeft: 11, paddingRight: 8, borderRadius: radius.round },
+  chipMain: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chipText: { ...type.meta, fontFamily },
+  chipRepeat: { ...type.meta, fontSize: 12, opacity: 0.65, fontFamily },
   remove: { alignSelf: 'flex-end', marginTop: space.xs, paddingVertical: space.xxs },
   removeText: { ...type.meta, color: colors.danger, fontFamily },
   newButton: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: space.lg, minHeight: 40, paddingHorizontal: space.md, borderRadius: radius.round, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper },

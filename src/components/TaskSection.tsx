@@ -5,6 +5,7 @@ import type { Category, Routine, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
 import { DragRow } from './DragRow';
 import { GhostRoutineRow } from './GhostRoutineRow';
+import { RoutineRepeatPicker } from './RoutineRepeatPicker';
 import { MissedRow } from './MissedRow';
 import { InlineAdd } from './InlineAdd';
 import { ListQuickEdit } from './ListQuickEdit';
@@ -33,14 +34,16 @@ interface TaskSectionProps {
   onAddTask: (title: string, categoryId: string) => void;
   onAddRoutine: (title: string, categoryId: string) => void;
   onAddFromRoutine: (routineId: string, complete?: boolean) => void;
+  ghostMeta: (routine: Routine) => string | undefined;
   onRemoveRoutine: (routineId: string) => void;
   onReveal: (node: View | null) => void;
 }
 
-export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, onRemoveRoutine, onReveal }: TaskSectionProps) {
+export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, ghostMeta, onRemoveRoutine, onReveal }: TaskSectionProps) {
   const palette = categoryPalette[category.colorKey];
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   const controller = useContext(TaskDragContext);
+  const [repeatFor, setRepeatFor] = useState<string | null>(null);
   const lifted = useDragStore((state) => state.draggingCategoryId === category.id);
   const emptyLine = useDragStore((state) => state.target?.categoryId === category.id && state.target.empty === true);
   // Rows that appear after the list settled (add, routine, undo, schedule) enter softly; the first render and day changes do not.
@@ -98,7 +101,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
         ))}
         {missed.map((task) => <MissedRow key={task.id} task={task} colorKey={category.colorKey} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
         {ghosts.map((routine) => (
-          <GhostRoutineRow key={routine.id} routine={routine} colorKey={category.colorKey} onAdd={() => onAddFromRoutine(routine.id)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRemove={() => onRemoveRoutine(routine.id)} />
+          <GhostRoutineRow key={routine.id} routine={routine} colorKey={category.colorKey} onAdd={() => onAddFromRoutine(routine.id)} meta={ghostMeta(routine)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRepeat={() => setRepeatFor(routine.id)} onRemove={() => onRemoveRoutine(routine.id)} />
         ))}
         {category.archived ? null : (
           <InlineAdd
@@ -108,6 +111,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
           />
         )}
       </View>
+      {repeatFor ? <RoutineRepeatPicker routineId={repeatFor} onClose={() => setRepeatFor(null)} /> : null}
     </View>
   );
 }

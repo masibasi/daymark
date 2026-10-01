@@ -1,6 +1,6 @@
-import { addDays, differenceInCalendarDays, format, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { addDays, differenceInCalendarDays, endOfWeek, format, isSameDay, isWithinInterval, parseISO, startOfDay, startOfWeek } from 'date-fns';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
-import type { CalendarEvent, Category, CategoryId, Project, Routine, Task } from './types';
+import type { CalendarEvent, Category, CategoryId, Project, Routine, RoutineRepeat, Task } from './types';
 
 export interface DayOrbitSegment {
   categoryId: CategoryId;
@@ -134,10 +134,54 @@ export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
   return tasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
 }
 
-// Routines shown as ghost rows: this list's routines not yet added on `day`. Never for past days.
+// Completed tasks from this routine within the Mon-Sun week containing `day` (by completedAt).
+export function selectRoutineWeekDone(tasks: Task[], routineId: string, day: Date): number {
+  const interval = { start: startOfWeek(day, { weekStartsOn: 1 }), end: endOfWeek(day, { weekStartsOn: 1 }) };
+  return tasks.filter((task) => task.routineId === routineId && task.completedAt && isWithinInterval(parseISO(task.completedAt), interval)).length;
+}
+
+const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const sameDays = (days: number[], want: number[]) => days.length === want.length && want.every((day) => days.includes(day));
+
+// Preset the repeat matches, for picker highlighting; 'custom' for any other weekday set.
+export function selectRepeatPreset(repeat: RoutineRepeat | undefined): 'daily' | 'weekdays' | 'weekends' | 'custom' | 'perWeek' {
+  if (!repeat || repeat.kind === 'daily') return 'daily';
+  if (repeat.kind === 'perWeek') return 'perWeek';
+  if (sameDays(repeat.days, [1, 2, 3, 4, 5])) return 'weekdays';
+  if (sameDays(repeat.days, [0, 6])) return 'weekends';
+  return 'custom';
+}
+
+// Short summary of when a routine repeats, e.g. "Every day", "Mon · Wed · Fri", "3 times a week".
+export function selectRepeatSummary(repeat: RoutineRepeat | undefined): string {
+  const preset = selectRepeatPreset(repeat);
+  if (preset === 'daily') return 'Every day';
+  if (preset === 'weekdays') return 'Weekdays';
+  if (preset === 'weekends') return 'Weekends';
+  if (repeat?.kind === 'perWeek') return `${repeat.times} ${repeat.times === 1 ? 'time' : 'times'} a week`;
+  if (repeat?.kind === 'weekdays') return repeat.days.length === 0 ? 'No days' : [1, 2, 3, 4, 5, 6, 0].filter((day) => repeat.days.includes(day)).map((day) => WEEKDAY_NAMES[day]).join(' · ');
+  return 'Every day';
+}
+
+// Ghost meta line under the title: nothing for daily routines, progress for per-week ones.
+export function selectRoutineMeta(routine: Routine, tasks: Task[], day: Date): string | undefined {
+  const repeat = routine.repeat;
+  if (!repeat || repeat.kind === 'daily') return undefined;
+  if (repeat.kind === 'perWeek') return `${selectRoutineWeekDone(tasks, routine.id, day)} of ${repeat.times} this week`;
+  return selectRepeatSummary(repeat);
+}
+
+function routineDueOnDay(routine: Routine, tasks: Task[], day: Date): boolean {
+  const repeat = routine.repeat;
+  if (!repeat || repeat.kind === 'daily') return true;
+  if (repeat.kind === 'weekdays') return repeat.days.includes(day.getDay());
+  return selectRoutineWeekDone(tasks, routine.id, day) < repeat.times;
+}
+
+// Routines shown as ghost rows: this list's routines due on `day` and not yet added. Never for past days. `tasks` must be all tasks (per-week counts span the week).
 export function selectGhostRoutines(routines: Routine[], tasks: Task[], categoryId: CategoryId, day: Date, today: Date): Routine[] {
   if (differenceInCalendarDays(day, today) < 0) return [];
-  return selectRoutinesForList(routines, categoryId).filter((routine) => !selectRoutineAddedOnDay(tasks, routine.id, day));
+  return selectRoutinesForList(routines, categoryId).filter((routine) => routineDueOnDay(routine, tasks, day) && !selectRoutineAddedOnDay(tasks, routine.id, day));
 }
 
 // Events overlapping `day` (end exclusive): all-day first, then by start time.

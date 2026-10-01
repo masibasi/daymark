@@ -13,11 +13,15 @@ export interface Category {
 }
 
 // A one-tap template: tapping it creates a normal Task for the displayed day. Never auto-generated.
+// Missing `repeat` means daily. weekdays use 0 = Sunday .. 6 = Saturday.
+export type RoutineRepeat = { kind: 'daily' } | { kind: 'weekdays'; days: number[] } | { kind: 'perWeek'; times: number };
+
 export interface Routine {
   id: string;
   title: string;
   categoryId: CategoryId;
   order: number;
+  repeat?: RoutineRepeat;
 }
 
 export interface Project {

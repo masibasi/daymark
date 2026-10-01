@@ -16,7 +16,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipePager } from '@/components/SwipePager';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
+import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now, todayKey } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -149,7 +149,7 @@ export default function TodayScreen() {
               tasks={group.tasks}
               missed={group.missed}
               routines={selectRoutinesForList(routines, group.category.id)}
-              ghosts={group.category.archived ? [] : selectGhostRoutines(routines, dayTasks, group.category.id, selectedDate, now())}
+              ghosts={group.category.archived ? [] : selectGhostRoutines(routines, tasks, group.category.id, selectedDate, now())}
               onToggle={toggleTask}
               onMove={moveTaskToDate}
               onDelete={deleteTask}
@@ -164,6 +164,7 @@ export default function TodayScreen() {
               onAddTask={addTask}
               onAddRoutine={addRoutine}
               onAddFromRoutine={(routineId, complete) => addTaskFromRoutine(routineId, selectedTodayDate, complete)}
+              ghostMeta={(routine) => selectRoutineMeta(routine, tasks, selectedDate)}
               onRemoveRoutine={removeRoutine}
               onReveal={reveal}
             />

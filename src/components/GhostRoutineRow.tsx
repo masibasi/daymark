@@ -6,10 +6,10 @@ import { categoryPalette, colors, fontFamily, motion, radius, space, type, type 
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { quietNextEnter } from './RowPresence';
 
-interface GhostRoutineRowProps { routine: Routine; colorKey: CategoryColorKey; onAdd: () => void; onAddDone: () => void; onRemove: () => void }
+interface GhostRoutineRowProps { routine: Routine; colorKey: CategoryColorKey; meta?: string; onAdd: () => void; onAddDone: () => void; onRepeat: () => void; onRemove: () => void }
 
 // A routine not yet added today: tap to make it a real task, tap the circle to add it already done.
-export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove }: GhostRoutineRowProps) {
+export function GhostRoutineRow({ routine, colorKey, meta, onAdd, onAddDone, onRepeat, onRemove }: GhostRoutineRowProps) {
   const palette = categoryPalette[colorKey];
   const viewport = useWindowDimensions();
   const moreRef = useRef<View>(null);
@@ -40,7 +40,7 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
     node.measureInWindow((x, y, width, height) => { setAnchor({ x, y, width, height }); setMenuOpen(true); });
   };
   const below = anchor.y + anchor.height + 4;
-  const menuTop = below + 46 > viewport.height - space.md ? Math.max(space.md, anchor.y - 50) : below;
+  const menuTop = below + 86 > viewport.height - space.md ? Math.max(space.md, anchor.y - 90) : below;
   const menuRight = Math.max(space.xs, viewport.width - (anchor.x + anchor.width));
 
   return (
@@ -55,6 +55,7 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
         </Pressable>
         <View pointerEvents="none" style={styles.copy}>
           <Animated.Text style={[styles.title, { color: becoming.interpolate({ inputRange: [0, 1], outputRange: [colors.muted, colors.ink] }) }]} numberOfLines={2}>{routine.title}</Animated.Text>
+          {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         </View>
         <Ionicons name="repeat" size={12} color={colors.muted} style={styles.repeat} />
         <Pressable accessibilityRole="button" accessibilityLabel={`More options for routine ${routine.title}`} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable>
@@ -62,6 +63,7 @@ export function GhostRoutineRow({ routine, colorKey, onAdd, onAddDone, onRemove 
       {menuOpen ? <Modal transparent visible animationType="none" onRequestClose={() => setMenuOpen(false)}>
         <Pressable accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
         <View style={[styles.actions, { top: menuTop, right: menuRight }]}>
+          <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRepeat(); }} style={styles.action}><Ionicons name="repeat-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Repeat…</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRemove(); }} style={styles.action}><Ionicons name="trash-outline" size={16} color={colors.danger} /><Text style={[styles.actionText, styles.dangerText]}>Remove routine</Text></Pressable>
         </View>
       </Modal> : null}
@@ -78,6 +80,7 @@ const styles = StyleSheet.create({
   checkSolid: { position: 'absolute', top: 0, left: 0, borderStyle: 'solid' },
   copy: { flex: 1, minWidth: 0 },
   title: { ...type.task, color: colors.muted, fontFamily },
+  meta: { ...type.meta, fontSize: 12, color: colors.muted, fontFamily },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   actions: { position: 'absolute', width: 192, padding: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   action: { height: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },

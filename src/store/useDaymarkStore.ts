@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { format, parseISO, setHours } from 'date-fns';
-import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, Task, TimeBlock } from '@/domain/types';
+import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, RoutineRepeat, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
 import { selectFolderGroups, sortTasksByOrder } from '@/domain/selectors';
@@ -46,6 +46,7 @@ interface DaymarkState {
   moveCategory: (id: CategoryId, direction: -1 | 1) => void;
   archiveCategory: (id: CategoryId) => void;
   addRoutine: (title: string, categoryId: CategoryId) => void;
+  updateRoutine: (id: string, patch: { repeat?: RoutineRepeat }) => void;
   removeRoutine: (id: string) => void;
   addTaskFromRoutine: (routineId: string, date: string, complete?: boolean) => void;
   // categoryId undefined = create the "Schedule" list (next free colour) and add the task to it in one step.
@@ -85,7 +86,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 5;
+const STORAGE_VERSION = 6;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -189,6 +190,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         const order = state.routines.reduce((max, routine) => Math.max(max, routine.order), -1) + 1;
         return { routines: [...state.routines, { id: newId('routine'), title: clean, categoryId, order }] };
       }),
+      updateRoutine: (id, patch) => set((state) => ({ routines: state.routines.map((routine) => routine.id === id ? { ...routine, ...patch } : routine) })),
       removeRoutine: (id) => set((state) => {
         const index = state.routines.findIndex((routine) => routine.id === id);
         if (index < 0) return state;
@@ -428,11 +430,12 @@ export const useDaymarkStore = create<DaymarkState>()(
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
           old = { ...old, categories: old.categories.map((category, index) => ({ ...category, order: typeof category.order === 'number' ? category.order : index })), routines: [] };
-        } else if (version < 1 || version > 4) {
+        } else if (version < 1 || version > 5) {
           return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'wash' as DayMarkVariant } as unknown as DaymarkState;
         }
         if (Array.isArray(old.projects)) {

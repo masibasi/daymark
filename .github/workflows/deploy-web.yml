@@ -30,8 +30,8 @@ jobs:
           EXPO_BASE_URL: /daymark
       - name: Add SPA fallback and home screen tags
         run: |
-          cp assets/icon.png dist/apple-touch-icon.png
-          sed -i 's#</head>#<link rel="apple-touch-icon" href="/daymark/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Daymark"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>#' dist/index.html
+          cp public/icons/icon-180.png dist/apple-touch-icon.png
+          sed -i 's#</head>#<link rel="manifest" href="/daymark/manifest.webmanifest"><meta name="theme-color" content="#FFFFFF"><link rel="apple-touch-icon" href="/daymark/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Daymark"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>#' dist/index.html
           sed -i 's#<meta name="viewport" content="[^"]*"#<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"#' dist/index.html
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
