@@ -407,7 +407,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         const variant = of('preference').find((change) => change.id === 'dayMarkVariant' && !change.deleted)?.data as { value?: DayMarkVariant } | undefined;
         const feedsRow = of('preference').find((change) => change.id === 'calendarFeeds' && !change.deleted)?.data as { value?: CalendarFeed[] } | undefined;
         const calendarFeeds = Array.isArray(feedsRow?.value) && !sameData(feedsRow.value, state.calendarFeeds) ? feedsRow.value : state.calendarFeeds;
-        const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current'].includes(variant.value) ? variant.value : state.dayMarkVariant;
+        const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current', 'doodle'].includes(variant.value) ? variant.value : state.dayMarkVariant;
         if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant && calendarFeeds === state.calendarFeeds) return state;
         return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant, calendarFeeds };
       }),

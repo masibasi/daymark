@@ -16,6 +16,47 @@ interface DayOrbitProps {
   scheme?: 'light' | 'dark';
 }
 
+
+// Doodle geometry: a closed organic loop r(θ) = R·(1 + a·sin(2θ+p1) + b·sin(3θ+p2)), slightly squashed vertically. Sampled once per
+// (size, radius); arc positions are looked up by fraction of total length so category shares stay proportional along the stroke.
+const DOODLE = { a: 0.05, b: 0.032, p1: 0.6, p2: 1.9, squash: 0.95 } as const;
+interface DoodleLoop { pts: Array<[number, number]>; cum: number[]; total: number }
+function buildDoodle(center: number, radius: number, samples: number): DoodleLoop {
+  const base = radius / (1 + DOODLE.a + DOODLE.b);
+  const pts: Array<[number, number]> = [];
+  for (let i = 0; i <= samples; i += 1) {
+    const t = (i / samples) * Math.PI * 2; // clockwise from 12 o'clock
+    const th = t - Math.PI / 2;
+    const r = base * (1 + DOODLE.a * Math.sin(2 * th + DOODLE.p1) + DOODLE.b * Math.sin(3 * th + DOODLE.p2));
+    pts.push([center + r * Math.cos(th), center + r * Math.sin(th) * DOODLE.squash]);
+  }
+  const cum = [0];
+  for (let i = 1; i < pts.length; i += 1) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return { pts, cum, total: cum[cum.length - 1] };
+}
+function doodlePointAt(loop: DoodleLoop, fraction: number): [number, number] {
+  const target = Math.min(1, Math.max(0, fraction)) * loop.total;
+  let lo = 0;
+  let hi = loop.cum.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (loop.cum[mid] <= target) lo = mid; else hi = mid; }
+  const span = loop.cum[hi] - loop.cum[lo] || 1;
+  const k = (target - loop.cum[lo]) / span;
+  return [loop.pts[lo][0] + (loop.pts[hi][0] - loop.pts[lo][0]) * k, loop.pts[lo][1] + (loop.pts[hi][1] - loop.pts[lo][1]) * k];
+}
+function doodleArcPath(loop: DoodleLoop, from: number, to: number): string {
+  const n = loop.pts.length - 1;
+  const fmt = (p: [number, number]) => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
+  const start = doodlePointAt(loop, from);
+  let d = `M ${fmt(start)}`;
+  const fromT = from * loop.total;
+  const toT = to * loop.total;
+  for (let i = 1; i < n; i += 1) if (loop.cum[i] > fromT && loop.cum[i] < toT) d += ` L ${fmt(loop.pts[i])}`;
+  return `${d} L ${fmt(doodlePointAt(loop, to))}`;
+}
+function doodleClosedPath(loop: DoodleLoop): string {
+  return `${loop.pts.slice(0, -1).map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' ')} Z`;
+}
+
 // Tweens each category's arc length (and the wash fade) when the segments change on the animated mark. Arcs stay contiguous because
 // offsets are derived from the tweened lengths. Driven by one Animated.Value + a listener (cheap: one state update per frame, large mark only).
 function useTweenedArcs(keys: string[], targets: number[], enabled: boolean) {
@@ -56,7 +97,7 @@ function useTweenedArcs(keys: string[], targets: number[], enabled: boolean) {
 }
 
 // One soft ring that expands ~12% outward from the mark and fades. Rendered in its own larger layer so it is never clipped.
-function Ripple({ size, radiusValue, color, fireKey }: { size: number; radiusValue: number; color: string; fireKey: number }) {
+function Ripple({ size, radiusValue, color, fireKey, outline }: { size: number; radiusValue: number; color: string; fireKey: number; outline?: string }) {
   const [value, setValue] = useState(-1);
   useEffect(() => {
     if (fireKey === 0) return undefined;
@@ -72,7 +113,11 @@ function Ripple({ size, radiusValue, color, fireKey }: { size: number; radiusVal
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: -pad, top: -pad, width: outer, height: outer }}>
       <Svg width={outer} height={outer} viewBox={`0 0 ${outer} ${outer}`}>
-        <Circle cx={outer / 2} cy={outer / 2} r={radiusValue * (1 + motion.rippleGrow * value)} fill="none" stroke={color} strokeWidth={1.25} opacity={motion.rippleOpacity * (1 - value)} />
+        {outline ? (
+          <G transform={`translate(${outer / 2} ${outer / 2}) scale(${1 + motion.rippleGrow * value}) translate(${-outer / 2} ${-outer / 2}) translate(${pad} ${pad})`}>
+            <Path d={outline} fill="none" stroke={color} strokeWidth={1.25} opacity={motion.rippleOpacity * (1 - value)} />
+          </G>
+        ) : <Circle cx={outer / 2} cy={outer / 2} r={radiusValue * (1 + motion.rippleGrow * value)} fill="none" stroke={color} strokeWidth={1.25} opacity={motion.rippleOpacity * (1 - value)} />}
       </Svg>
     </View>
   );
@@ -202,6 +247,46 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   const dominantSegment = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
   const ripple = animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment.colorKey)} fireKey={rippleKey} /> : null;
   const label = `${Math.round(completion * 100)} percent complete daily mark`;
+
+  if (activeVariant === 'doodle') {
+    const doodleStroke = strokeWidth * 1.2;
+    const loop = buildDoodle(center, (size - doodleStroke) / 2, size < 30 ? 48 : size < 80 ? 90 : 160);
+    const runs = ringArcs.filter((arc) => arc.fillDash > 0).map((arc) => ({ ...arc, from: arc.start / circumference, to: (arc.start + arc.fillDash) / circumference }));
+    const filled = runs.length > 0 ? runs[runs.length - 1].to : 0;
+    const closed = filled >= 0.9995;
+    const first = runs[0];
+    const last = runs[runs.length - 1];
+    const capR = doodleStroke / 2;
+    const glow = Platform.OS === 'web' && size >= 80 && runs.length > 0;
+    const layer = (withCaps: boolean) => (
+      <>
+        {runs.map((arc) => (
+          <Path key={arc.segment.categoryId} d={closed && runs.length === 1 ? doodleClosedPath(loop) : doodleArcPath(loop, arc.from, Math.min(arc.to, 1))} fill="none" stroke={markColor(arc.segment.colorKey)} strokeWidth={doodleStroke} strokeLinecap="butt" strokeLinejoin="round" />
+        ))}
+        {withCaps && !closed && first && last && filled > 0.001 ? (
+          <>
+            <Circle cx={doodlePointAt(loop, first.from)[0]} cy={doodlePointAt(loop, first.from)[1]} r={capR} fill={markColor(first.segment.colorKey)} />
+            <Circle cx={doodlePointAt(loop, filled)[0]} cy={doodlePointAt(loop, filled)[1]} r={capR} fill={markColor(last.segment.colorKey)} />
+          </>
+        ) : null}
+      </>
+    );
+    const glowStyle = { position: 'absolute', left: 0, top: 0, width: size, height: size, opacity: isDark ? 0.4 : 0.32, filter: `blur(${(size * 0.05).toFixed(1)}px)` } as const;
+    return (
+      <Animated.View accessibilityLabel={label} style={[{ width: size, height: size }, breathingAnimatedStyle]}>
+        {glow ? (
+          <View pointerEvents="none" style={glowStyle as object}>
+            <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{layer(true)}</Svg>
+          </View>
+        ) : null}
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <Path d={doodleClosedPath(loop)} fill="none" stroke={activeColors.track} strokeWidth={doodleStroke} strokeLinejoin="round" />
+          {layer(true)}
+        </Svg>
+        {animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment.colorKey)} fireKey={rippleKey} outline={doodleClosedPath(loop)} /> : null}
+      </Animated.View>
+    );
+  }
 
   if (activeVariant === 'ribbon') {
     return (

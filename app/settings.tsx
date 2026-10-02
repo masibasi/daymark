@@ -139,6 +139,7 @@ const markStyles: Array<{ variant: DayMarkVariant; label: string }> = [
   { variant: 'wash', label: 'Watercolor wash' },
   { variant: 'ribbon', label: 'Soft ribbon' },
   { variant: 'glass', label: 'Glass vessel' },
+  { variant: 'doodle', label: 'Doodle' },
 ];
 
 // A realistic partly-done day: three lists, mixed completion.

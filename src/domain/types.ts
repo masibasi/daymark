@@ -91,4 +91,4 @@ export interface CalendarFeed {
 
 export type CalendarView = 'week' | 'month';
 
-export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current';
+export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current' | 'doodle';
