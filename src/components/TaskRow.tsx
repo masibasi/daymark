@@ -3,6 +3,7 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, Text, TextInput, useW
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
+import { todayKey } from '@/domain/clock';
 import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { useToggleProgress } from '@/theme/useToggleProgress';
 import { CheckControl } from './CheckControl';
@@ -122,7 +123,12 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
     <Pressable accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
     <View style={[styles.actions, { top: menuTop, right: menuRight }]}>
       <Pressable accessibilityRole="button" onPress={startEdit} style={styles.action}><Ionicons name="pencil-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Edit</Text></Pressable>
-      {onMove ? <Pressable accessibilityRole="button" onPress={() => move(format(addDays(parseISO(selectedDate ?? task.scheduledDate ?? format(new Date(), 'yyyy-MM-dd')), 1), 'yyyy-MM-dd'))} style={styles.action}><Ionicons name="arrow-forward-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Tomorrow</Text></Pressable> : null}
+      {onMove ? (() => {
+        // On today the quick move is "Tomorrow"; on any other day it pulls the task to today.
+        const shownDay = selectedDate ?? task.scheduledDate ?? todayKey();
+        const onToday = shownDay === todayKey();
+        return <Pressable accessibilityRole="button" onPress={() => move(onToday ? format(addDays(parseISO(shownDay), 1), 'yyyy-MM-dd') : todayKey())} style={styles.action}><Ionicons name={onToday ? 'arrow-forward-outline' : 'sunny-outline'} size={16} color={colors.inkSoft} /><Text style={styles.actionText}>{onToday ? 'Tomorrow' : 'Move to today'}</Text></Pressable>;
+      })() : null}
       {onMove ? <Pressable accessibilityRole="button" onPress={() => { setPickerOpen(true); setMenuOpen(false); }} style={styles.action}><Ionicons name="calendar-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Choose date</Text></Pressable> : null}
       {onMove ? <Pressable accessibilityRole="button" onPress={() => move()} style={styles.action}><Ionicons name="remove-circle-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Remove from day</Text></Pressable> : null}
       {canMoveToFolder ? <Pressable accessibilityRole="button" onPress={() => { setFolderOpen(true); setMenuOpen(false); }} style={styles.action}><Ionicons name="folder-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Move to folder…</Text></Pressable> : null}
