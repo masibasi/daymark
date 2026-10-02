@@ -12,9 +12,9 @@ import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { justDragged, useDragStore } from './useTaskDrag';
 
-interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; onSaveRoutine?: () => void; selectedDate?: string; projectTitle?: string; canMoveToFolder?: boolean; trailing?: React.ReactNode }
+interface TaskRowProps { task: Task; onToggle: () => void; onMove?: (date?: string) => void; onDelete?: () => void; onSaveRoutine?: () => void; selectedDate?: string; projectTitle?: string; isRoutine?: boolean; canMoveToFolder?: boolean; trailing?: React.ReactNode }
 
-export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selectedDate, projectTitle, canMoveToFolder, trailing }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selectedDate, projectTitle, isRoutine, canMoveToFolder, trailing }: TaskRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const moreRef = useRef<View>(null);
@@ -108,10 +108,10 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
             accessibilityLabel={`Edit title of ${task.title}`} style={[styles.title, styles.titleInput, complete && styles.complete]}
           />
         ) : <Animated.Text {...titleTap} style={[styles.title, { color: titleColor }]} numberOfLines={2}>{task.title}</Animated.Text>}
-        {projectTitle ? (
+        {projectTitle || isRoutine ? (
           <View style={styles.metaRow}>
-            <Ionicons name="folder-outline" size={12} color={colors.muted} />
-            <Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text>
+            {isRoutine ? <><Ionicons name="repeat" size={12} color={colors.muted} /><Text style={styles.meta} numberOfLines={1}>Routine</Text></> : null}
+            {projectTitle ? <><Ionicons name="folder-outline" size={12} color={colors.muted} style={isRoutine ? styles.metaGap : undefined} /><Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text></> : null}
           </View>
         ) : null}
       </View>
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
   complete: { color: colors.muted },
   meta: { ...type.meta, color: colors.muted, flexShrink: 1, fontFamily },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+  metaGap: { marginLeft: space.xs },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   actions: { position: 'absolute', width: 192, padding: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   action: { height: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs },

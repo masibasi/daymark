@@ -15,11 +15,19 @@ function registerServiceWorker() {
   navigator.serviceWorker.register('/daymark/sw.js', { scope: '/daymark/' }).catch(() => undefined);
 }
 
+// The page behind the app (overscroll, the home-screen status bar area) matches the canvas in dark mode too.
+function paintDocument() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  document.documentElement.style.backgroundColor = colors.canvas;
+  document.body.style.backgroundColor = colors.canvas;
+}
+
 export default function RootLayout() {
   const hasHydrated = useDaymarkStore((state) => state.hasHydrated);
 
   useEffect(() => { if (hasHydrated) startSync(); }, [hasHydrated]);
   useEffect(registerServiceWorker, []);
+  useEffect(paintDocument, []);
 
   return (
     <SafeAreaProvider>

@@ -53,7 +53,8 @@ interface DaymarkState {
   updateCategory: (id: CategoryId, patch: { name?: string; colorKey?: CategoryColorKey; color?: string | null }) => void;
   moveCategory: (id: CategoryId, direction: -1 | 1) => void;
   archiveCategory: (id: CategoryId) => void;
-  addRoutine: (title: string, categoryId: CategoryId) => void;
+  // `fromTaskId`: the task being saved as a routine becomes that routine's task, so no ghost repeats it today.
+  addRoutine: (title: string, categoryId: CategoryId, fromTaskId?: string) => void;
   updateRoutine: (id: string, patch: { repeat?: RoutineRepeat }) => void;
   removeRoutine: (id: string) => void;
   addTaskFromRoutine: (routineId: string, date: string, complete?: boolean) => void;
@@ -202,11 +203,13 @@ export const useDaymarkStore = create<DaymarkState>()(
         if (activeOrdered(state.categories).length <= 1) return state;
         return { categories: state.categories.map((category) => category.id === id ? { ...category, archived: true } : category), routines: state.routines.filter((routine) => routine.categoryId !== id) };
       }),
-      addRoutine: (title, categoryId) => set((state) => {
+      addRoutine: (title, categoryId, fromTaskId) => set((state) => {
         const clean = title.trim();
         if (!clean || state.routines.some((routine) => routine.categoryId === categoryId && routine.title.toLowerCase() === clean.toLowerCase())) return state;
         const order = state.routines.reduce((max, routine) => Math.max(max, routine.order), -1) + 1;
-        return { routines: [...state.routines, { id: newId('routine'), title: clean, categoryId, order }] };
+        const routine: Routine = { id: newId('routine'), title: clean, categoryId, order };
+        const tasks = fromTaskId ? state.tasks.map((task) => task.id === fromTaskId ? { ...task, routineId: routine.id } : task) : state.tasks;
+        return { routines: [...state.routines, routine], tasks };
       }),
       updateRoutine: (id, patch) => set((state) => ({ routines: state.routines.map((routine) => routine.id === id ? { ...routine, ...patch } : routine) })),
       removeRoutine: (id) => set((state) => {

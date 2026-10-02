@@ -181,10 +181,18 @@ function routineDueOnDay(routine: Routine, tasks: Task[], day: Date): boolean {
   return selectRoutineWeekDone(tasks, routine.id, day) < repeat.times;
 }
 
+// A task that is (or reads as) this list's routine: linked by routineId, or an unlinked task with the same title (saved before linking existed).
+export function selectTaskRoutine(routines: Routine[], task: Task): Routine | undefined {
+  const title = task.title.trim().toLowerCase();
+  return routines.find((routine) => routine.id === task.routineId) ?? (task.routineId ? undefined : routines.find((routine) => routine.categoryId === task.categoryId && routine.title.toLowerCase() === title));
+}
+
 // Routines shown as ghost rows: this list's routines due on `day` and not yet added. Never for past days. `tasks` must be all tasks (per-week counts span the week).
 export function selectGhostRoutines(routines: Routine[], tasks: Task[], categoryId: CategoryId, day: Date, today: Date): Routine[] {
   if (differenceInCalendarDays(day, today) < 0) return [];
-  return selectRoutinesForList(routines, categoryId).filter((routine) => routineDueOnDay(routine, tasks, day) && !selectRoutineAddedOnDay(tasks, routine.id, day));
+  const key = format(day, 'yyyy-MM-dd');
+  const sameTitleToday = (routine: Routine) => tasks.some((task) => !task.routineId && task.scheduledDate === key && task.categoryId === routine.categoryId && task.title.trim().toLowerCase() === routine.title.toLowerCase());
+  return selectRoutinesForList(routines, categoryId).filter((routine) => routineDueOnDay(routine, tasks, day) && !selectRoutineAddedOnDay(tasks, routine.id, day) && !sameTitleToday(routine));
 }
 
 // Events overlapping `day` (end exclusive): all-day first, then by start time.

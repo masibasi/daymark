@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { selectTaskRoutine } from '@/domain/selectors';
 import type { Category, Routine, Task } from '@/domain/types';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, motion, space, type } from '@/theme/tokens';
@@ -37,7 +38,7 @@ interface TaskSectionProps {
   onOpenAdd: () => void;
   onCloseAdd: () => void;
   onAddTask: (title: string, categoryId: string) => void;
-  onAddRoutine: (title: string, categoryId: string) => void;
+  onAddRoutine: (title: string, categoryId: string, fromTaskId?: string) => void;
   onAddFromRoutine: (routineId: string, complete?: boolean) => void;
   ghostMeta: (routine: Routine) => string | undefined;
   onRemoveRoutine: (routineId: string) => void;
@@ -103,7 +104,8 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
             onToggle={() => onToggle(task.id)}
             onMove={onMove ? (date) => (date !== selectedDate ? leave(task.id, () => onMove(task.id, date)) : onMove(task.id, date)) : undefined}
             onDelete={onDelete ? () => leave(task.id, () => onDelete(task.id)) : undefined}
-            onSaveRoutine={hasRoutine(task.title) ? undefined : () => onAddRoutine(task.title, category.id)}
+            onSaveRoutine={hasRoutine(task.title) ? undefined : () => onAddRoutine(task.title, category.id, task.id)}
+            isRoutine={Boolean(selectTaskRoutine(routines, task))}
             selectedDate={selectedDate}
             projectTitle={task.projectId ? projectNames[task.projectId] : undefined}
             canMoveToFolder
