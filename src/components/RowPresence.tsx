@@ -39,8 +39,12 @@ export function RowPresence({ enter, quiet, leaving, onGone, children }: PropsWi
       Animated.timing(opacity, { toValue: 0, duration, easing: motion.easeOut, useNativeDriver: false }),
       ...(fadeOnly ? [] : [Animated.timing(height, { toValue: 0, duration, easing: motion.easeOut, useNativeDriver: false })]),
     ]);
-    animation.start(({ finished }) => { if (finished) onGone?.(); });
-    return () => animation.stop();
+    // The real removal must run even if the collapse is interrupted (re-render, sync, unmount); otherwise the row
+    // would look gone while the task still exists.
+    let done = false;
+    const finish = () => { if (!done) { done = true; onGone?.(); } };
+    animation.start(finish);
+    return () => { animation.stop(); finish(); };
   }, [leaving]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const active = animating || collapsing || leaving;

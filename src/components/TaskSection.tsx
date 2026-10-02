@@ -65,11 +65,18 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
   const [leaving, setLeaving] = useState<Record<string, () => void>>({});
   const leaveRef = useRef(leaving);
   leaveRef.current = leaving;
-  const leave = (id: string, action: () => void) => setLeaving((current) => ({ ...current, [id]: action }));
   const gone = (id: string) => {
     const action = leaveRef.current[id];
+    if (!action) return;
+    leaveRef.current = (({ [id]: _removed, ...rest }) => rest)(leaveRef.current);
     setLeaving((current) => { const { [id]: _removed, ...rest } = current; return rest; });
-    action?.();
+    action();
+  };
+  // Safety net: if the exit animation never reports back, still commit the change shortly after.
+  const leave = (id: string, action: () => void) => {
+    leaveRef.current = { ...leaveRef.current, [id]: action };
+    setLeaving((current) => ({ ...current, [id]: action }));
+    setTimeout(() => gone(id), motion.exit + 400);
   };
   const hasRoutine = (title: string) => routines.some((routine) => routine.title.toLowerCase() === title.trim().toLowerCase());
 
