@@ -10,6 +10,8 @@ export interface DayOrbitSegment {
   colorKey?: CategoryColorKey;
   share: number;
   completion: number;
+  // Share of this category's planned tasks that were missed on the day and completed on a later day. Shown as a lighter band after `completion`; never part of it. Optional for hand-built (preview) segments.
+  lateCompletion?: number;
 }
 
 export function selectTodayTasks(tasks: Task[], date: Date): Task[] {
@@ -130,8 +132,27 @@ export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[])
     const categoryTasks = relevant.filter((task) => task.categoryId === category.id);
     if (categoryTasks.length === 0) return [];
     const completed = categoryTasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
-    return [{ categoryId: category.id, colors: listColors(category), colorKey: category.colorKey, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length }];
+    const late = categoryTasks.filter((task) => isLateCompletion(task, key)).length;
+    return [{ categoryId: category.id, colors: listColors(category), colorKey: category.colorKey, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length, lateCompletion: late / categoryTasks.length }];
   });
+}
+
+// Missed on `dayKey` and completed on a later day: resolved later, shown as a lighter band, never as that day's completion.
+function isLateCompletion(task: Task, dayKey: string): boolean {
+  return Boolean(task.missedOn?.includes(dayKey) && task.completedAt && differenceInCalendarDays(parseISO(task.completedAt), parseISO(dayKey)) > 0);
+}
+
+export function selectLateCompletedCountOnDay(tasks: Task[], day: Date): number {
+  const key = format(day, 'yyyy-MM-dd');
+  return tasks.filter((task) => isLateCompletion(task, key)).length;
+}
+
+// Muted "carried from" label for a task that was moved off one or more days unfinished: "From Oct 1" or "From Sep 29 · moved 3×".
+export function selectCarriedLabel(task: Task): string | undefined {
+  const days = task.missedOn;
+  if (!days || days.length === 0) return undefined;
+  const earliest = format(parseISO(days.slice().sort()[0]), 'MMM d');
+  return days.length === 1 ? `From ${earliest}` : `From ${earliest} · moved ${days.length}×`;
 }
 
 export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {

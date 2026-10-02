@@ -17,7 +17,7 @@ import { SwipePager } from '@/components/SwipePager';
 import { TodaySchedule } from '@/components/TodaySchedule';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
+import { selectCompletedCountOnDay, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now, todayKey } from '@/domain/clock';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
@@ -93,6 +93,7 @@ export default function TodayScreen() {
   const folders = selectTodayFolders(projects);
   const segments = selectDayOrbit(tasks, selectedDate, categories);
   const completed = selectCompletedCountOnDay([...dayTasks, ...missed], selectedDate);
+  const late = selectLateCompletedCountOnDay(tasks, selectedDate);
   const isToday = isSameDay(selectedDate, now());
   const carryover = isToday ? selectCarryover(tasks, todayKey(), carryoverDismissed) : null;
   const dayEvents = selectEventsOnDay(events, selectedDate);
@@ -128,7 +129,7 @@ export default function TodayScreen() {
       <View style={desk ? styles.orbitDeskBody : styles.orbitBody}>
         <DayOrbit segments={segments} size={desk ? 120 : wide ? 132 : 112} strokeWidth={desk ? 12 : wide ? 13 : 11} animate />
         <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
-          <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} of {planned}</Text>
+          <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} of {planned}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>
           <Text style={[styles.orbitCopy, desk && styles.orbitCopyDesk]}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
           <View style={[styles.legend, desk && styles.legendDesk]}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
         </View>
@@ -204,7 +205,7 @@ export default function TodayScreen() {
         <View style={styles.desk}>
           <ScrollView {...scrollProps} style={[styles.deskLeft, width < 1024 && styles.deskLeftNarrow]} contentContainerStyle={styles.deskLeftContent}>
             <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
-            <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
+            <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
             <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
           </ScrollView>
@@ -231,7 +232,7 @@ export default function TodayScreen() {
       <View ref={contentRef} collapsable={false} style={styles.page}>
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
 
-        {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
+        {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
 
         <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Folders</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to pull a step into today</Text>}</View>
@@ -283,6 +284,7 @@ const styles = StyleSheet.create({
   orbitHeading: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md },
   orbitEyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily },
   orbitDate: { ...type.meta, color: colors.muted, fontFamily },
+  orbitLate: { color: colors.muted, fontWeight: '400' },
   orbitNumber: { ...type.section, color: colors.ink, marginTop: space.sm, fontFamily },
   orbitCopy: { ...type.body, color: colors.inkSoft, textAlign: 'center', marginTop: 2, width: 230, minHeight: 42, fontFamily },
   legend: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginTop: space.md },

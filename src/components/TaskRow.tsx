@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addDays, format, parseISO } from 'date-fns';
 import type { Task } from '@/domain/types';
 import { todayKey } from '@/domain/clock';
+import { selectCarriedLabel } from '@/domain/selectors';
 import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { useToggleProgress } from '@/theme/useToggleProgress';
 import { CheckControl } from './CheckControl';
@@ -25,6 +26,7 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
   const paletteFor = useCategoryPalette();
   const palette = paletteFor(task.categoryId);
   const complete = Boolean(task.completedAt);
+  const carried = selectCarriedLabel(task);
   const softened = useToggleProgress(complete, motion.base);
   const titleColor = softened.interpolate({ inputRange: [0, 1], outputRange: [colors.ink, colors.muted] });
   const renameTask = useDaymarkStore((state) => state.renameTask);
@@ -109,10 +111,11 @@ export function TaskRow({ task, onToggle, onMove, onDelete, onSaveRoutine, selec
             accessibilityLabel={`Edit title of ${task.title}`} style={[styles.title, styles.titleInput, complete && styles.complete]}
           />
         ) : <Animated.Text {...titleTap} style={[styles.title, { color: titleColor }]} numberOfLines={2}>{task.title}</Animated.Text>}
-        {projectTitle || isRoutine ? (
+        {projectTitle || isRoutine || carried ? (
           <View style={styles.metaRow}>
             {isRoutine ? <><Ionicons name="repeat" size={12} color={colors.muted} /><Text style={styles.meta} numberOfLines={1}>Routine</Text></> : null}
             {projectTitle ? <><Ionicons name="folder-outline" size={12} color={colors.muted} style={isRoutine ? styles.metaGap : undefined} /><Text style={styles.meta} numberOfLines={1}>{projectTitle}</Text></> : null}
+            {carried ? <>{isRoutine || projectTitle ? <Text style={styles.meta}>·</Text> : null}<Ionicons name="return-down-back-outline" size={12} color={colors.muted} /><Text style={styles.meta} numberOfLines={1}>{carried}</Text></> : null}
           </View>
         ) : null}
       </View>

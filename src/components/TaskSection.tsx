@@ -120,7 +120,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
           </DragRow>
           </RowPresence>
         ))}
-        {missed.map((task) => <MissedRow key={task.id} task={task} palette={palette} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
+        {missed.map((task) => <MissedRow key={task.id} task={task} day={selectedDate} palette={palette} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
         {ghosts.map((routine) => (
           <GhostRoutineRow key={routine.id} routine={routine} palette={palette} onAdd={() => onAddFromRoutine(routine.id)} meta={ghostMeta(routine)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRepeat={() => setRepeatFor(routine.id)} onRemove={() => onRemoveRoutine(routine.id)} />
         ))}

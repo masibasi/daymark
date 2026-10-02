@@ -14,20 +14,21 @@ interface CompactSummaryProps {
   categories: Category[];
   completed: number;
   total: number;
+  late?: number;
   expanded: boolean;
   onToggle: () => void;
   onSelectDate: (date: Date) => void;
 }
 
 // Phone Today: one calm row — small Day Mark, "4 of 10", and this week's seven marks. Tapping the left side expands the full card + history.
-export function CompactSummary({ selectedDate, tasks, categories, completed, total, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
+export function CompactSummary({ selectedDate, tasks, categories, completed, total, late = 0, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
   const week = eachDayOfInterval({ start: startOfWeek(selectedDate, { weekStartsOn: 0 }), end: endOfWeek(selectedDate, { weekStartsOn: 0 }) });
   const turn = useToggleProgress(expanded, motion.base, true);
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Hide day mark details' : 'Show day mark details'} accessibilityState={{ expanded }} onPress={onToggle} style={styles.lead}>
         <DayOrbit segments={selectDayOrbit(tasks, selectedDate, categories)} size={44} strokeWidth={6} />
-        <Text style={styles.count} numberOfLines={1}>{completed} of {total}</Text>
+        <Text style={styles.count} numberOfLines={1}>{completed} of {total}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>
       </Pressable>
       {expanded ? <Pressable accessibilityElementsHidden style={styles.fill} onPress={onToggle} /> : (
         <View style={styles.week}>
@@ -51,11 +52,12 @@ export function CompactSummary({ selectedDate, tasks, categories, completed, tot
 
 const styles = StyleSheet.create({
   row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xxs, borderBottomWidth: 1, borderColor: colors.line },
-  lead: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.xxs },
+  lead: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.xxs },
   count: { ...type.bodyMedium, color: colors.ink, fontFamily },
+  late: { ...type.meta, color: colors.muted, fontFamily },
   fill: { flex: 1, alignSelf: 'stretch' },
-  week: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
-  day: { width: 27, alignItems: 'center', gap: 1 },
+  week: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'flex-end' },
+  day: { width: 27, minWidth: 21, flexShrink: 1, alignItems: 'center', gap: 1 },
   markWrap: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   selected: { backgroundColor: categoryPalette.routine.soft, borderWidth: 1, borderColor: categoryPalette.routine.solid },
   dayNumber: { fontSize: 9, lineHeight: 12, color: colors.inkSoft, fontFamily },
