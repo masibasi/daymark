@@ -1,6 +1,6 @@
 import { Animated, Platform, View } from 'react-native';
 import { useEffect, useId, useRef, useState } from 'react';
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
 import { listColors, type ListColors } from '@/theme/palette';
@@ -313,30 +313,86 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   }
 
   if (activeVariant === 'glass') {
-    const glassStroke = strokeWidth * 1.08;
-    const dominant = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
-    const showHighlight = size >= 40;
+    // Clear glass tube (wider than the liquid) filling with each category's own liquid; highlights sit above the liquid.
+    const tier = size >= 80 ? 'full' : size >= 40 ? 'mid' : 'mini';
+    const tubeW = strokeWidth * (tier === 'mini' ? 1.1 : 1.32);
+    const pad = tier === 'full' && !isDark ? size * 0.03 : 0;
+    const tubeR = size / 2 - tubeW / 2 - pad;
+    const tubeOuter = tubeR + tubeW / 2;
+    const tubeInner = tubeR - tubeW / 2;
+    const liquidW = tubeW * (tier === 'mini' ? 0.7 : 0.64);
+    const liquidR = tubeR;
+    const liquidC = 2 * Math.PI * liquidR;
+    const gid = clipId;
+    const polar = (deg: number, r: number) => { const a = (deg * Math.PI) / 180; return `${(center + r * Math.cos(a)).toFixed(2)} ${(center + r * Math.sin(a)).toFixed(2)}`; };
+    const arcPath = (from: number, to: number, r: number) => `M ${polar(from, r)} A ${r} ${r} 0 0 1 ${polar(to, r)}`;
+    const runs = ringArcs.filter((arc) => arc.fillDash > 0).map((arc) => ({ ...arc, from: arc.start / circumference, len: Math.min(1, arc.fillDash / circumference) }));
+    const filled = runs.length > 0 ? Math.min(1, runs[runs.length - 1].from + runs[runs.length - 1].len) : 0;
+    const closed = filled >= 0.9995;
+    const first = runs[0];
+    const last = runs[runs.length - 1];
+    const dashOf = (fraction: number) => `${liquidC * fraction} ${liquidC}`;
+    const rot = `rotate(-90 ${center} ${center})`;
+    const body = isDark
+      ? { rim: activeColors.white, rimOpacity: 0.22, inner: 0.1, mid: 0.03, outer: 0.13, hi: 0.4, glint: 0.2 }
+      : { rim: activeColors.ink, rimOpacity: 0.24, inner: 0.95, mid: 0.5, outer: 0.7, hi: 0.95, glint: 0.7 };
+    const bodyTint = isDark ? '#FFFFFF' : '#D3DCE6';
+    const hiW = Math.max(1, tubeW * 0.14);
     return (
       <Animated.View accessibilityLabel={label} style={[{ width: size, height: size }, breathingAnimatedStyle]}>
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <Circle cx={center} cy={center} r={radiusValue} fill="none" stroke={activeColors.track} strokeWidth={glassStroke} />
-          {ringArcs.map(({ segment, fillDash, start }) => fillDash > 0 ? (
+          <Defs>
+            <RadialGradient id={`${gid}b`} cx={center} cy={center} r={tubeOuter} gradientUnits="userSpaceOnUse">
+              <Stop offset={tubeInner / tubeOuter} stopColor={isDark ? '#FFFFFF' : '#FFFFFF'} stopOpacity={body.inner} />
+              <Stop offset={(tubeInner / tubeOuter + 1) / 2 + 0.01} stopColor={bodyTint} stopOpacity={body.mid} />
+              <Stop offset="1" stopColor={isDark ? '#FFFFFF' : '#F4F7FA'} stopOpacity={body.outer} />
+            </RadialGradient>
+            <RadialGradient id={`${gid}l`} cx={center} cy={center} r={liquidR + liquidW / 2} gradientUnits="userSpaceOnUse">
+              <Stop offset={(liquidR - liquidW / 2) / (liquidR + liquidW / 2)} stopColor="#FFFFFF" stopOpacity={isDark ? 0.22 : 0.38} />
+              <Stop offset={liquidR / (liquidR + liquidW / 2)} stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="1" stopColor="#000000" stopOpacity={isDark ? 0.3 : 0.16} />
+            </RadialGradient>
+            <LinearGradient id={`${gid}h`} gradientUnits="userSpaceOnUse" x1={polar(196, tubeR - tubeW * 0.22).split(' ')[0]} y1={polar(196, tubeR - tubeW * 0.22).split(' ')[1]} x2={polar(266, tubeR - tubeW * 0.22).split(' ')[0]} y2={polar(266, tubeR - tubeW * 0.22).split(' ')[1]}>
+              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.45" stopColor="#FFFFFF" stopOpacity={body.hi} />
+              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            </LinearGradient>
+            <LinearGradient id={`${gid}g`} gradientUnits="userSpaceOnUse" x1={polar(18, tubeInner + tubeW * 0.16).split(' ')[0]} y1={polar(18, tubeInner + tubeW * 0.16).split(' ')[1]} x2={polar(62, tubeInner + tubeW * 0.16).split(' ')[0]} y2={polar(62, tubeInner + tubeW * 0.16).split(' ')[1]}>
+              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity={body.glint} />
+              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          {pad > 0 ? <Circle cx={center} cy={center + size * 0.035} r={tubeR} fill="none" stroke={activeColors.ink} strokeWidth={tubeW} opacity={0.05} /> : null}
+          {pad > 0 ? <Circle cx={center} cy={center + size * 0.02} r={tubeR} fill="none" stroke={activeColors.ink} strokeWidth={tubeW * 0.8} opacity={0.05} /> : null}
+          <Circle cx={center} cy={center} r={tubeR} fill="none" stroke={tier === 'mini' ? activeColors.track : `url(#${gid}b)`} strokeWidth={tubeW} />
+          {runs.map((arc) => (
             <Circle
-              key={segment.categoryId} cx={center} cy={center} r={radiusValue} fill="none"
-              stroke={markColor(segment)} strokeOpacity={0.8} strokeWidth={glassStroke} strokeLinecap="butt"
-              strokeDasharray={`${fillDash} ${circumference - fillDash}`}
-              strokeDashoffset={-start} transform={`rotate(-90 ${center} ${center})`}
+              key={arc.segment.categoryId} cx={center} cy={center} r={liquidR} fill="none"
+              stroke={markColor(arc.segment)} strokeWidth={liquidW} strokeLinecap="butt"
+              strokeDasharray={dashOf(arc.len)} strokeDashoffset={-arc.from * liquidC} transform={rot}
             />
-          ) : null)}
-          <Circle cx={center} cy={center} r={innerRadius} fill={isDark ? activeColors.white : activeColors.ink} opacity={isDark ? 0.03 : 0.02} />
-          <Circle cx={center} cy={center} r={innerRadius} fill="none" stroke={activeColors.ink} strokeWidth={0.75} opacity={0.08} />
-          {complete && dominant ? <Circle cx={center} cy={center} r={innerRadius} fill={markColor(dominant)} opacity={0.12} /> : null}
-          {showHighlight ? (
-            <Path
-              d={`M ${center - radiusValue * 0.62} ${center - radiusValue * 0.74} A ${radiusValue} ${radiusValue} 0 0 1 ${center + radiusValue * 0.1} ${center - radiusValue * 0.99}`}
-              fill="none" stroke={activeColors.white} strokeWidth={Math.max(1, glassStroke * 0.18)} strokeLinecap="round" opacity={isDark ? 0.18 : 0.5}
-            />
+          ))}
+          {!closed && first && last && filled > 0.0005 ? (
+            <>
+              <Circle cx={center + liquidR * Math.cos(-Math.PI / 2 + first.from * Math.PI * 2)} cy={center + liquidR * Math.sin(-Math.PI / 2 + first.from * Math.PI * 2)} r={liquidW / 2} fill={markColor(first.segment)} />
+              <Circle cx={center + liquidR * Math.cos(-Math.PI / 2 + filled * Math.PI * 2)} cy={center + liquidR * Math.sin(-Math.PI / 2 + filled * Math.PI * 2)} r={liquidW / 2} fill={markColor(last.segment)} />
+            </>
           ) : null}
+          {tier !== 'mini' && filled > 0.0005 ? (
+            <>
+              <Circle cx={center} cy={center} r={liquidR} fill="none" stroke={`url(#${gid}l)`} strokeWidth={liquidW} strokeLinecap={closed ? 'butt' : 'round'} strokeDasharray={dashOf(filled)} strokeDashoffset={-first.from * liquidC} transform={rot} />
+              <Circle cx={center} cy={center} r={liquidR - liquidW * 0.3} fill="none" stroke="#FFFFFF" strokeWidth={Math.max(0.6, liquidW * 0.09)} strokeLinecap="round" opacity={isDark ? 0.28 : 0.5} strokeDasharray={`${Math.max(0, liquidC * filled * 0.96 * (liquidR - liquidW * 0.3) / liquidR)} ${liquidC}`} strokeDashoffset={-(first.from * liquidC + liquidC * filled * 0.02) * (liquidR - liquidW * 0.3) / liquidR} transform={rot} />
+            </>
+          ) : null}
+          {tier !== 'mini' ? (
+            <>
+              <Circle cx={center} cy={center} r={tubeOuter - 0.4} fill="none" stroke={body.rim} strokeWidth={0.8} opacity={body.rimOpacity} />
+              <Circle cx={center} cy={center} r={tubeInner + 0.4} fill="none" stroke={body.rim} strokeWidth={0.8} opacity={body.rimOpacity * 0.8} />
+            </>
+          ) : <Circle cx={center} cy={center} r={tubeOuter - 0.3} fill="none" stroke={body.rim} strokeWidth={0.6} opacity={body.rimOpacity * 0.7} />}
+          <Path d={arcPath(196, 266, tier === 'mini' ? tubeR - tubeW * 0.15 : tubeR - tubeW * 0.22)} fill="none" stroke={tier === 'mini' ? '#FFFFFF' : `url(#${gid}h)`} strokeWidth={tier === 'mini' ? 1 : hiW} strokeLinecap="round" opacity={tier === 'mini' ? (isDark ? 0.35 : 0.8) : 1} />
+          {tier === 'full' ? <Path d={arcPath(18, 62, tubeInner + tubeW * 0.16)} fill="none" stroke={`url(#${gid}g)`} strokeWidth={Math.max(1, tubeW * 0.09)} strokeLinecap="round" /> : null}
         </Svg>
         {ripple}
       </Animated.View>

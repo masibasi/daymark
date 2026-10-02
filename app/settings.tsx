@@ -138,7 +138,7 @@ function CalendarsSection() {
 const markStyles: Array<{ variant: DayMarkVariant; label: string }> = [
   { variant: 'wash', label: 'Watercolor wash' },
   { variant: 'ribbon', label: 'Soft ribbon' },
-  { variant: 'glass', label: 'Glass vessel' },
+  { variant: 'glass', label: 'Glass tube' },
   { variant: 'doodle', label: 'Doodle' },
 ];
 

@@ -14,7 +14,7 @@ import { colors, darkColors, fontFamily, radius, space, type } from '@/theme/tok
 
 const concepts: Array<{ variant: DayMarkVariant; title: string; description: string }> = [
   { variant: 'ribbon', title: '01  Soft ribbon', description: 'A quiet, continuous band of category color on a neutral track. No interior fill — completion reads from the ring alone.' },
-  { variant: 'glass', title: '02  Glass vessel', description: 'The same band drawn like a thin glass rim: a soft specular highlight, a faint inner disc, one dominant tint only when the day closes.' },
+  { variant: 'glass', title: '02  Glass tube', description: 'A clear glass tube that fills with each list color: a cylindrical body, liquid with depth, and specular highlights above it.' },
   { variant: 'wash', title: '03  Watercolor wash', description: 'Each color bleeds softly inward from its own arc. Colors touch but never mix, and the center stays light even on a full day.' },
   { variant: 'doodle', title: '04  Doodle', description: 'Echoes the app icon: a slightly squashed, hand-drawn ring with a soft glow. Contiguous category arcs, round caps at the ends of the filled run, flat joins between colors, a closed seamless loop on a full day.' },
   { variant: 'current', title: '05  Current (baseline)', description: 'The live shipped version, kept here for direct comparison: rising liquid pigment and gentle rotation.' },
@@ -117,6 +117,8 @@ export default function DayMarkLab() {
                 </View>
                 <Text style={styles.groupLabel}>Dark mode</Text>
                 <View style={styles.darkPanel}>
+                  <DayOrbit variant={concept.variant} segments={stateSamples[3].segments} size={64} strokeWidth={6.4} scheme="dark" />
+                  <DayOrbit variant={concept.variant} segments={stateSamples[4].segments} size={64} strokeWidth={6.4} scheme="dark" />
                   {weekSamples.map((sample) => (
                     <View key={sample.day} style={styles.weekDay}>
                       <DayOrbit variant={concept.variant} segments={sample.segments} size={22} strokeWidth={3.5} scheme="dark" />
