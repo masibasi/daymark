@@ -12,15 +12,17 @@ import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { FolderCompletionRow } from './FolderCompletionRow';
 import { TaskDragContext, useDragStore } from './useTaskDrag';
 
-interface DeadlineStripProps { projects: Project[]; tasks: Task[]; now: Date; compact?: boolean }
+interface DeadlineStripProps { projects: Project[]; tasks: Task[]; now: Date; compact?: boolean; vertical?: boolean }
 
 const toneStyle = (tone: ReturnType<typeof selectDeadlineTone>) => (tone === 'muted' ? styles.muted : tone === 'normal' ? styles.normal : tone === 'warm' ? styles.warm : styles.urgent);
 
 // Today's folder strip: pinned folders and every folder with a deadline, then an "All folders" link.
 // `compact` (phone): one-line title with D−n beside it, then progress; keeps tasks on the first screen.
 // Tapping a card expands a panel below the strip (a horizontal scroller can't grow in place); only one is open at a time.
+// `vertical` (desktop left column): compact cards stacked full width, the panel opens inline right under the tapped card.
 // While a task is dragged, the cards are drop targets (ring in the folder's list colour).
-export function DeadlineStrip({ projects, tasks, now, compact }: DeadlineStripProps) {
+export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vertical }: DeadlineStripProps) {
+  const compact = compactProp || vertical;
   const paletteFor = useCategoryPalette();
   const controller = useContext(TaskDragContext);
   const hoverId = useDragStore((state) => state.hoverFolderId);
@@ -30,9 +32,11 @@ export function DeadlineStrip({ projects, tasks, now, compact }: DeadlineStripPr
   const panelProject = projects.find((project) => project.id === panelId);
   // An archived or removed folder takes its open panel with it.
   useEffect(() => { if (openId && !projects.some((project) => project.id === openId)) setOpenId(null); }, [projects, openId]);
+  const Track = vertical ? View : ScrollView;
+  const trackProps = vertical ? { style: styles.trackVertical } : { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.track };
   return (
     <View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.track}>
+    <Track {...trackProps}>
       {projects.map((project) => {
         const days = project.deadline ? selectDeadlineDays(project.deadline, now) : undefined;
         const tone = days === undefined ? 'muted' : selectDeadlineTone(days, project.attentionDays);
@@ -44,8 +48,8 @@ export function DeadlineStrip({ projects, tasks, now, compact }: DeadlineStripPr
             <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 1 : 2}>{project.title}</Text>
           </View>
         );
-        return (
-          <Pressable key={project.id} ref={(node) => controller?.registerFolder(project.id, node)} collapsable={false} accessibilityRole="button" accessibilityState={{ expanded: openId === project.id }} onPress={() => toggle(project.id)} style={({ pressed }) => [styles.item, compact && styles.itemCompact, openId === project.id && { borderColor: palette.solid }, pressed && styles.pressed]}>
+        const card = (
+          <Pressable key={vertical ? undefined : project.id} ref={(node) => controller?.registerFolder(project.id, node)} collapsable={false} accessibilityRole="button" accessibilityState={{ expanded: openId === project.id }} onPress={() => toggle(project.id)} style={({ pressed }) => [styles.item, compact && styles.itemCompact, vertical && styles.itemVertical, openId === project.id && { borderColor: palette.solid }, pressed && styles.pressed]}>
             {hoverId === project.id ? <View pointerEvents="none" style={[styles.ring, compact && styles.ringCompact, { borderColor: palette.solid }]} /> : null}
             <View style={styles.topline}>
               <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
@@ -60,13 +64,19 @@ export function DeadlineStrip({ projects, tasks, now, compact }: DeadlineStripPr
             </View>
           </Pressable>
         );
+        return vertical ? (
+          <View key={project.id}>
+            {card}
+            <Collapsible open={openId === project.id}>{panelId === project.id ? <DeadlinePanel project={project} tasks={tasks} now={now} /> : null}</Collapsible>
+          </View>
+        ) : card;
       })}
-      <Pressable accessibilityRole="link" onPress={() => router.push('/projects')} style={({ pressed }) => [styles.allLink, pressed && styles.pressed]}>
+      <Pressable accessibilityRole="link" onPress={() => router.push('/projects')} style={({ pressed }) => [styles.allLink, vertical && styles.allLinkVertical, pressed && styles.pressed]}>
         <Text style={styles.allText}>All folders</Text>
         <Ionicons name="arrow-forward" size={13} color={colors.muted} />
       </Pressable>
-    </ScrollView>
-    <Collapsible open={openId !== null}>{panelProject ? <DeadlinePanel project={panelProject} tasks={tasks} now={now} /> : null}</Collapsible>
+    </Track>
+    {vertical ? null : <Collapsible open={openId !== null}>{panelProject ? <DeadlinePanel project={panelProject} tasks={tasks} now={now} /> : null}</Collapsible>}
     </View>
   );
 }
@@ -132,6 +142,9 @@ function DeadlinePanel({ project, tasks, now }: { project: Project; tasks: Task[
 
 const styles = StyleSheet.create({
   track: { gap: space.sm, paddingRight: space.lg },
+  trackVertical: { gap: space.xs },
+  itemVertical: { width: '100%' },
+  allLinkVertical: { alignSelf: 'flex-start', paddingHorizontal: space.xxs },
   item: { width: 220, minHeight: 132, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   itemCompact: { width: 212, minHeight: 0, padding: space.sm, borderRadius: radius.md },
   ring: { position: 'absolute', top: -1, left: -1, right: -1, bottom: -1, borderRadius: radius.lg, borderWidth: 2 },

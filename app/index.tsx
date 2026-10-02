@@ -27,7 +27,8 @@ export default function TodayScreen() {
   const { width, height } = useWindowDimensions();
   const wide = width >= 820;
   const phone = width < 760;
-  const scheduleColumn = width >= 1100;
+  const desk = width >= 1024; // desktop: independent columns (left rail of context, tasks, schedule at >= 1400)
+  const scheduleThird = width >= 1400;
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [page, setPage] = useState<'tasks' | 'schedule'>('tasks');
   const tabBox = useRef<Record<string, { x: number; width: number }>>({});
@@ -49,6 +50,8 @@ export default function TodayScreen() {
   const projects = useDaymarkStore((state) => state.projects);
   const routines = useDaymarkStore((state) => state.routines);
   const collapsedListIds = useDaymarkStore((state) => state.collapsedListIds);
+  const dayMarkCollapsed = useDaymarkStore((state) => state.dayMarkCollapsedDesktop);
+  const toggleDayMark = useDaymarkStore((state) => state.toggleDayMarkDesktop);
   const toggleListCollapsed = useDaymarkStore((state) => state.toggleListCollapsed);
   const tasks = useDaymarkStore((state) => state.tasks);
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
@@ -92,6 +95,7 @@ export default function TodayScreen() {
     scrollRef,
     getScrollY: () => scrollY.current,
     getMaxScrollY: () => maxScrollY.current,
+    foldersFixed: desk,
     setScrollLocked,
     canMove: useCallback((taskId: string, toCategoryId: string) => {
       const task = useDaymarkStore.getState().tasks.find((item) => item.id === taskId);
@@ -114,12 +118,16 @@ export default function TodayScreen() {
   const selectDate = (date: Date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'));
 
   const orbitCard = (
-    <View style={[styles.orbitCard, wide && styles.orbitCardWide]}>
+    <View style={[styles.orbitCard, wide && styles.orbitCardWide, desk && styles.orbitCardDesk]}>
       <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
-      <DayOrbit segments={segments} size={wide ? 132 : 112} strokeWidth={wide ? 13 : 11} animate />
-      <Text style={styles.orbitNumber}>{completed} of {planned}</Text>
-      <Text style={styles.orbitCopy}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
-      <View style={styles.legend}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+      <View style={desk ? styles.orbitDeskBody : styles.orbitBody}>
+        <DayOrbit segments={segments} size={desk ? 120 : wide ? 132 : 112} strokeWidth={desk ? 12 : wide ? 13 : 11} animate />
+        <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
+          <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} of {planned}</Text>
+          <Text style={[styles.orbitCopy, desk && styles.orbitCopyDesk]}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
+          <View style={[styles.legend, desk && styles.legendDesk]}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+        </View>
+      </View>
     </View>
   );
 
@@ -132,8 +140,11 @@ export default function TodayScreen() {
 
   const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
+  const folderList = <DeadlineStrip projects={folders} tasks={tasks} now={now()} vertical />;
+  const scheduleBlock = <View><Text style={styles.sectionLabel}>Schedule</Text><View style={styles.scheduleAsideBody}>{schedule}</View></View>;
+
   const tasksColumn = (
-    <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone]}>
+    <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone, desk && styles.tasksColumnDesk]}>
       {carryover ? (
         <CarryoverBanner
           day={carryover.day} tasks={carryover.tasks}
@@ -178,6 +189,34 @@ export default function TodayScreen() {
     </View>
   );
 
+  const scrollProps = {
+    scrollEnabled: !scrollLocked, scrollEventThrottle: 16, showsVerticalScrollIndicator: false, keyboardShouldPersistTaps: 'handled' as const,
+  };
+
+  if (desk) {
+    return (
+      <TaskDragContext.Provider value={drag}>
+        <View style={styles.desk}>
+          <ScrollView {...scrollProps} style={styles.deskLeft} contentContainerStyle={styles.deskLeftContent}>
+            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
+            <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
+            <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
+            {scheduleThird ? null : <View style={styles.deskBlock}>{scheduleBlock}</View>}
+            <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
+          </ScrollView>
+          <ScrollView
+            {...scrollProps} ref={scrollRef} style={styles.deskMain} contentContainerStyle={styles.deskMainContent}
+            onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
+            onLayout={(event) => { viewportHeight.current = event.nativeEvent.layout.height; }}
+            onContentSizeChange={(_w, h) => { maxScrollY.current = Math.max(0, h - viewportHeight.current); }}>
+            <View ref={contentRef} collapsable={false}>{tasksColumn}</View>
+          </ScrollView>
+          {scheduleThird ? <ScrollView {...scrollProps} style={styles.deskSchedule} contentContainerStyle={styles.deskScheduleContent}>{scheduleBlock}</ScrollView> : null}
+        </View>
+      </TaskDragContext.Provider>
+    );
+  }
+
   return (
     <TaskDragContext.Provider value={drag}>
     <ScrollView
@@ -186,7 +225,7 @@ export default function TodayScreen() {
       onLayout={(event) => { viewportHeight.current = event.nativeEvent.layout.height; }}
       onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
       contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      <View ref={contentRef} collapsable={false} style={[styles.page, scheduleColumn && styles.pageWide]}>
+      <View ref={contentRef} collapsable={false} style={styles.page}>
         <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
@@ -195,7 +234,7 @@ export default function TodayScreen() {
         <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Folders</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to pull a step into today</Text>}</View>
         <DeadlineStrip projects={folders} tasks={tasks} now={now()} compact={phone} />
 
-        {!phone && !scheduleColumn ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}
+        {!phone ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}
 
         {phone ? (
           <View style={styles.tabs}>
@@ -214,8 +253,6 @@ export default function TodayScreen() {
           <SwipePager minHeight={Math.round(height * 0.45)} index={page === 'tasks' ? 0 : 1} count={2} onChange={(next) => setPage(next === 0 ? 'tasks' : 'schedule')}>
             {page === 'tasks' ? tasksColumn : <View style={styles.schedulePage}>{schedule}</View>}
           </SwipePager>
-        ) : scheduleColumn ? (
-          <View style={styles.split}>{tasksColumn}<View style={styles.scheduleAside}><Text style={styles.sectionTitle}>Schedule</Text><View style={styles.scheduleAsideBody}>{schedule}</View></View></View>
         ) : tasksColumn}
       </View>
     </ScrollView>
@@ -225,7 +262,6 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   settingsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
-  pageWide: { maxWidth: 1240 },
   scroll: { flexGrow: 1 },
   scrollKeyboard: { paddingBottom: 320 },
   page: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
@@ -234,6 +270,13 @@ const styles = StyleSheet.create({
   overviewWide: { flexDirection: 'row', alignItems: 'flex-start' },
   orbitCard: { minHeight: 304, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   orbitCardWide: { width: 300, height: 352 },
+  orbitCardDesk: { width: '100%', height: 'auto', minHeight: 0, padding: space.md, alignItems: 'stretch' },
+  orbitBody: { alignItems: 'center' },
+  orbitDeskBody: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  orbitDeskCopy: { flex: 1, minWidth: 0 },
+  orbitNumberDesk: { marginTop: 0 },
+  orbitCopyDesk: { width: 'auto', minHeight: 0, textAlign: 'left' },
+  legendDesk: { justifyContent: 'flex-start', gap: space.xs, marginTop: space.xs },
   orbitHeading: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md },
   orbitEyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily },
   orbitDate: { ...type.meta, color: colors.muted, fontFamily },
@@ -248,9 +291,18 @@ const styles = StyleSheet.create({
   sectionLabel: { ...type.section, color: colors.ink, fontFamily },
   sectionHint: { ...type.meta, color: colors.muted, fontFamily },
   tasksColumn: { width: '100%', maxWidth: 700, marginTop: space.xl },
+  tasksColumnDesk: { maxWidth: 720, marginTop: 0 },
+  desk: { flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: 'row', paddingHorizontal: space.lg, gap: space.xl },
+  deskLeft: { width: 360, flexGrow: 0, flexShrink: 0 },
+  deskLeftContent: { paddingTop: space.xl, paddingBottom: space.xxl },
+  deskSummary: { marginTop: space.md },
+  deskStack: { gap: space.sm, marginTop: space.sm },
+  deskBlock: { marginTop: space.lg },
+  deskMain: { flex: 1, minWidth: 0 },
+  deskMainContent: { paddingTop: space.xl, paddingBottom: space.xxl * 2, paddingHorizontal: space.xs },
+  deskSchedule: { width: 280, flexGrow: 0, flexShrink: 0 },
+  deskScheduleContent: { paddingTop: space.xl, paddingBottom: space.xxl },
   tasksColumnPhone: { marginTop: space.sm },
-  split: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xxl },
-  scheduleAside: { width: 340, marginTop: space.xl },
   scheduleAsideBody: { marginTop: space.sm },
   scheduleSection: { marginTop: space.xl, maxWidth: 700 },
   schedulePage: { paddingTop: space.xs },

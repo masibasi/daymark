@@ -28,6 +28,9 @@ interface DaymarkState {
   feedErrors: Record<string, string>;
   // Lists folded shut on Today; device-local view state, never synced.
   collapsedListIds: string[];
+  // Desktop Today: the Day Mark card + history calendar folds to one compact row. Device-local (not synced), defaults to expanded.
+  dayMarkCollapsedDesktop: boolean;
+  toggleDayMarkDesktop: () => void;
   toggleListCollapsed: (listId: string) => void;
   calendarView: CalendarView;
   calendarDate: string;
@@ -137,6 +140,8 @@ export const useDaymarkStore = create<DaymarkState>()(
       events: [],
       calendarFeeds: [],
       collapsedListIds: [],
+      dayMarkCollapsedDesktop: false,
+      toggleDayMarkDesktop: () => set((state) => ({ dayMarkCollapsedDesktop: !state.dayMarkCollapsedDesktop })),
       toggleListCollapsed: (listId) => set((state) => ({ collapsedListIds: state.collapsedListIds.includes(listId) ? state.collapsedListIds.filter((id) => id !== listId) : [...state.collapsedListIds, listId] })),
       feedErrors: {},
       calendarView: 'week',
@@ -432,6 +437,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         calendarFeeds: state.calendarFeeds,
         carryoverDismissed: state.carryoverDismissed,
         collapsedListIds: state.collapsedListIds,
+        dayMarkCollapsedDesktop: state.dayMarkCollapsedDesktop,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,

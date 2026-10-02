@@ -113,13 +113,23 @@ Order: date header, one compact summary row, compact Upcoming strip, then a two-
 - Schedule page: the displayed day's CalendarEvents, all-day first, then timed events (time range under the title) with a neutral event rail (events are never list-colored). Empty state: "No events on this day." with a quiet "Connect a calendar in Settings" link.
 - Tapping an event expands it inline: an "Add to Today" pill for the default list (a list named Schedule/Calendar, else the list last used for an event import; with neither, the pill reads "Schedule (new)" and creates an active Schedule list in the next free colour as it adds) and "or in" chips for the other lists; one tap adds. Once added the row reads "Added" and is disabled.
 
-Desktop keeps the Day Mark card and history calendar side by side. The Schedule sits in a right-hand column beside the tasks at ≥ 1100px, and as a section below Upcoming between 760 and 1100px.
+Between 760 and 1023px Today keeps the stacked layout (Day Mark card beside the history calendar, Folders strip, Schedule section, then tasks).
+
+## Today on desktop (width ≥ 1024)
+
+Today splits into independent, viewport-height columns inside a layout capped at 1440px and centred, so tasks are on screen without scrolling. Each column is its own ScrollView.
+
+- Left column (360px): date header with the weather line; the Day Mark area; at < 1400px the Schedule section; then Folders as a vertical list of compact cards (same order, drop-target ring and "All folders" link as the strip). Tapping a card opens its panel inline directly under that card (one open at a time).
+- Day Mark area: collapsible like the phone summary. Collapsed is the compact row (44px mark, "x of y", this week's seven marks, chevron); expanded is the Day Mark card (120px mark beside "x of y", copy and legend) plus the history calendar, which opens as a full month at viewport height ≥ 900px and as the selected week below that. The choice persists per device (`dayMarkCollapsedDesktop`, not synced), default expanded; animation uses the `Collapsible` and chevron motion tokens and is instant under reduce-motion.
+- Main column (flex, max 720px): carry-over banner, "Today's tasks" header with "n left", and the list sections.
+- Schedule at ≥ 1400px is a third narrow column (280px) to the right of the tasks.
+- Drag and drop uses the main column's ScrollView for edge auto-scroll and list geometry; folder cards in the left column are measured in window coordinates (`foldersFixed`), since that column does not scroll with the tasks.
 
 ## Responsive rules
 
 - Phone: one-column Today, three visible days in Week with horizontal paging implied, compact Month labels, bottom nav.
 - Tablet: Day Orbit and history calendar may sit side by side; seven-day Week; side rail where space allows.
-- Desktop: persistent 80px rail, Today content capped around 1040px with the Day Orbit and history calendar paired above the work list; full seven-day Calendar.
+- Desktop: persistent rail; at ≥ 1024px Today is two columns (context left, tasks main), three at ≥ 1400px (Schedule on the right), capped at 1440px, each scrolling independently; full seven-day Calendar.
 
 ## Components
 

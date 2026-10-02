@@ -12,12 +12,13 @@ interface HistoryCalendarProps {
   selectedDate: Date;
   tasks: Task[];
   onSelectDate: (date: Date) => void;
+  defaultExpanded?: boolean;
 }
 
-export function HistoryCalendar({ selectedDate, tasks, onSelectDate }: HistoryCalendarProps) {
+export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpanded }: HistoryCalendarProps) {
   const { width } = useWindowDimensions();
   const categories = useDaymarkStore((state) => state.categories);
-  const [expanded, setExpanded] = useState(() => width >= 820);
+  const [expanded, setExpanded] = useState(() => defaultExpanded ?? width >= 820);
 
   const days = expanded
     ? eachDayOfInterval({

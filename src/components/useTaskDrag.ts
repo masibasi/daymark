@@ -57,6 +57,8 @@ interface ControllerOptions {
   // Today only: dropping on a folder card in the strip. Absent elsewhere (Folders tab reorder).
   onDropFolder?: (taskId: string, folderId: string) => boolean;
   onBlocked: () => void;
+  // Desktop Today: folder cards live in a column that does not scroll with the task list, so their rects stay in window coordinates.
+  foldersFixed?: boolean;
 }
 
 function measure(node: View | null): Promise<Box | null> {
@@ -115,7 +117,8 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
       if (s.sections.length === 0) return;
       const py = s.pointer + scrollY; // content coordinates, same space as the measured rects
       // A folder card under the pointer wins over any list position: no insertion line, no shifting rows.
-      const folder = s.folders.find((item) => s.pointerX >= item.left && s.pointerX <= item.right && py >= item.top && py <= item.bottom);
+      const fy = opts.current.foldersFixed ? s.pointer : py;
+      const folder = s.folders.find((item) => s.pointerX >= item.left && s.pointerX <= item.right && fy >= item.top && fy <= item.bottom);
       s.folderId = folder?.id;
       if (useDragStore.getState().hoverFolderId !== folder?.id) useDragStore.setState({ hoverFolderId: folder?.id });
       if (folder) {
@@ -189,9 +192,10 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
         useDragStore.setState({ draggingId: taskId, draggingCategoryId: row.categoryId, hoverFolderId: undefined, target: null, shifts: {}, dragHeight: 0, snap: false });
         opts.current.setScrollLocked(true);
         if (Platform.OS === 'web' && typeof document !== 'undefined') { document.body.style.userSelect = 'none'; document.body.style.cursor = 'grabbing'; }
+        const folderShift = opts.current.foldersFixed ? 0 : startScroll;
         void Promise.all(Array.from(folders.entries()).map(async ([id, node]) => ({ id, box: await measureRect(node) }))).then((list) => {
           if (session.current !== s) return;
-          s.folders = list.flatMap((entry) => entry.box ? [{ id: entry.id, ...entry.box, top: entry.box.top + startScroll, bottom: entry.box.bottom + startScroll }] : []);
+          s.folders = list.flatMap((entry) => entry.box ? [{ id: entry.id, ...entry.box, top: entry.box.top + folderShift, bottom: entry.box.bottom + folderShift }] : []);
         });
         s.timer = setInterval(tick, 16);
         // Rects are stored in content coordinates (window position + scroll offset at measure time).
