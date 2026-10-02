@@ -20,8 +20,9 @@ import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag
 import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now, todayKey } from '@/domain/clock';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { categoryPalette, colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
+import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { isReducedMotion } from '@/theme/useReducedMotion';
 
 export default function TodayScreen() {
@@ -47,6 +48,7 @@ export default function TodayScreen() {
   }, [indicatorX, indicatorW]);
   useEffect(() => { moveIndicator(page, indicatorReady); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
   const categories = useDaymarkStore((state) => state.categories);
+  const paletteFor = useCategoryPalette();
   const projects = useDaymarkStore((state) => state.projects);
   const routines = useDaymarkStore((state) => state.routines);
   const collapsedListIds = useDaymarkStore((state) => state.collapsedListIds);
@@ -128,7 +130,7 @@ export default function TodayScreen() {
         <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
           <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} of {planned}</Text>
           <Text style={[styles.orbitCopy, desk && styles.orbitCopyDesk]}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
-          <View style={[styles.legend, desk && styles.legendDesk]}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+          <View style={[styles.legend, desk && styles.legendDesk]}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
         </View>
       </View>
     </View>

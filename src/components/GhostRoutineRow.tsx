@@ -2,15 +2,15 @@ import { useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Routine } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, motion, radius, space, type, type CategoryColorKey } from '@/theme/tokens';
+import type { ResolvedPalette } from '@/theme/palette';
+import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { quietNextEnter } from './RowPresence';
 
-interface GhostRoutineRowProps { routine: Routine; colorKey: CategoryColorKey; meta?: string; onAdd: () => void; onAddDone: () => void; onRepeat: () => void; onRemove: () => void }
+interface GhostRoutineRowProps { routine: Routine; palette: ResolvedPalette; meta?: string; onAdd: () => void; onAddDone: () => void; onRepeat: () => void; onRemove: () => void }
 
 // A routine not yet added today: tap to make it a real task, tap the circle to add it already done.
-export function GhostRoutineRow({ routine, colorKey, meta, onAdd, onAddDone, onRepeat, onRemove }: GhostRoutineRowProps) {
-  const palette = categoryPalette[colorKey];
+export function GhostRoutineRow({ routine, palette, meta, onAdd, onAddDone, onRepeat, onRemove }: GhostRoutineRowProps) {
   const viewport = useWindowDimensions();
   const moreRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);

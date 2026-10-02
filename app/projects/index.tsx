@@ -57,10 +57,10 @@ export default function FoldersScreen() {
         />
       </View>
     );
-    return <View key={project.id}>{group ? <DragRow taskId={project.id} categoryId={group} colorKey="graphite">{body}</DragRow> : body}</View>;
+    return <View key={project.id}>{group ? <DragRow taskId={project.id} categoryId={group}>{body}</DragRow> : body}</View>;
   };
   const section = (group: Group, list: Project[]) => (
-    <View ref={(node) => drag.registerSection(group, false, 'graphite', node)} collapsable={false}>{list.map((project) => card(project, list, group))}</View>
+    <View ref={(node) => drag.registerSection(group, false, node)} collapsable={false}>{list.map((project) => card(project, list, group))}</View>
   );
 
   const removeArchived = async (project: Project) => {

@@ -4,7 +4,8 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { now } from '@/domain/clock';
 import { selectActiveCategories, selectTaskFromEvent } from '@/domain/selectors';
 import type { CalendarEvent, Category, Task } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { PressableScale } from './PressableScale';
 
 export const eventTimeRange = (event: CalendarEvent) => {
@@ -38,12 +39,13 @@ interface EventActionsProps {
 
 // The "Add to <day>" pill plus "or in" list chips, or "Added" once a Task from this event exists on `day`. Shared by Today's Schedule and the Calendar tab.
 export function EventActions({ event, day, tasks, categories, onAdd }: EventActionsProps) {
+  const paletteFor = useCategoryPalette();
   const added = Boolean(selectTaskFromEvent(tasks, event.id, day));
   const preferred = defaultEventList(categories, tasks);
   const others = selectActiveCategories(categories).filter((category) => category.id !== preferred?.id);
   const addLabel = `Add to ${eventDayLabel(day)}`;
   if (added) return <View style={styles.added}><Ionicons name="checkmark" size={14} color={colors.muted} /><Text style={styles.addedText}>Added to {eventDayLabel(day)}</Text></View>;
-  const palette = preferred ? categoryPalette[preferred.colorKey] : undefined;
+  const palette = preferred ? paletteFor(preferred) : undefined;
   return (
     <View style={styles.actions}>
       <PressableScale accessibilityRole="button" accessibilityLabel={`${addLabel} in ${preferred?.name ?? 'Schedule (new)'}`} onPress={() => onAdd(event, preferred?.id)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
@@ -54,9 +56,9 @@ export function EventActions({ event, day, tasks, categories, onAdd }: EventActi
         <View style={styles.chips}>
           <Text style={styles.chipsLabel}>or in</Text>
           {others.map((category) => (
-            <PressableScale key={category.id} accessibilityRole="button" accessibilityLabel={`${addLabel} in ${category.name}`} onPress={() => onAdd(event, category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: categoryPalette[category.colorKey].soft }, pressed && styles.pressed]}>
-              <View style={[styles.chipDot, { backgroundColor: categoryPalette[category.colorKey].solid }]} />
-              <Text style={[styles.chipText, { color: categoryPalette[category.colorKey].ink }]}>{category.name}</Text>
+            <PressableScale key={category.id} accessibilityRole="button" accessibilityLabel={`${addLabel} in ${category.name}`} onPress={() => onAdd(event, category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: paletteFor(category).soft }, pressed && styles.pressed]}>
+              <View style={[styles.chipDot, { backgroundColor: paletteFor(category).solid }]} />
+              <Text style={[styles.chipText, { color: paletteFor(category).ink }]}>{category.name}</Text>
             </PressableScale>
           ))}
         </View>

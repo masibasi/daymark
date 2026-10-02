@@ -8,6 +8,8 @@ export interface Category {
   id: CategoryId;
   name: string;
   colorKey: CategoryColorKey;
+  // Optional custom list color (hex). When present it wins over the colorKey preset; absent on every list made before custom colors.
+  color?: string;
   order: number;
   archived?: boolean;
 }

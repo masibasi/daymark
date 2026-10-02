@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
-import { categoryPalette, colors, motion, radius, type CategoryColorKey } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, motion, radius } from '@/theme/tokens';
 import { isReducedMotion } from '@/theme/useReducedMotion';
 import { dragY, useDragRow, useDragStore } from './useTaskDrag';
 
-interface DragRowProps { taskId: string; categoryId: string; colorKey: CategoryColorKey }
+interface DragRowProps { taskId: string; categoryId: string }
 
 // Wraps a task row on Today: long-press to lift (spring to 1.02 with a soft shadow), follows the pointer, neighbours slide to open a gap
 // at the insertion point, a thin line marks the drop spot, and the row settles back with a spring on release.
-export function DragRow({ taskId, categoryId, colorKey, children }: PropsWithChildren<DragRowProps>) {
+export function DragRow({ taskId, categoryId, children }: PropsWithChildren<DragRowProps>) {
   const { controller, panHandlers } = useDragRow(taskId, categoryId);
   const dragging = useDragStore((state) => state.draggingId === taskId);
   const before = useDragStore((state) => state.target?.beforeId === taskId);
   const after = useDragStore((state) => state.target?.afterId === taskId);
   const shift = useDragStore((state) => state.shifts[taskId] ?? 0);
   const dragHeight = useDragStore((state) => state.dragHeight);
-  const lineColor = { backgroundColor: categoryPalette[useDragStore((state) => state.target?.colorKey ?? colorKey)].solid };
+  const paletteFor = useCategoryPalette();
+  const lineColor = { backgroundColor: paletteFor(useDragStore((state) => state.target?.categoryId ?? categoryId)).solid };
   const lift = useRef(new Animated.Value(0)).current;
   const offset = useRef(new Animated.Value(0)).current;
   const [raised, setRaised] = useState(false);

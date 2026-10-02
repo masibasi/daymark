@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { Animated, PanResponder, Platform, type ScrollView, type View } from 'react-native';
 import { create } from 'zustand';
-import type { CategoryColorKey } from '@/theme/tokens';
 
 // Long-press drag for Today's task rows (reorder within a list, move to another list). Pure UI state:
 // the store is only touched through the `onDrop` callback. Works on web (DOM rects) and native (measureInWindow).
@@ -14,7 +13,7 @@ const MOVE_SLOP = 10;
 const EDGE = 60;
 const MAX_SCROLL_STEP = 14;
 
-export interface DropTarget { categoryId: string; colorKey: CategoryColorKey; index: number; beforeId?: string; afterId?: string; empty?: boolean }
+export interface DropTarget { categoryId: string; index: number; beforeId?: string; afterId?: string; empty?: boolean }
 // `hoverFolderId`: the Today folder card under the pointer while a task is dragged (drop target, highlighted by DeadlineStrip).
 // `shifts`: net row displacement in dragged-row heights (+1 opens the gap below the insertion point, -1 closes the hole left behind); `snap` skips the settle animation after a successful drop.
 interface DragState { draggingId?: string; draggingCategoryId?: string; editingId?: string; hoverFolderId?: string; target: DropTarget | null; shifts: Record<string, number>; dragHeight: number; snap: boolean }
@@ -33,12 +32,12 @@ const isMousePointer = () => Platform.OS === 'web' && (lastPointerType ? lastPoi
 
 interface Box { top: number; bottom: number }
 interface Rect extends Box { left: number; right: number }
-interface SectionGeo extends Box { categoryId: string; colorKey: CategoryColorKey; droppable: boolean; collapsed: boolean; rows: Array<Box & { id: string }> }
+interface SectionGeo extends Box { categoryId: string; droppable: boolean; collapsed: boolean; rows: Array<Box & { id: string }> }
 interface Session { taskId: string; categoryId: string; startPointer: number; startPointerX: number; startScroll: number; pointer: number; pointerX: number; mouse: boolean; moved: boolean; folders: Array<Rect & { id: string }>; folderId?: string; sections: SectionGeo[]; viewport: Box; drop: { categoryId: string; index: number; blocked: boolean } | null; dragHeight: number; closeIds: Set<string>; shiftKey: string; timer?: ReturnType<typeof setInterval> }
 
 export interface TaskDragController {
   registerRow: (id: string, categoryId: string, node: View | null) => void;
-  registerSection: (categoryId: string, droppable: boolean, colorKey: CategoryColorKey, node: View | null, collapsed?: boolean) => void;
+  registerSection: (categoryId: string, droppable: boolean, node: View | null, collapsed?: boolean) => void;
   registerFolder: (id: string, node: View | null) => void;
   begin: (taskId: string, pointerY: number, pointerX: number, mouse: boolean) => void;
   update: (pointerY: number, pointerX: number) => void;
@@ -95,7 +94,7 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
   const opts = useRef(options);
   opts.current = options;
   const rows = useRef(new Map<string, { node: View | null; categoryId: string }>()).current;
-  const sections = useRef(new Map<string, { node: View | null; droppable: boolean; colorKey: CategoryColorKey; collapsed: boolean }>()).current;
+  const sections = useRef(new Map<string, { node: View | null; droppable: boolean; collapsed: boolean }>()).current;
   const folders = useRef(new Map<string, View | null>()).current;
   const session = useRef<Session | null>(null);
 
@@ -134,7 +133,7 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
       // A collapsed list has no rows to aim at: its header is the target and a drop appends.
       const index = chosen.collapsed ? Number.MAX_SAFE_INTEGER : chosen.rows.filter((row) => (row.top + row.bottom) / 2 < py).length;
       s.drop = { categoryId: chosen.categoryId, index, blocked };
-      const next: DropTarget | null = blocked ? null : { categoryId: chosen.categoryId, colorKey: chosen.colorKey, index, beforeId: chosen.rows[index]?.id, afterId: index >= chosen.rows.length ? chosen.rows[chosen.rows.length - 1]?.id : undefined, empty: chosen.rows.length === 0 };
+      const next: DropTarget | null = blocked ? null : { categoryId: chosen.categoryId, index, beforeId: chosen.rows[index]?.id, afterId: index >= chosen.rows.length ? chosen.rows[chosen.rows.length - 1]?.id : undefined, empty: chosen.rows.length === 0 };
       // Rows from the insertion point on move down to open a gap; rows below the dragged row's old slot move up to close its hole.
       const shifts: Record<string, number> = {};
       if (next) {
@@ -179,7 +178,7 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
 
     return {
       registerRow: (id, categoryId, node) => { if (node) rows.set(id, { node, categoryId }); else rows.delete(id); },
-      registerSection: (categoryId, droppable, colorKey, node, collapsed = false) => { if (node) sections.set(categoryId, { node, droppable, colorKey, collapsed }); else sections.delete(categoryId); },
+      registerSection: (categoryId, droppable, node, collapsed = false) => { if (node) sections.set(categoryId, { node, droppable, collapsed }); else sections.delete(categoryId); },
       registerFolder: (id, node) => { if (node) folders.set(id, node); else folders.delete(id); },
       begin: (taskId, pointerY, pointerX, mouse) => {
         const row = rows.get(taskId);
@@ -207,7 +206,7 @@ export function useTaskDragController(options: ControllerOptions): TaskDragContr
             const rowBoxes = await Promise.all(Array.from(rows.entries()).filter(([id, item]) => !section.collapsed && item.categoryId === categoryId && id !== taskId).map(async ([id, item]) => ({ id, box: await measure(item.node) })));
             if (!box) return null;
             const geo: SectionGeo = {
-              categoryId, colorKey: section.colorKey, droppable: section.droppable, collapsed: section.collapsed, top: box.top + startScroll, bottom: box.bottom + startScroll,
+              categoryId, droppable: section.droppable, collapsed: section.collapsed, top: box.top + startScroll, bottom: box.bottom + startScroll,
               rows: rowBoxes.flatMap((entry) => entry.box ? [{ id: entry.id, top: entry.box.top + startScroll, bottom: entry.box.bottom + startScroll }] : []).sort((a, b) => a.top - b.top),
             };
             return geo;

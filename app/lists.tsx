@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { ListColorPicker } from '@/components/ListColorPicker';
 import { RoutineRepeatPicker } from '@/components/RoutineRepeatPicker';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { confirmAction } from '@/domain/confirm';
 import { selectActiveCategories, selectRepeatSummary, selectRoutinesForList } from '@/domain/selectors';
 import type { Category, Routine } from '@/domain/types';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
-import { categoryColorKeys, categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface ListRowProps { category: Category; routines: Routine[]; first: boolean; last: boolean; onlyOne: boolean }
 
@@ -21,7 +23,7 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
   const [picking, setPicking] = useState(false);
   const [repeatFor, setRepeatFor] = useState<string | null>(null);
   useEffect(() => setName(category.name), [category.name]);
-  const palette = categoryPalette[category.colorKey];
+  const palette = useCategoryPalette()(category);
 
   const commit = () => {
     if (!name.trim()) { setName(category.name); return; }
@@ -41,15 +43,7 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
         <Pressable accessibilityRole="button" accessibilityLabel={`Move ${category.name} up`} disabled={first} onPress={() => moveCategory(category.id, -1)} style={[styles.arrow, first && styles.disabled]}><Ionicons name="arrow-up" size={16} color={colors.ink} /></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={`Move ${category.name} down`} disabled={last} onPress={() => moveCategory(category.id, 1)} style={[styles.arrow, last && styles.disabled]}><Ionicons name="arrow-down" size={16} color={colors.ink} /></Pressable>
       </View>
-      {picking ? (
-        <View style={styles.swatches}>
-          {categoryColorKeys.map((key) => (
-            <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Use ${key}`} accessibilityState={{ selected: key === category.colorKey }} onPress={() => { updateCategory(category.id, { colorKey: key }); setPicking(false); }} style={[styles.swatchRing, key === category.colorKey && { borderColor: categoryPalette[key].solid }]}>
-              <View style={[styles.swatch, { backgroundColor: categoryPalette[key].solid }]} />
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      {picking ? <ListColorPicker category={category} style={styles.picker} /> : null}
       {routines.length > 0 ? (
         <View style={styles.routines}>
           <Text style={styles.routinesLabel}>Routines</Text>
@@ -119,9 +113,7 @@ const styles = StyleSheet.create({
   nameInput: { flex: 1, minWidth: 0, minHeight: 40, ...type.bodyMedium, fontSize: 16, color: colors.ink, outlineStyle: 'none' as never, fontFamily },
   arrow: { width: 34, height: 34, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.track },
   disabled: { opacity: 0.3 },
-  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.sm, paddingLeft: 22 + space.sm },
-  swatchRing: { width: 34, height: 34, borderRadius: radius.round, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
-  swatch: { width: 22, height: 22, borderRadius: radius.round },
+  picker: { marginTop: space.sm, paddingLeft: 22 + space.sm },
   routines: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: space.sm, paddingLeft: 22 + space.sm },
   routinesLabel: { ...type.meta, color: colors.muted, fontFamily },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingLeft: 11, paddingRight: 8, borderRadius: radius.round },

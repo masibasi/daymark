@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { categoryPalette, colors, fontFamily, radius, space, type, type CategoryColorKey } from '@/theme/tokens';
+import type { ResolvedPalette } from '@/theme/palette';
+import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 interface InlineAddProps {
   listName: string;
-  colorKey: CategoryColorKey;
+  palette: ResolvedPalette;
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -15,8 +16,7 @@ interface InlineAddProps {
 }
 
 // A quiet "+ Add" row that turns into an inline input at the end of a list section.
-export function InlineAdd({ listName, colorKey, open, onOpen, onClose, onAddTask, onSaveRoutine, onReveal }: InlineAddProps) {
-  const palette = categoryPalette[colorKey];
+export function InlineAdd({ listName, palette, open, onOpen, onClose, onAddTask, onSaveRoutine, onReveal }: InlineAddProps) {
   const [title, setTitle] = useState('');
   const wrapRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);

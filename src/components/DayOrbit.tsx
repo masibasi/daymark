@@ -3,7 +3,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
-import { categoryPalette, colors, darkColors, lightColors, motion, type CategoryColorKey } from '@/theme/tokens';
+import { listColors, type ListColors } from '@/theme/palette';
+import { colors, darkColors, lightColors, motion } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 
@@ -123,6 +124,9 @@ function Ripple({ size, radiusValue, color, fireKey, outline }: { size: number; 
   );
 }
 
+type Colored = Pick<DayOrbitSegment, 'colors' | 'colorKey'>;
+const segmentColors = (segment: Colored): ListColors => segment.colors ?? listColors({ colorKey: segment.colorKey ?? 'study' });
+
 export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false, variant, scheme }: DayOrbitProps) {
   const storeVariant = useDaymarkStore((s) => s.dayMarkVariant);
   const activeVariant = variant ?? storeVariant;
@@ -139,7 +143,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
   const breathe = useRef(new Animated.Value(0)).current;
   const isDark = scheme ? scheme === 'dark' : colors.canvas === darkColors.canvas;
   const activeColors = scheme === 'light' ? lightColors : scheme === 'dark' ? darkColors : colors;
-  const markColor = (colorKey: CategoryColorKey) => (isDark ? categoryPalette[colorKey].markDark : categoryPalette[colorKey].markLight);
+  const markColor = (segment: Colored) => { const c = segmentColors(segment); return isDark ? c.markDark : c.markLight; };
   let completedOffset = 0;
 
   const tweenEnabled = animate && !reduceMotion && activeVariant !== 'current';
@@ -192,7 +196,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           {completion > 0 ? <G clipPath={`url(#${clipId})`}>
             <Path
               d={`M ${size / 2 - innerRadius - 2} ${liquidY} C ${size * 0.38} ${liquidY - size * 0.018}, ${size * 0.62} ${liquidY + size * 0.018}, ${size / 2 + innerRadius + 2} ${liquidY} L ${size} ${size} L 0 ${size} Z`}
-              fill={categoryPalette[segments[0].colorKey].soft}
+              fill={(isDark ? segmentColors(segments[0]).softDark : segmentColors(segments[0]).softLight)}
               opacity={0.34}
             />
             {liquidSegments.map((segment, index) => {
@@ -205,7 +209,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
               const blobRadiusY = complete ? innerRadius * 0.76 : innerRadius * 0.72;
               const centerX = complete ? size / 2 + Math.cos(angle) * innerRadius * 0.28 : (start + end) / 2 + (index % 2 === 0 ? -size * 0.012 : size * 0.012);
               const centerY = complete ? size / 2 + Math.sin(angle) * innerRadius * 0.24 : liquidY + blobRadiusY + (index % 2 === 0 ? size * 0.008 : -size * 0.006);
-              const color = categoryPalette[segment.colorKey].solid;
+              const color = segmentColors(segment).solid;
               return (
                 <G key={`liquid-${segment.categoryId}`}>
                   <Ellipse cx={centerX} cy={centerY} rx={blobRadiusX} ry={blobRadiusY} fill={color} opacity={complete ? 0.3 : 0.18 + segment.completion * 0.12} />
@@ -219,7 +223,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
             const fillDash = circumference * segment.share * segment.completion;
             const start = completedOffset;
             completedOffset += fillDash;
-            const palette = categoryPalette[segment.colorKey];
+            const palette = segmentColors(segment);
             return fillDash > 0 ? (
               <Circle
                 key={segment.categoryId}
@@ -245,7 +249,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
 
   const center = size / 2;
   const dominantSegment = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
-  const ripple = animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment.colorKey)} fireKey={rippleKey} /> : null;
+  const ripple = animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment)} fireKey={rippleKey} /> : null;
   const label = `${Math.round(completion * 100)} percent complete daily mark`;
 
   if (activeVariant === 'doodle') {
@@ -261,12 +265,12 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
     const layer = (withCaps: boolean) => (
       <>
         {runs.map((arc) => (
-          <Path key={arc.segment.categoryId} d={closed && runs.length === 1 ? doodleClosedPath(loop) : doodleArcPath(loop, arc.from, Math.min(arc.to, 1))} fill="none" stroke={markColor(arc.segment.colorKey)} strokeWidth={doodleStroke} strokeLinecap="butt" strokeLinejoin="round" />
+          <Path key={arc.segment.categoryId} d={closed && runs.length === 1 ? doodleClosedPath(loop) : doodleArcPath(loop, arc.from, Math.min(arc.to, 1))} fill="none" stroke={markColor(arc.segment)} strokeWidth={doodleStroke} strokeLinecap="butt" strokeLinejoin="round" />
         ))}
         {withCaps && !closed && first && last && filled > 0.001 ? (
           <>
-            <Circle cx={doodlePointAt(loop, first.from)[0]} cy={doodlePointAt(loop, first.from)[1]} r={capR} fill={markColor(first.segment.colorKey)} />
-            <Circle cx={doodlePointAt(loop, filled)[0]} cy={doodlePointAt(loop, filled)[1]} r={capR} fill={markColor(last.segment.colorKey)} />
+            <Circle cx={doodlePointAt(loop, first.from)[0]} cy={doodlePointAt(loop, first.from)[1]} r={capR} fill={markColor(first.segment)} />
+            <Circle cx={doodlePointAt(loop, filled)[0]} cy={doodlePointAt(loop, filled)[1]} r={capR} fill={markColor(last.segment)} />
           </>
         ) : null}
       </>
@@ -283,7 +287,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           <Path d={doodleClosedPath(loop)} fill="none" stroke={activeColors.track} strokeWidth={doodleStroke} strokeLinejoin="round" />
           {layer(true)}
         </Svg>
-        {animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment.colorKey)} fireKey={rippleKey} outline={doodleClosedPath(loop)} /> : null}
+        {animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment)} fireKey={rippleKey} outline={doodleClosedPath(loop)} /> : null}
       </Animated.View>
     );
   }
@@ -296,7 +300,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           {ringArcs.map(({ segment, fillDash, start }) => fillDash > 0 ? (
             <Circle
               key={segment.categoryId} cx={center} cy={center} r={radiusValue} fill="none"
-              stroke={markColor(segment.colorKey)} strokeWidth={strokeWidth} strokeLinecap="butt"
+              stroke={markColor(segment)} strokeWidth={strokeWidth} strokeLinecap="butt"
               strokeDasharray={`${fillDash} ${circumference - fillDash}`}
               strokeDashoffset={-start} transform={`rotate(-90 ${center} ${center})`}
             />
@@ -319,14 +323,14 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
           {ringArcs.map(({ segment, fillDash, start }) => fillDash > 0 ? (
             <Circle
               key={segment.categoryId} cx={center} cy={center} r={radiusValue} fill="none"
-              stroke={markColor(segment.colorKey)} strokeOpacity={0.8} strokeWidth={glassStroke} strokeLinecap="butt"
+              stroke={markColor(segment)} strokeOpacity={0.8} strokeWidth={glassStroke} strokeLinecap="butt"
               strokeDasharray={`${fillDash} ${circumference - fillDash}`}
               strokeDashoffset={-start} transform={`rotate(-90 ${center} ${center})`}
             />
           ) : null)}
           <Circle cx={center} cy={center} r={innerRadius} fill={isDark ? activeColors.white : activeColors.ink} opacity={isDark ? 0.03 : 0.02} />
           <Circle cx={center} cy={center} r={innerRadius} fill="none" stroke={activeColors.ink} strokeWidth={0.75} opacity={0.08} />
-          {complete && dominant ? <Circle cx={center} cy={center} r={innerRadius} fill={markColor(dominant.colorKey)} opacity={0.12} /> : null}
+          {complete && dominant ? <Circle cx={center} cy={center} r={innerRadius} fill={markColor(dominant)} opacity={0.12} /> : null}
           {showHighlight ? (
             <Path
               d={`M ${center - radiusValue * 0.62} ${center - radiusValue * 0.74} A ${radiusValue} ${radiusValue} 0 0 1 ${center + radiusValue * 0.1} ${center - radiusValue * 0.99}`}
@@ -350,7 +354,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
     const bandRadius = innerRadius - bandWidth * (layer + 0.5);
     const bandCircumference = 2 * Math.PI * bandRadius;
     return ringArcs.flatMap(({ segment, fillDash, start }) => fillDash > 0 ? [{
-      key: `${layer}-${segment.categoryId}`, colorKey: segment.colorKey, radius: bandRadius, width: bandWidth + 0.4,
+      key: `${layer}-${segment.categoryId}`, colors: segment.colors, colorKey: segment.colorKey, radius: bandRadius, width: bandWidth + 0.4,
       dash: (fillDash / circumference) * bandCircumference, offset: (start / circumference) * bandCircumference, circumference: bandCircumference,
       opacity: washOpacity * (1 - layer / washLayers),
     }] : []);
@@ -362,7 +366,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
         {washBands.map((band) => (
           <Circle
             key={band.key} cx={center} cy={center} r={band.radius} fill="none"
-            stroke={markColor(band.colorKey)} strokeOpacity={band.opacity} strokeWidth={band.width} strokeLinecap="butt"
+            stroke={markColor(band)} strokeOpacity={band.opacity} strokeWidth={band.width} strokeLinecap="butt"
             strokeDasharray={`${band.dash} ${band.circumference - band.dash}`}
             strokeDashoffset={-band.offset} transform={`rotate(-90 ${center} ${center})`}
           />
@@ -371,7 +375,7 @@ export function DayOrbit({ segments, size = 42, strokeWidth = 6, animate = false
         {ringArcs.map(({ segment, fillDash, start }) => fillDash > 0 ? (
           <Circle
             key={segment.categoryId} cx={center} cy={center} r={radiusValue} fill="none"
-            stroke={markColor(segment.colorKey)} strokeWidth={strokeWidth} strokeLinecap="butt"
+            stroke={markColor(segment)} strokeWidth={strokeWidth} strokeLinecap="butt"
             strokeDasharray={`${fillDash} ${circumference - fillDash}`}
             strokeDashoffset={-start} transform={`rotate(-90 ${center} ${center})`}
           />

@@ -1,4 +1,5 @@
 import { Appearance, Easing, Platform } from 'react-native';
+import { contrast } from './color';
 
 export const lightColors = {
   canvas: '#FFFFFF',
@@ -48,9 +49,14 @@ export const categoryColorKeys = Object.keys(categoryPalette) as CategoryColorKe
 
 export type CategoryColorKey = keyof typeof categoryPalette;
 
-// Colour for a checkmark drawn on a filled list colour: yellow and lime are too light for white.
+// Colour for a checkmark drawn on a filled list colour: yellow and lime are too light for white. Custom colours decide by contrast.
 const lightSolids: string[] = [categoryPalette.yellow.solid, categoryPalette.lime.solid];
-export const onSolid = (solid: string) => (lightSolids.includes(solid) ? lightColors.ink : lightColors.white);
+const presetSolids: string[] = Object.values(categoryPalette).map((palette) => palette.solid);
+export const onSolid = (solid: string) => {
+  if (lightSolids.includes(solid)) return lightColors.ink;
+  if (presetSolids.includes(solid)) return lightColors.white;
+  return contrast(solid, lightColors.white) < 2.3 ? lightColors.ink : lightColors.white;
+};
 
 export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 48 } as const;
 export const radius = { sm: 10, md: 16, lg: 24, round: 999 } as const;

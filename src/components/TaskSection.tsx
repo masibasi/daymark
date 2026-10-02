@@ -2,7 +2,8 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Category, Routine, Task } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, motion, space, type } from '@/theme/tokens';
+import { useCategoryPalette } from '@/store/useCategoryPalette';
+import { colors, fontFamily, motion, space, type } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { Collapsible } from './Collapsible';
 import { DragRow } from './DragRow';
@@ -44,7 +45,7 @@ interface TaskSectionProps {
 }
 
 export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, collapsed, onToggleCollapsed, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, ghostMeta, onRemoveRoutine, onReveal }: TaskSectionProps) {
-  const palette = categoryPalette[category.colorKey];
+  const palette = useCategoryPalette()(category);
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   const controller = useContext(TaskDragContext);
   const [repeatFor, setRepeatFor] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
   );
 
   return (
-    <View ref={(node) => controller?.registerSection(category.id, !category.archived, category.colorKey, node, collapsed)} collapsable={false} style={[styles.section, lifted && styles.lifted]}>
+    <View ref={(node) => controller?.registerSection(category.id, !category.archived, node, collapsed)} collapsable={false} style={[styles.section, lifted && styles.lifted]}>
       <View style={styles.heading}>
         {category.archived ? <View style={styles.titleRow}>{headingContent}</View> : (
           <Pressable accessibilityRole="button" accessibilityLabel={`Edit list ${category.name}`} accessibilityState={{ expanded: editingList }} onPress={onToggleEditList} style={(state) => [styles.titleRow, (state as { hovered?: boolean }).hovered && styles.hovered]}>
@@ -96,7 +97,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
         <Collapsible open={!collapsed}>
         {tasks.map((task) => (
           <RowPresence key={task.id} enter={!knownNow.has(task.id) && !justDragged()} quiet={isQuietEnter()} leaving={task.id in leaving} onGone={() => gone(task.id)}>
-          <DragRow taskId={task.id} categoryId={category.id} colorKey={category.colorKey}>
+          <DragRow taskId={task.id} categoryId={category.id}>
           <TaskRow
             task={task}
             onToggle={() => onToggle(task.id)}
@@ -110,13 +111,13 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
           </DragRow>
           </RowPresence>
         ))}
-        {missed.map((task) => <MissedRow key={task.id} task={task} colorKey={category.colorKey} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
+        {missed.map((task) => <MissedRow key={task.id} task={task} palette={palette} folderName={task.projectId ? projectNames[task.projectId] : undefined} />)}
         {ghosts.map((routine) => (
-          <GhostRoutineRow key={routine.id} routine={routine} colorKey={category.colorKey} onAdd={() => onAddFromRoutine(routine.id)} meta={ghostMeta(routine)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRepeat={() => setRepeatFor(routine.id)} onRemove={() => onRemoveRoutine(routine.id)} />
+          <GhostRoutineRow key={routine.id} routine={routine} palette={palette} onAdd={() => onAddFromRoutine(routine.id)} meta={ghostMeta(routine)} onAddDone={() => onAddFromRoutine(routine.id, true)} onRepeat={() => setRepeatFor(routine.id)} onRemove={() => onRemoveRoutine(routine.id)} />
         ))}
         {category.archived ? null : (
           <InlineAdd
-            listName={category.name} colorKey={category.colorKey} open={adding}
+            listName={category.name} palette={palette} open={adding}
             onOpen={onOpenAdd} onClose={onCloseAdd} onReveal={onReveal}
             onAddTask={(title) => onAddTask(title, category.id)} onSaveRoutine={(title) => onAddRoutine(title, category.id)}
           />

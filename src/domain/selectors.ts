@@ -1,10 +1,13 @@
 import { addDays, differenceInCalendarDays, endOfWeek, format, isSameDay, isWithinInterval, parseISO, startOfDay, startOfWeek } from 'date-fns';
+import { listColors, type ListColors } from '@/theme/palette';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import type { CalendarEvent, Category, CategoryId, Project, Routine, RoutineRepeat, Task } from './types';
 
 export interface DayOrbitSegment {
   categoryId: CategoryId;
-  colorKey: CategoryColorKey;
+  // Resolved light/dark solid, soft and mark colors, so DayOrbit never needs the store. Hand-built segments (Settings previews) may give only colorKey.
+  colors?: ListColors;
+  colorKey?: CategoryColorKey;
   share: number;
   completion: number;
 }
@@ -126,7 +129,7 @@ export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[])
     const categoryTasks = relevant.filter((task) => task.categoryId === category.id);
     if (categoryTasks.length === 0) return [];
     const completed = categoryTasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
-    return [{ categoryId: category.id, colorKey: category.colorKey, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length }];
+    return [{ categoryId: category.id, colors: listColors(category), colorKey: category.colorKey, share: categoryTasks.length / relevant.length, completion: completed / categoryTasks.length }];
   });
 }
 

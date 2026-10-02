@@ -50,7 +50,7 @@ interface DaymarkState {
   setCalendarDate: (date: string) => void;
   addTask: (title: string, categoryId: Task['categoryId']) => void;
   addCategory: (name: string, colorKey?: CategoryColorKey) => void;
-  updateCategory: (id: CategoryId, patch: { name?: string; colorKey?: CategoryColorKey }) => void;
+  updateCategory: (id: CategoryId, patch: { name?: string; colorKey?: CategoryColorKey; color?: string | null }) => void;
   moveCategory: (id: CategoryId, direction: -1 | 1) => void;
   archiveCategory: (id: CategoryId) => void;
   addRoutine: (title: string, categoryId: CategoryId) => void;
@@ -182,9 +182,13 @@ export const useDaymarkStore = create<DaymarkState>()(
         return { categories: [...state.categories, { id: newId('list'), name: name.trim(), colorKey: colorKey ?? nextColorKey(state.categories), order }] };
       }),
       updateCategory: (id, patch) => set((state) => ({
-        categories: state.categories.map((category) => category.id === id
-          ? { ...category, name: patch.name?.trim() ? patch.name.trim() : category.name, colorKey: patch.colorKey ?? category.colorKey }
-          : category),
+        categories: state.categories.map((category) => {
+          if (category.id !== id) return category;
+          // `color: null` clears the custom color (back to the colorKey preset); the field is dropped rather than stored as undefined.
+          const { color: current, ...rest } = category;
+          const color = patch.color === undefined ? current : patch.color ?? undefined;
+          return { ...rest, name: patch.name?.trim() ? patch.name.trim() : category.name, colorKey: patch.colorKey ?? category.colorKey, ...(color ? { color } : {}) };
+        }),
       })),
       moveCategory: (id, direction) => set((state) => {
         const list = activeOrdered(state.categories);
