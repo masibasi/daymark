@@ -81,7 +81,7 @@ export default function FoldersScreen() {
           eyebrow="Persistent work"
           title="Folders"
           subtitle="Keep work in folders; pull what you need into today."
-          action={<NewProjectComposer categories={categories} onCreate={addProject} />}
+          action={<NewProjectComposer categories={categories} projects={projects} onCreate={addProject} />}
         />
         <View style={styles.summary}>
           <Text style={styles.summaryNumber}>{activeCount}</Text>

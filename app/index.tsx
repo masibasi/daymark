@@ -14,6 +14,7 @@ import { PressableScale } from '@/components/PressableScale';
 import { ScheduleList } from '@/components/ScheduleList';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipePager } from '@/components/SwipePager';
+import { TodaySchedule } from '@/components/TodaySchedule';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
 import { selectCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
@@ -27,8 +28,7 @@ export default function TodayScreen() {
   const { width, height } = useWindowDimensions();
   const wide = width >= 820;
   const phone = width < 760;
-  const desk = width >= 760; // tablet + desktop: independent columns (left rail of context, tasks, schedule at >= 1400)
-  const scheduleThird = width >= 1400;
+  const desk = width >= 760; // tablet + desktop: independent columns (context on the left; schedule + tasks in the main column)
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [page, setPage] = useState<'tasks' | 'schedule'>('tasks');
   const tabBox = useRef<Record<string, { x: number; width: number }>>({});
@@ -51,6 +51,9 @@ export default function TodayScreen() {
   const routines = useDaymarkStore((state) => state.routines);
   const collapsedListIds = useDaymarkStore((state) => state.collapsedListIds);
   const dayMarkCollapsed = useDaymarkStore((state) => state.dayMarkCollapsedDesktop);
+  const scheduleCollapsed = useDaymarkStore((state) => state.scheduleCollapsed);
+  const toggleSchedule = useDaymarkStore((state) => state.toggleSchedule);
+  const hasFeeds = useDaymarkStore((state) => state.calendarFeeds.some((feed) => feed.enabled));
   const toggleDayMark = useDaymarkStore((state) => state.toggleDayMarkDesktop);
   const toggleListCollapsed = useDaymarkStore((state) => state.toggleListCollapsed);
   const tasks = useDaymarkStore((state) => state.tasks);
@@ -141,10 +144,10 @@ export default function TodayScreen() {
   const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
   const folderList = <DeadlineStrip projects={folders} tasks={tasks} now={now()} vertical />;
-  const scheduleBlock = <View><Text style={styles.sectionLabel}>Schedule</Text><View style={styles.scheduleAsideBody}>{schedule}</View></View>;
 
   const tasksColumn = (
     <View style={[styles.tasksColumn, phone && styles.tasksColumnPhone, desk && styles.tasksColumnDesk]}>
+      {desk ? <TodaySchedule events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} hasFeeds={hasFeeds} collapsed={scheduleCollapsed} onToggleCollapsed={toggleSchedule} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} /> : null}
       {carryover ? (
         <CarryoverBanner
           day={carryover.day} tasks={carryover.tasks}
@@ -201,7 +204,6 @@ export default function TodayScreen() {
             <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
-            {scheduleThird ? null : <View style={styles.deskBlock}>{scheduleBlock}</View>}
             <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
           </ScrollView>
           <ScrollView
@@ -211,7 +213,6 @@ export default function TodayScreen() {
             onContentSizeChange={(_w, h) => { maxScrollY.current = Math.max(0, h - viewportHeight.current); }}>
             <View ref={contentRef} collapsable={false}>{tasksColumn}</View>
           </ScrollView>
-          {scheduleThird ? <ScrollView {...scrollProps} style={styles.deskSchedule} contentContainerStyle={styles.deskScheduleContent}>{scheduleBlock}</ScrollView> : null}
         </View>
       </TaskDragContext.Provider>
     );
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   sectionLabel: { ...type.section, color: colors.ink, fontFamily },
   sectionHint: { ...type.meta, color: colors.muted, fontFamily },
   tasksColumn: { width: '100%', maxWidth: 700, marginTop: space.xl },
-  tasksColumnDesk: { maxWidth: 720, marginTop: 0 },
+  tasksColumnDesk: { maxWidth: 760, marginTop: 0 },
   desk: { flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: 'row', paddingHorizontal: space.lg, gap: space.xl },
   deskLeft: { width: 360, flexGrow: 0, flexShrink: 0 },
   deskLeftNarrow: { width: 300 },
@@ -301,10 +302,7 @@ const styles = StyleSheet.create({
   deskBlock: { marginTop: space.lg },
   deskMain: { flex: 1, minWidth: 0 },
   deskMainContent: { paddingTop: space.xl, paddingBottom: space.xxl * 2, paddingHorizontal: space.xs },
-  deskSchedule: { width: 280, flexGrow: 0, flexShrink: 0 },
-  deskScheduleContent: { paddingTop: space.xl, paddingBottom: space.xxl },
   tasksColumnPhone: { marginTop: space.sm },
-  scheduleAsideBody: { marginTop: space.sm },
   scheduleSection: { marginTop: space.xl, maxWidth: 700 },
   schedulePage: { paddingTop: space.xs },
   tabs: { flexDirection: 'row', gap: space.lg, marginTop: space.md, borderBottomWidth: 1, borderColor: colors.line },

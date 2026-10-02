@@ -3,28 +3,32 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { selectActiveCategories } from '@/domain/selectors';
-import type { Category, CategoryId } from '@/domain/types';
+import type { Category, CategoryId, Project } from '@/domain/types';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useDaymarkTheme } from '@/theme/useDaymarkTheme';
 import { DatePickerModal } from './DatePickerModal';
 
 interface NewProjectComposerProps {
   categories: Category[];
+  projects: Project[];
   onCreate: (input: { title: string; categoryId: CategoryId; deadline?: string; pinned?: boolean }) => void;
 }
 
 // New folder: a title and a list are enough. A deadline is a quiet, optional add-on; "Pin to Today" defaults off.
-export function NewProjectComposer({ categories, onCreate }: NewProjectComposerProps) {
+export function NewProjectComposer({ categories, projects, onCreate }: NewProjectComposerProps) {
   const { colors: themeColors, category } = useDaymarkTheme();
   const activeCategories = selectActiveCategories(categories);
+  // Preselect the list of the most recently created folder (projects are appended on creation), else the first active list.
+  const lastCategoryId = projects.length ? projects[projects.length - 1].categoryId : undefined;
+  const defaultCategoryId = activeCategories.find((item) => item.id === lastCategoryId)?.id ?? activeCategories[0]?.id ?? '';
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState<CategoryId>(activeCategories[0]?.id ?? '');
+  const [categoryId, setCategoryId] = useState<CategoryId>(defaultCategoryId);
   const [deadline, setDeadline] = useState<string | undefined>(undefined);
   const [pinned, setPinned] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const reset = () => { setTitle(''); setCategoryId(activeCategories[0]?.id ?? ''); setDeadline(undefined); setPinned(false); setOpen(false); };
+  const reset = () => { setTitle(''); setCategoryId(defaultCategoryId); setDeadline(undefined); setPinned(false); setOpen(false); };
 
   const submit = () => {
     if (!title.trim()) return;
@@ -34,7 +38,7 @@ export function NewProjectComposer({ categories, onCreate }: NewProjectComposerP
 
   return (
     <>
-      <Pressable accessibilityLabel="New folder" onPress={() => setOpen(true)} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
+      <Pressable accessibilityLabel="New folder" onPress={() => { setCategoryId(defaultCategoryId); setOpen(true); }} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
         <Ionicons name="add" size={17} color={themeColors.ink} />
         <Text style={[styles.triggerText, { color: themeColors.ink }]}>New folder</Text>
       </Pressable>
