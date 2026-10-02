@@ -1,12 +1,16 @@
+import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, parseISO, setHours, startOfWeek } from 'date-fns';
+import { eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, isSameWeek, parseISO, setHours, startOfWeek } from 'date-fns';
+import { now } from '@/domain/clock';
 import { selectEventsOnDay } from '@/domain/selectors';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
 import { colors, fontFamily, type } from '@/theme/tokens';
 import { CalendarBlock } from './CalendarBlock';
 
-const START_HOUR = 8;
-const END_HOUR = 21;
+// The full day is scrollable; the grid opens near the current hour (this week) or at 7 AM (other weeks).
+const START_HOUR = 0;
+const END_HOUR = 24;
+const DEFAULT_HOUR = 7;
 
 interface WeekGridProps {
   anchor: Date;
@@ -26,6 +30,14 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
   const days = compact ? weekDays.slice(0, 3) : weekDays;
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index);
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
+  const scroller = useRef<ScrollView>(null);
+  const weekKey = format(weekStart, 'yyyy-MM-dd');
+  useEffect(() => {
+    const current = now();
+    const hour = isSameWeek(anchor, current, { weekStartsOn: 1 }) ? Math.max(0, Math.min(getHours(current) - 1, 16)) : DEFAULT_HOUR;
+    const id = setTimeout(() => scroller.current?.scrollTo({ y: hour * hourHeight, animated: false }), 0);
+    return () => clearTimeout(id);
+  }, [weekKey, hourHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <View style={styles.frame}>
@@ -40,10 +52,10 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
           return <View key={day.toISOString()} style={styles.allDayCell}>{dayEvents.map((event) => <CalendarBlock key={event.id} event={event} compact onPress={() => onEventPress(event, day)} />)}</View>;
         })}
       </View>
-      <ScrollView style={styles.scroller} contentContainerStyle={{ height: (END_HOUR - START_HOUR) * hourHeight }}>
+      <ScrollView ref={scroller} style={styles.scroller} contentContainerStyle={{ height: (END_HOUR - START_HOUR) * hourHeight }}>
         <View style={styles.gridRow}>
           <View style={styles.timeGutter}>
-            {hours.slice(0, -1).map((hour) => <Text key={hour} style={[styles.hourLabel, { top: (hour - START_HOUR) * hourHeight - 8 }]}>{format(setHours(new Date(2026, 0, 1), hour), 'h a')}</Text>)}
+            {hours.slice(0, -1).map((hour) => <Text key={hour} style={[styles.hourLabel, { top: Math.max(0, (hour - START_HOUR) * hourHeight - 8) }]}>{format(setHours(new Date(2026, 0, 1), hour), 'h a')}</Text>)}
           </View>
           {days.map((day) => {
             const dayEvents = events.filter((event) => !event.allDay && isSameDay(parseISO(event.startAt), day));
@@ -70,7 +82,8 @@ function PositionedBlock({ startAt, endAt, hourHeight, children }: { startAt: st
   const start = parseISO(startAt);
   const end = parseISO(endAt);
   const startMinutes = (getHours(start) - START_HOUR) * 60 + getMinutes(start);
-  const duration = Math.max(30, (end.getTime() - start.getTime()) / 60000);
+  // Blocks that run past midnight are clipped to the end of the grid.
+  const duration = Math.min(Math.max(30, (end.getTime() - start.getTime()) / 60000), (END_HOUR - START_HOUR) * 60 - startMinutes);
   return <View style={[styles.positioned, { top: (startMinutes / 60) * hourHeight + 2, height: (duration / 60) * hourHeight - 4 }]}>{children}</View>;
 }
 
