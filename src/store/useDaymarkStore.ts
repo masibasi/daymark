@@ -445,6 +445,8 @@ export const useDaymarkStore = create<DaymarkState>()(
         return old as DaymarkState;
       },
       onRehydrateStorage: () => (state) => {
+        // The Classic style was retired from Settings; anyone who had it moves to Watercolor wash.
+        if (state?.dayMarkVariant === 'current') state.setDayMarkVariant('wash');
         state?.setHasHydrated(true);
       },
     },
