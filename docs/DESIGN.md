@@ -113,7 +113,7 @@ Order: date header, one compact summary row, compact Upcoming strip, then a two-
 - Schedule page: the displayed day's CalendarEvents, all-day first, then timed events (time range under the title) with a neutral event rail (events are never list-colored). Empty state: "No events on this day." with a quiet "Connect a calendar in Settings" link.
 - Tapping an event expands it inline: an "Add to Today" pill for the default list (a list named Schedule/Calendar, else the list last used for an event import; with neither, the pill reads "Schedule (new)" and creates an active Schedule list in the next free colour as it adds) and "or in" chips for the other lists; one tap adds. Once added the row reads "Added" and is disabled.
 
-Between 760 and 1023px Today keeps the stacked layout (Day Mark card beside the history calendar, Folders strip, Schedule section, then tasks).
+From 760px up (tablet and desktop) Today uses the column layout: a context column on the left (300px below 1024, 360px above) and tasks on the right; Schedule becomes a third column at 1400px and up.
 
 ## Today on desktop (width ≥ 1024)
 

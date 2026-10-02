@@ -27,7 +27,7 @@ export default function TodayScreen() {
   const { width, height } = useWindowDimensions();
   const wide = width >= 820;
   const phone = width < 760;
-  const desk = width >= 1024; // desktop: independent columns (left rail of context, tasks, schedule at >= 1400)
+  const desk = width >= 760; // tablet + desktop: independent columns (left rail of context, tasks, schedule at >= 1400)
   const scheduleThird = width >= 1400;
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [page, setPage] = useState<'tasks' | 'schedule'>('tasks');
@@ -197,7 +197,7 @@ export default function TodayScreen() {
     return (
       <TaskDragContext.Provider value={drag}>
         <View style={styles.desk}>
-          <ScrollView {...scrollProps} style={styles.deskLeft} contentContainerStyle={styles.deskLeftContent}>
+          <ScrollView {...scrollProps} style={[styles.deskLeft, width < 1024 && styles.deskLeftNarrow]} contentContainerStyle={styles.deskLeftContent}>
             <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
   tasksColumnDesk: { maxWidth: 720, marginTop: 0 },
   desk: { flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: 'row', paddingHorizontal: space.lg, gap: space.xl },
   deskLeft: { width: 360, flexGrow: 0, flexShrink: 0 },
+  deskLeftNarrow: { width: 300 },
   deskLeftContent: { paddingTop: space.xl, paddingBottom: space.xxl },
   deskSummary: { marginTop: space.md },
   deskStack: { gap: space.sm, marginTop: space.sm },

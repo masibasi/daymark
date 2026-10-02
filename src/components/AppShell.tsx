@@ -42,7 +42,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </View>
       {desktop ? (
         <Link href="/settings" asChild>
-          <Pressable style={styles.avatar}><Text style={styles.avatarText}>{email ? email[0].toUpperCase() : 'JL'}</Text></Pressable>
+          <Pressable style={styles.avatar}>{email ? <Text style={styles.avatarText}>{email[0].toUpperCase()}</Text> : <Ionicons name="person-outline" size={18} color={colors.inkSoft} />}</Pressable>
         </Link>
       ) : null}
     </View>
