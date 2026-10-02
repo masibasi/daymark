@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { Project, Task } from '@/domain/types';
 import { Collapsible } from '@/components/Collapsible';
@@ -44,7 +44,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
         const palette = paletteFor(project.categoryId);
         const title = (
           <View style={[styles.titleRow, compact && styles.titleRowCompact]}>
-            {project.pinned ? <Ionicons name="pin" size={12} color={colors.muted} style={styles.pin} /> : null}
+            {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
             <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 1 : 2}>{project.title}</Text>
           </View>
         );
@@ -98,7 +98,7 @@ function DeadlinePanel({ project, tasks, now }: { project: Project; tasks: Task[
       <View style={styles.panel}>
         <View style={styles.panelHead}>
           <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
-          {project.pinned ? <Ionicons name="pin" size={12} color={colors.muted} /> : null}
+          {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
           <Text style={styles.panelTitle} numberOfLines={2}>{project.title}</Text>
           {days !== undefined ? <Text style={[styles.days, toneStyle(tone)]}>{selectDeadlineLabel(days)}</Text> : null}
         </View>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   urgent: { color: colors.danger },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, marginTop: space.sm, minHeight: 44 },
   titleRowCompact: { alignItems: 'center', flex: 1, minWidth: 0, marginTop: 0, minHeight: 0 },
-  pin: { marginTop: 5 },
+  pin: { marginTop: 2, transform: [{ rotate: '30deg' }] },
   title: { ...type.section, color: colors.ink, flex: 1, minWidth: 0, fontFamily },
   titleCompact: { ...type.bodyMedium },
   progressRowCompact: { marginTop: 6 },

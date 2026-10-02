@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { format, parseISO } from 'date-fns';
 import { DatePickerModal } from '@/components/DatePickerModal';
@@ -85,7 +85,7 @@ export default function ProjectDetailScreen() {
             )}
             <View style={styles.metaSpacer} />
             <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(project.pinned) }} accessibilityLabel={project.pinned ? 'Unpin from Today' : 'Pin to Today'} onPress={() => setProjectPinned(project.id, !project.pinned)} style={[styles.pinToggle, project.pinned && styles.pinToggleOn]}>
-              <Ionicons name={project.pinned ? 'pin' : 'pin-outline'} size={14} color={project.pinned ? colors.ink : colors.muted} />
+              <MaterialCommunityIcons name={project.pinned ? 'pin' : 'pin-outline'} size={15} color={project.pinned ? colors.ink : colors.muted} />
               <Text style={[styles.pinText, project.pinned && styles.pinTextOn]}>{project.pinned ? 'Pinned' : 'Pin'}</Text>
             </Pressable>
           </View>

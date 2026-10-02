@@ -1,5 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 import { router } from 'expo-router';
 import type { Project, Task } from '@/domain/types';
@@ -35,7 +35,7 @@ export function ProjectCard({ project, tasks, now, onMoveUp, onMoveDown }: Proje
     if (confirmed) deleteProject(project.id);
   };
   const items: FolderMenuItem[] = [
-    { label: project.pinned ? 'Unpin' : 'Pin to Today', icon: project.pinned ? 'pin-outline' : 'pin', onPress: () => setProjectPinned(project.id, !project.pinned) },
+    { label: project.pinned ? 'Unpin' : 'Pin to Today', icon: project.pinned ? 'pin-off' : 'pin', onPress: () => setProjectPinned(project.id, !project.pinned) },
     ...(onMoveUp ? [{ label: 'Move up', icon: 'arrow-up-outline' as const, onPress: onMoveUp }] : []),
     ...(onMoveDown ? [{ label: 'Move down', icon: 'arrow-down-outline' as const, onPress: onMoveDown }] : []),
     { label: 'Archive', icon: 'archive-outline', onPress: () => archiveProject(project.id) },
@@ -53,7 +53,7 @@ export function ProjectCard({ project, tasks, now, onMoveUp, onMoveDown }: Proje
             {days !== undefined ? <Text style={[styles.days, days < 0 && styles.overdue, days >= 0 && days <= 3 && { color: colors.accent }]}>{selectDeadlineLabel(days)}</Text> : null}
           </View>
           <View style={styles.titleRow}>
-            {project.pinned ? <Ionicons name="pin" size={13} color={colors.muted} /> : null}
+            {project.pinned ? <MaterialCommunityIcons name="pin" size={16} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
             <Text style={styles.title} numberOfLines={2}>{project.title}</Text>
           </View>
           {project.notes ? <Text style={styles.notes} numberOfLines={1}>{project.notes}</Text> : null}
@@ -70,6 +70,7 @@ export function ProjectCard({ project, tasks, now, onMoveUp, onMoveDown }: Proje
 }
 
 const styles = StyleSheet.create({
+  pin: { transform: [{ rotate: '30deg' }], marginTop: 2 },
   card: { width: '100%', flexDirection: 'row', backgroundColor: colors.paper, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, overflow: 'hidden', ...Platform.select({ web: { cursor: 'pointer' } as object, default: {} }) },
   accent: { width: 5 },
   content: { flex: 1, minWidth: 0, padding: space.lg, paddingTop: space.md },

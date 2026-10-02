@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
-export interface FolderMenuItem { label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void; danger?: boolean }
+export interface FolderMenuItem { label: string; icon: keyof typeof Ionicons.glyphMap | 'pin' | 'pin-off'; onPress: () => void; danger?: boolean }
 
 // The `…` menu on a folder card: a small floating sheet anchored to the button (same placement logic as the task row menu).
 export function FolderMenu({ label, items }: { label: string; items: FolderMenuItem[] }) {
@@ -35,7 +35,7 @@ export function FolderMenu({ label, items }: { label: string; items: FolderMenuI
           <View style={[styles.actions, { top, right }]}>
             {items.map((item) => (
               <Pressable key={item.label} accessibilityRole="button" onPress={() => { setOpen(false); item.onPress(); }} style={styles.action}>
-                <Ionicons name={item.icon} size={16} color={item.danger ? colors.danger : colors.inkSoft} />
+                {item.icon === 'pin' || item.icon === 'pin-off' ? <MaterialCommunityIcons name={item.icon} size={16} color={colors.inkSoft} /> : <Ionicons name={item.icon} size={16} color={item.danger ? colors.danger : colors.inkSoft} />}
                 <Text style={[styles.actionText, item.danger && styles.danger]}>{item.label}</Text>
               </Pressable>
             ))}
