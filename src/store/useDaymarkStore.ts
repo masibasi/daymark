@@ -142,7 +142,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       calendarView: 'week',
       calendarDate: now().toISOString(),
       selectedTodayDate: todayKey(),
-      dayMarkVariant: 'wash',
+      dayMarkVariant: 'doodle',
       hasHydrated: false,
       carryoverDismissed: [],
       lastDeleted: null,
@@ -444,7 +444,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         } else if (version < 1 || !Array.isArray(old.categories)) {
           // Only unreadable or pre-v1 data resets. Any other version (including a newer one written by a
           // later deploy) passes through so a version bump can never wipe someone's tasks.
-          return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'wash' as DayMarkVariant } as unknown as DaymarkState;
+          return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'doodle' as DayMarkVariant } as unknown as DaymarkState;
         }
         if (Array.isArray(old.projects)) {
           const ranked = old.projects.slice().sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));

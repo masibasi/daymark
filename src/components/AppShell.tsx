@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const nav = (
     <View style={desktop ? styles.sideNav : [styles.bottomNav, { paddingBottom: Math.max(insets.bottom, space.xs) }]}>
-      {desktop ? <Text style={styles.brandMark}>D</Text> : null}
+      {desktop ? <Image source={require('../../assets/brand-mark.png')} accessibilityLabel="Daymark" style={styles.brandMark} /> : null}
       <View style={desktop ? styles.sideItems : styles.bottomItems}>
         {navItems.map((item) => {
           const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row', backgroundColor: colors.canvas, fontFamily },
   content: { flex: 1, minWidth: 0 },
   sideNav: { width: 86, paddingVertical: space.lg, alignItems: 'center', borderRightWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.paper },
-  brandMark: { width: 42, height: 42, borderRadius: 15, textAlign: 'center', textAlignVertical: 'center', paddingTop: 7, overflow: 'hidden', backgroundColor: colors.ink, color: colors.paper, fontSize: 22, fontWeight: '800', fontFamily },
+  brandMark: { width: 42, height: 42, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.white },
   sideItems: { flex: 1, justifyContent: 'center', gap: space.md },
   bottomNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, paddingTop: space.xs, backgroundColor: colors.paper, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
   bottomItems: { flexDirection: 'row' },
