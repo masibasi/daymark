@@ -48,6 +48,8 @@ export default function TodayScreen() {
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
   const routines = useDaymarkStore((state) => state.routines);
+  const collapsedListIds = useDaymarkStore((state) => state.collapsedListIds);
+  const toggleListCollapsed = useDaymarkStore((state) => state.toggleListCollapsed);
   const tasks = useDaymarkStore((state) => state.tasks);
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
@@ -157,6 +159,8 @@ export default function TodayScreen() {
               projectNames={projectNames}
               adding={addingListId === group.category.id}
               editingList={editingListId === group.category.id}
+              collapsed={collapsedListIds.includes(group.category.id)}
+              onToggleCollapsed={() => toggleListCollapsed(group.category.id)}
               onToggleEditList={() => setEditingListId((current) => (current === group.category.id ? null : group.category.id))}
               onCloseEditList={() => setEditingListId((current) => (current === group.category.id ? null : current))}
               onOpenAdd={() => setAddingListId(group.category.id)}

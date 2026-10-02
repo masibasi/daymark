@@ -1,8 +1,10 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Category, Routine, Task } from '@/domain/types';
-import { categoryPalette, colors, fontFamily, space, type } from '@/theme/tokens';
+import { categoryPalette, colors, fontFamily, motion, space, type } from '@/theme/tokens';
+import { useReducedMotion } from '@/theme/useReducedMotion';
+import { Collapsible } from './Collapsible';
 import { DragRow } from './DragRow';
 import { GhostRoutineRow } from './GhostRoutineRow';
 import { RoutineRepeatPicker } from './RoutineRepeatPicker';
@@ -24,6 +26,8 @@ interface TaskSectionProps {
   projectNames: Record<string, string>;
   adding: boolean;
   editingList: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
   onToggleEditList: () => void;
   onCloseEditList: () => void;
   onToggle: (id: string) => void;
@@ -39,13 +43,16 @@ interface TaskSectionProps {
   onReveal: (node: View | null) => void;
 }
 
-export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, ghostMeta, onRemoveRoutine, onReveal }: TaskSectionProps) {
+export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, collapsed, onToggleCollapsed, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, ghostMeta, onRemoveRoutine, onReveal }: TaskSectionProps) {
   const palette = categoryPalette[category.colorKey];
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   const controller = useContext(TaskDragContext);
   const [repeatFor, setRepeatFor] = useState<string | null>(null);
   const lifted = useDragStore((state) => state.draggingCategoryId === category.id);
   const emptyLine = useDragStore((state) => state.target?.categoryId === category.id && state.target.empty === true);
+  const left = tasks.length - completed;
+  // Folding a list shut also closes its open add input.
+  const toggleCollapsed = () => { if (!collapsed && adding) onCloseAdd(); onToggleCollapsed(); };
   // Rows that appear after the list settled (add, routine, undo, schedule) enter softly; the first render and day changes do not.
   const known = useRef(new Set(tasks.map((task) => task.id)));
   const knownDate = useRef(selectedDate);
@@ -68,21 +75,25 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
     <>
       <View style={[styles.dot, { backgroundColor: palette.solid }]} />
       <Text style={styles.name}>{category.name}</Text>
-      {tasks.length + missed.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length + missed.length}</Text> : null}
+      <View style={styles.spacer} />
+      {tasks.length + missed.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length + missed.length}{collapsed && left > 0 ? <Text style={styles.left}> · {left} left</Text> : null}</Text> : null}
     </>
   );
 
   return (
-    <View ref={(node) => controller?.registerSection(category.id, !category.archived, category.colorKey, node)} collapsable={false} style={[styles.section, lifted && styles.lifted]}>
-      {category.archived ? <View style={styles.heading}>{headingContent}</View> : (
-        <Pressable accessibilityRole="button" accessibilityLabel={`Edit list ${category.name}`} accessibilityState={{ expanded: editingList }} onPress={onToggleEditList} style={(state) => [styles.heading, (state as { hovered?: boolean }).hovered && styles.hovered]}>
-          {headingContent}
-          <Ionicons name={editingList ? 'chevron-up' : 'chevron-down'} size={13} color={colors.muted} style={editingList ? undefined : styles.chevron} />
-        </Pressable>
-      )}
+    <View ref={(node) => controller?.registerSection(category.id, !category.archived, category.colorKey, node, collapsed)} collapsable={false} style={[styles.section, lifted && styles.lifted]}>
+      <View style={styles.heading}>
+        {category.archived ? <View style={styles.titleRow}>{headingContent}</View> : (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Edit list ${category.name}`} accessibilityState={{ expanded: editingList }} onPress={onToggleEditList} style={(state) => [styles.titleRow, (state as { hovered?: boolean }).hovered && styles.hovered]}>
+            {headingContent}
+          </Pressable>
+        )}
+        <CollapseToggle name={category.name} collapsed={collapsed} onPress={toggleCollapsed} />
+      </View>
       {editingList && !category.archived ? <ListQuickEdit category={category} onClose={onCloseEditList} /> : null}
       <View style={styles.tasks}>
         {emptyLine ? <View pointerEvents="none" style={[styles.line, { backgroundColor: palette.solid }]} /> : null}
+        <Collapsible open={!collapsed}>
         {tasks.map((task) => (
           <RowPresence key={task.id} enter={!knownNow.has(task.id) && !justDragged()} quiet={isQuietEnter()} leaving={task.id in leaving} onGone={() => gone(task.id)}>
           <DragRow taskId={task.id} categoryId={category.id} colorKey={category.colorKey}>
@@ -110,9 +121,26 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
             onAddTask={(title) => onAddTask(title, category.id)} onSaveRoutine={(title) => onAddRoutine(title, category.id)}
           />
         )}
+        </Collapsible>
       </View>
       {repeatFor ? <RoutineRepeatPicker routineId={repeatFor} onClose={() => setRepeatFor(null)} /> : null}
     </View>
+  );
+}
+
+// Separate from the header's editor tap: folds the whole list body shut. The chevron turns with the motion tokens.
+function CollapseToggle({ name, collapsed, onPress }: { name: string; collapsed: boolean; onPress: () => void }) {
+  const reduced = useReducedMotion();
+  const turn = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
+  useEffect(() => {
+    const animation = Animated.timing(turn, { toValue: collapsed ? 0 : 1, duration: reduced ? 0 : motion.base, easing: motion.easeOut, useNativeDriver: false });
+    animation.start();
+    return () => animation.stop();
+  }, [collapsed]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${collapsed ? 'Expand' : 'Collapse'} ${name}`} accessibilityState={{ expanded: !collapsed }} hitSlop={10} onPress={onPress} style={styles.toggle}>
+      <Animated.View style={{ transform: [{ rotate: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}><Ionicons name="chevron-down" size={14} color={colors.muted} /></Animated.View>
+    </Pressable>
   );
 }
 
@@ -120,11 +148,14 @@ const styles = StyleSheet.create({
   section: { marginBottom: space.lg },
   lifted: { zIndex: 50 },
   line: { position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, borderRadius: 1, zIndex: 60 },
-  heading: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginBottom: space.xs, paddingVertical: space.xxs },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginBottom: space.xs },
+  titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xxs },
+  spacer: { flex: 1 },
+  toggle: { padding: space.xxs },
   hovered: { opacity: 0.8 },
-  chevron: { opacity: 0.45 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   name: { ...type.section, color: colors.ink, fontFamily },
-  count: { ...type.meta, color: colors.muted, marginLeft: 'auto', fontFamily },
+  count: { ...type.meta, color: colors.muted, fontFamily },
+  left: { opacity: 0.7 },
   tasks: { paddingLeft: 1, position: 'relative' },
 });

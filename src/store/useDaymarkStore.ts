@@ -26,6 +26,9 @@ interface DaymarkState {
   events: CalendarEvent[];
   calendarFeeds: CalendarFeed[];
   feedErrors: Record<string, string>;
+  // Lists folded shut on Today; device-local view state, never synced.
+  collapsedListIds: string[];
+  toggleListCollapsed: (listId: string) => void;
   calendarView: CalendarView;
   calendarDate: string;
   selectedTodayDate: string;
@@ -86,7 +89,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 6;
+const STORAGE_VERSION = 7;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -133,6 +136,8 @@ export const useDaymarkStore = create<DaymarkState>()(
       timeBlocks: [],
       events: [],
       calendarFeeds: [],
+      collapsedListIds: [],
+      toggleListCollapsed: (listId) => set((state) => ({ collapsedListIds: state.collapsedListIds.includes(listId) ? state.collapsedListIds.filter((id) => id !== listId) : [...state.collapsedListIds, listId] })),
       feedErrors: {},
       calendarView: 'week',
       calendarDate: now().toISOString(),
@@ -426,16 +431,19 @@ export const useDaymarkStore = create<DaymarkState>()(
         dayMarkVariant: state.dayMarkVariant,
         calendarFeeds: state.calendarFeeds,
         carryoverDismissed: state.carryoverDismissed,
+        collapsedListIds: state.collapsedListIds,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
           old = { ...old, categories: old.categories.map((category, index) => ({ ...category, order: typeof category.order === 'number' ? category.order : index })), routines: [] };
-        } else if (version < 1 || version > 5) {
+        } else if (version < 1 || !Array.isArray(old.categories)) {
+          // Only unreadable or pre-v1 data resets. Any other version (including a newer one written by a
+          // later deploy) passes through so a version bump can never wipe someone's tasks.
           return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'wash' as DayMarkVariant } as unknown as DaymarkState;
         }
         if (Array.isArray(old.projects)) {
