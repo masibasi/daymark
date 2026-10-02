@@ -94,8 +94,9 @@ export function selectArchivedFolders(projects: Project[]): Project[] {
 }
 
 // Today's strip: pinned folders and every folder with a deadline; undated unpinned folders stay on the Folders tab.
+// Today shows every active folder (pinned, then by deadline, then manual order) so any of them can feed the day.
 export function selectTodayFolders(projects: Project[]): Project[] {
-  return selectFolders(projects).filter((project) => project.pinned || project.deadline);
+  return selectFolders(projects);
 }
 
 // A dated folder whose steps are all done asks once whether to archive it (Keep silences it until a new step is added). Undated folders never ask.
