@@ -108,7 +108,8 @@ const nextOrder = (tasks: Task[], day: string, categoryId: CategoryId, excludeId
 // Moving off today or a future day is just replanning and records nothing.
 const leaveDay = (task: Task, nextDate: string | undefined): Task => {
   const from = task.scheduledDate;
-  if (!from || from === nextDate || task.completedAt || from >= todayKey() || task.missedOn?.includes(from)) return task;
+  // Moving unfinished work off today or a past day records the miss (owner, 2026-10-03); only future days are plan adjustments.
+  if (!from || from === nextDate || task.completedAt || from > todayKey() || task.missedOn?.includes(from)) return task;
   return { ...task, missedOn: [...(task.missedOn ?? []), from] };
 };
 
