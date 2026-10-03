@@ -66,7 +66,7 @@ A task that belongs to a folder shows, under its title, a muted 12px meta line: 
 
 ## Carry-over banner and past days
 
-On the real today, a slim inline note at the top of the task area says "2 unfinished from yesterday" (or "from Tue") for the most recent past day (within 7 days) that has incomplete tasks, plain and folder tasks alike. Actions: "Bring to today", "Back to folder" (only when some are folder tasks; clears their `scheduledDate`), and "Leave" (dismisses that day). Calm surface, no red. A past day lists tasks that were left undone on it and have since moved as muted, inert rows ("→ moved to Oct 3", "→ back in <folder>"); they count as planned, not completed, in that day's mark and "x of y".
+On the real today, a slim inline note at the top of the task area says "2 unfinished from yesterday" (or "from Tue") for the most recent past day (within 7 days) that has incomplete tasks, plain and folder tasks alike. Actions: "Bring to today", "Back to folder" (only when some are folder tasks; clears their `scheduledDate`), and "Leave" (dismisses that day). Calm surface, no red. A past day lists tasks that were left undone on it and have since moved as muted, inert rows ("→ moved to Oct 3", "→ back in <folder>"); they count as planned, not completed, in that day's mark (and the "n left" count).
 
 ## Deadline urgency
 
@@ -101,7 +101,7 @@ List headers on Today have two separate targets. Tapping the dot and name opens 
 
 Today also includes a quieter completion-history calendar. Its cells favor the Day Orbit over event density; selecting a date moves the Today context to that day's tasks and completion record. This is navigation and reflection, not a second scheduling calendar. It defaults to collapsed (just the Sun–Sat week containing the selected date) on phone, and expanded (the full month) on desktop, where it sits beside the Day Mark card; a quiet chevron toggle in its header switches between them, and the prev/next arrows step by week or month to match the current state.
 
-Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from the Today mark heading during V0 design review.
+Unfinished Today rows expose a compact `…` menu for moving to the next day, choosing a day, or removing the Task from that day. The Task remains in its Project. A separate Day Mark study route compares visual treatments at four completion levels; it is reachable from Settings → Appearance / Design studies.
 
 A Today time rail and per-Task "Reserve time" tray were tried as a V0 interaction study and removed after review — the interaction didn't resonate with the product owner. Time-blocking is paused (see `docs/DECISIONS.md`). The header's weather line stays labeled "sample weather" so it reads honestly as mock data.
 
@@ -109,7 +109,7 @@ A Today time rail and per-Task "Reserve time" tray were tried as a V0 interactio
 
 Order: date header, one compact summary row, compact Upcoming strip, then a two-page "Tasks | Schedule" pager.
 
-- Summary row (collapsed by default, state kept for the session): small 44px Day Mark, "4 of 10", and this week's seven 22px day marks (tap one to change the displayed day). Tapping the left side or the chevron expands to the full Day Mark card plus history calendar; tap again to collapse.
+- Summary row (collapsed by default, state kept for the session): small 44px Day Mark, "3 done" (muted "Nothing yet" / "Clear day"; hidden while expanded so the count appears once), and this week's seven 22px day marks (tap one to change the displayed day). Tapping the left side or the chevron expands to the full Day Mark card plus history calendar; tap again to collapse.
 - Upcoming deadline cards are compact: one-line title with `D−n`, then a progress bar, so tasks appear on the first screen.
 - Tasks | Schedule is a quiet underlined segmented header (Schedule shows the day's event count; Tasks shows "n left"). Tap to switch, or swipe horizontally. The swipe only claims clearly horizontal gestures (|dx| > 24 and > 2·|dy|), so vertical scroll and long-press row drag are untouched. Only the active page is mounted and the main ScrollView is the only vertical scroller.
 - Schedule page: the displayed day's CalendarEvents, all-day first, then timed events (time range under the title) with a neutral event rail (events are never list-colored). Empty state: "No events on this day." with a quiet "Connect a calendar in Settings" link.
@@ -122,7 +122,7 @@ From 760px up (tablet and desktop) Today uses the column layout: a context colum
 Today splits into independent, viewport-height columns inside a layout capped at 1440px and centred, so tasks are on screen without scrolling. Each column is its own ScrollView.
 
 - Left column (360px): date header with the weather line; the Day Mark area; then Folders as a vertical list of compact cards (same order, drop-target ring and "All folders" link as the strip). Tapping a card opens its panel inline directly under that card (one open at a time).
-- Day Mark area: collapsible like the phone summary. Collapsed is the compact row (44px mark, "x of y", this week's seven marks, chevron); expanded is the Day Mark card (120px mark beside "x of y", copy and legend) plus the history calendar, which opens as a full month at viewport height ≥ 900px and as the selected week below that. The choice persists per device (`dayMarkCollapsedDesktop`, not synced), default expanded; animation uses the `Collapsible` and chevron motion tokens and is instant under reduce-motion.
+- Day Mark area: collapsible like the phone summary. Collapsed is the compact row (44px mark, "n done", this week's seven marks, chevron); expanded is the Day Mark card (120px mark beside the small date, the "n done" headline and a one-line per-list breakdown of that day's completions) plus the history calendar, which opens as a full month at viewport height ≥ 900px and as the selected week below that. The choice persists per device (`dayMarkCollapsedDesktop`, not synced), default expanded; animation uses the `Collapsible` and chevron motion tokens and is instant under reduce-motion.
 - Main column (flex, max 720px): carry-over banner, "Today's tasks" header with "n left", and the list sections.
 - Schedule block (top of the tasks column, above the carry-over note and "Today's tasks"): a "Schedule" header with a chevron that collapses the block to one line ("Schedule · 3 events"; device-local `scheduleCollapsed`, not synced). Rows are one line each: time (or "All day") and title beside a neutral event rail. At most 3 rows show; a quiet "+N more" expands the rest. Tapping a row opens the same Add-to-day sheet as the Calendar tab. Empty day: "No events · Connect a calendar" (link only when no feed is enabled), else "No events today".
 - Drag and drop uses the main column's ScrollView for edge auto-scroll and list geometry; folder cards in the left column are measured in window coordinates (`foldersFixed`), since that column does not scroll with the tasks.
@@ -149,6 +149,6 @@ On Today, long-press (~300 ms; with a mouse, hold ~120 ms or move 4 px) a task r
 ## Resolved-later display (owner request 2026-10-02)
 
 - Day Mark: the lighter late band described under the Orbit; it appears on every size, including the 22px history and week marks.
-- Counts: wherever a day shows "x of y" (phone summary row, Day Mark card), a muted " · n later" is appended when n > 0.
+- Counts: the Day Mark speaks about what was done, never a ratio: "3 done" (muted "Nothing checked off yet" today / "Nothing checked off" on a past day when tasks were planned, "A clear day" when none), with a muted " · n later" appended when n > 0, and a breakdown line such as "Work 2  Daily 1" (colored dot, list name, count; completedAt only; lists in order, only those with a completion). No planned total, descriptive sentence, legend or lab link appears in the Day Mark area.
 - MissedRow on a past day: if the task has since been completed, the note reads a small check plus "Done Oct 2" (muted, still inert); otherwise it keeps "→ moved to Oct 2" / "→ back in <folder>".
 - Carried-from label: a task with a non-empty `missedOn` shows a muted meta line under its title (small `return-down-back-outline` icon, same style as the folder/routine label): "From Oct 1", or "From Sep 29 · moved 3×" (earliest date, count). It joins the folder/routine label on the same line with " · ". Shown on Today and other days' task lists, not on MissedRow.

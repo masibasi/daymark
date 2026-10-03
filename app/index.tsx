@@ -17,7 +17,7 @@ import { SwipePager } from '@/components/SwipePager';
 import { TodaySchedule } from '@/components/TodaySchedule';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedCountOnDay, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
+import { selectCompletedByCategoryOnDay, selectCompletedCountOnDay, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now, todayKey } from '@/domain/clock';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
@@ -95,6 +95,7 @@ export default function TodayScreen() {
   const completed = selectCompletedCountOnDay([...dayTasks, ...missed], selectedDate);
   const late = selectLateCompletedCountOnDay(tasks, selectedDate);
   const isToday = isSameDay(selectedDate, now());
+  const byList = selectCompletedByCategoryOnDay([...dayTasks, ...missed], selectedDate, categories);
   const carryover = isToday ? selectCarryover(tasks, todayKey(), carryoverDismissed) : null;
   const dayEvents = selectEventsOnDay(events, selectedDate);
   const drag = useTaskDragController({
@@ -125,13 +126,12 @@ export default function TodayScreen() {
 
   const orbitCard = (
     <View style={[styles.orbitCard, wide && styles.orbitCardWide, desk && styles.orbitCardDesk]}>
-      <View style={styles.orbitHeading}><Link href="/daymark-lab" style={styles.orbitEyebrow}>Your day mark ↗</Link><Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text></View>
       <View style={desk ? styles.orbitDeskBody : styles.orbitBody}>
         <DayOrbit segments={segments} size={desk ? 120 : wide ? 132 : 112} strokeWidth={desk ? 12 : wide ? 13 : 11} animate />
         <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
-          <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} of {planned}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>
-          <Text style={[styles.orbitCopy, desk && styles.orbitCopyDesk]}>{planned === 0 ? 'Nothing planned for this day.' : 'Completed on this day, kept by category.'}</Text>
-          <View style={[styles.legend, desk && styles.legendDesk]}>{selectActiveCategories(categories).map((category) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText}>{category.name}</Text></View>)}</View>
+          <Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text>
+          {completed > 0 ? <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} done{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text> : <Text style={[styles.orbitNumber, styles.orbitQuiet, desk && styles.orbitNumberDesk]}>{planned === 0 ? 'A clear day' : isToday ? 'Nothing checked off yet' : 'Nothing checked off'}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>}
+          {byList.length > 0 ? <View style={[styles.legend, desk && styles.legendDesk]}>{byList.map(({ category, count }) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText} numberOfLines={1}>{category.name} {count}</Text></View>)}</View> : null}
         </View>
       </View>
     </View>
@@ -272,22 +272,19 @@ const styles = StyleSheet.create({
   overview: { gap: space.md, marginTop: space.lg },
   overviewPhone: { marginTop: space.md },
   overviewWide: { flexDirection: 'row', alignItems: 'flex-start' },
-  orbitCard: { minHeight: 304, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
-  orbitCardWide: { width: 300, height: 352 },
+  orbitCard: { minHeight: 0, padding: space.lg, alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  orbitCardWide: { width: 300, height: 352, justifyContent: 'center' },
   orbitCardDesk: { width: '100%', height: 'auto', minHeight: 0, padding: space.md, alignItems: 'stretch' },
   orbitBody: { alignItems: 'center' },
   orbitDeskBody: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   orbitDeskCopy: { flex: 1, minWidth: 0 },
-  orbitNumberDesk: { marginTop: 0 },
-  orbitCopyDesk: { width: 'auto', minHeight: 0, textAlign: 'left' },
+  orbitNumberDesk: { marginTop: 0, textAlign: 'left' },
   legendDesk: { justifyContent: 'flex-start', gap: space.xs, marginTop: space.xs },
-  orbitHeading: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md },
-  orbitEyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily },
   orbitDate: { ...type.meta, color: colors.muted, fontFamily },
   orbitLate: { color: colors.muted, fontWeight: '400' },
-  orbitNumber: { ...type.section, color: colors.ink, marginTop: space.sm, fontFamily },
-  orbitCopy: { ...type.body, color: colors.inkSoft, textAlign: 'center', marginTop: 2, width: 230, minHeight: 42, fontFamily },
-  legend: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginTop: space.md },
+  orbitNumber: { ...type.section, color: colors.ink, marginTop: 2, textAlign: 'center', fontFamily },
+  orbitQuiet: { color: colors.muted },
+  legend: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm, marginTop: space.xs },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
   legendText: { ...type.meta, color: colors.muted, fontFamily },

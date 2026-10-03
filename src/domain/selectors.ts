@@ -159,6 +159,11 @@ export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
   return tasks.filter((task) => task.completedAt && isSameDay(parseISO(task.completedAt), day)).length;
 }
 
+// Per-list completion counts for a day (completedAt only), in list order, lists with none omitted.
+export function selectCompletedByCategoryOnDay(tasks: Task[], day: Date, categories: Category[]): { category: Category; count: number }[] {
+  return categories.slice().sort((a, b) => a.order - b.order).map((category) => ({ category, count: tasks.filter((task) => task.categoryId === category.id && task.completedAt && isSameDay(parseISO(task.completedAt), day)).length })).filter((entry) => entry.count > 0);
+}
+
 // Completed tasks from this routine within the Mon-Sun week containing `day` (by completedAt).
 export function selectRoutineWeekDone(tasks: Task[], routineId: string, day: Date): number {
   const interval = { start: startOfWeek(day, { weekStartsOn: 1 }), end: endOfWeek(day, { weekStartsOn: 1 }) };

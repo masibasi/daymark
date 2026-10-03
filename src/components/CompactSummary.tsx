@@ -20,7 +20,7 @@ interface CompactSummaryProps {
   onSelectDate: (date: Date) => void;
 }
 
-// Phone Today: one calm row — small Day Mark, "4 of 10", and this week's seven marks. Tapping the left side expands the full card + history.
+// Phone Today: one calm row — small Day Mark, "3 done", and this week's seven marks. Tapping the left side expands the full card + history.
 export function CompactSummary({ selectedDate, tasks, categories, completed, total, late = 0, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
   const week = eachDayOfInterval({ start: startOfWeek(selectedDate, { weekStartsOn: 0 }), end: endOfWeek(selectedDate, { weekStartsOn: 0 }) });
   const turn = useToggleProgress(expanded, motion.base, true);
@@ -28,7 +28,7 @@ export function CompactSummary({ selectedDate, tasks, categories, completed, tot
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Hide day mark details' : 'Show day mark details'} accessibilityState={{ expanded }} onPress={onToggle} style={styles.lead}>
         <DayOrbit segments={selectDayOrbit(tasks, selectedDate, categories)} size={44} strokeWidth={6} />
-        <Text style={styles.count} numberOfLines={1}>{completed} of {total}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>
+        {expanded ? null : <Text style={[styles.count, completed === 0 && styles.quiet]} numberOfLines={1}>{completed > 0 ? `${completed} done` : total === 0 ? 'Clear day' : 'Nothing yet'}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>}
       </Pressable>
       {expanded ? <Pressable accessibilityElementsHidden style={styles.fill} onPress={onToggle} /> : (
         <View style={styles.week}>
@@ -54,6 +54,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xxs, borderBottomWidth: 1, borderColor: colors.line },
   lead: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.xxs },
   count: { ...type.bodyMedium, color: colors.ink, fontFamily },
+  quiet: { color: colors.muted },
   late: { ...type.meta, color: colors.muted, fontFamily },
   fill: { flex: 1, alignSelf: 'stretch' },
   week: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'flex-end' },
