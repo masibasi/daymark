@@ -49,7 +49,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
           </View>
         );
         const card = (
-          <Pressable key={vertical ? undefined : project.id} ref={(node) => controller?.registerFolder(project.id, node)} collapsable={false} accessibilityRole="button" accessibilityState={{ expanded: openId === project.id }} onPress={() => toggle(project.id)} style={({ pressed }) => [styles.item, compact && styles.itemCompact, vertical && styles.itemVertical, openId === project.id && { borderColor: palette.solid }, pressed && styles.pressed]}>
+          <Pressable key={vertical ? undefined : project.id} ref={(node) => controller?.registerFolder(project.id, node)} collapsable={false} accessibilityRole="button" accessibilityState={{ expanded: openId === project.id }} onPress={() => toggle(project.id)} style={({ pressed }) => [styles.item, compact && styles.itemCompact, vertical && styles.itemVertical, openId === project.id && { borderColor: palette.solid }, vertical && openId === project.id && styles.itemVerticalOpen, pressed && styles.pressed]}>
             {hoverId === project.id ? <View pointerEvents="none" style={[styles.ring, compact && styles.ringCompact, { borderColor: palette.solid }]} /> : null}
             <View style={styles.topline}>
               <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
@@ -65,9 +65,9 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
           </Pressable>
         );
         return vertical ? (
-          <View key={project.id}>
+          <View key={project.id} style={openId === project.id ? [styles.group, { borderColor: palette.solid }] : undefined}>
             {card}
-            <Collapsible open={openId === project.id}>{panelId === project.id ? <DeadlinePanel project={project} tasks={tasks} now={now} /> : null}</Collapsible>
+            <Collapsible open={openId === project.id}>{panelId === project.id ? <DeadlinePanel project={project} tasks={tasks} now={now} inline /> : null}</Collapsible>
           </View>
         ) : card;
       })}
@@ -81,7 +81,8 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
   );
 }
 
-function DeadlinePanel({ project, tasks, now }: { project: Project; tasks: Task[]; now: Date }) {
+// `inline` (desktop list): the panel continues the tapped card, so it skips the card's own title, deadline and progress.
+function DeadlinePanel({ project, tasks, now, inline }: { project: Project; tasks: Task[]; now: Date; inline?: boolean }) {
   const palette = useCategoryPalette()(project.categoryId);
   const setTaskOnToday = useDaymarkStore((state) => state.setTaskOnToday);
   const addProjectTask = useDaymarkStore((state) => state.addProjectTask);
@@ -94,18 +95,18 @@ function DeadlinePanel({ project, tasks, now }: { project: Project; tasks: Task[
   const prompt = selectCompletionPrompt(project, tasks);
   const addStep = () => { if (!stepTitle.trim()) return; addProjectTask(project.id, stepTitle); setStepTitle(''); };
   return (
-    <View style={styles.panelWrap}>
-      <View style={styles.panel}>
-        <View style={styles.panelHead}>
+    <View style={inline ? undefined : styles.panelWrap}>
+      <View style={inline ? styles.panelInline : styles.panel}>
+        {inline ? null : <View style={styles.panelHead}>
           <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
           {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
           <Text style={styles.panelTitle} numberOfLines={2}>{project.title}</Text>
           {days !== undefined ? <Text style={[styles.days, toneStyle(tone)]}>{selectDeadlineLabel(days)}</Text> : null}
-        </View>
-        <View style={styles.progressRow}>
+        </View>}
+        {inline ? null : <View style={styles.progressRow}>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress.total ? (progress.completed / progress.total) * 100 : 0}%`, backgroundColor: palette.solid }]} /></View>
           <Text style={styles.progressText}>{progress.completed}/{progress.total}</Text>
-        </View>
+        </View>}
         {open.length === 0 ? (
           <View>
             {prompt ? <FolderCompletionRow project={project} /> : (
@@ -144,6 +145,9 @@ const styles = StyleSheet.create({
   track: { gap: space.sm, paddingRight: space.lg },
   trackVertical: { gap: space.xs },
   itemVertical: { width: '100%' },
+  itemVerticalOpen: { borderWidth: 0, backgroundColor: 'transparent' },
+  group: { borderWidth: 1, borderRadius: radius.md, backgroundColor: colors.paper, overflow: 'hidden' },
+  panelInline: { paddingHorizontal: space.sm, paddingBottom: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   allLinkVertical: { alignSelf: 'flex-start', paddingHorizontal: space.xxs },
   item: { width: 220, minHeight: 132, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   itemCompact: { width: 212, minHeight: 0, padding: space.sm, borderRadius: radius.md },
