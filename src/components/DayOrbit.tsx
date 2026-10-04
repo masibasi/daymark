@@ -60,7 +60,7 @@ function doodleClosedPath(loop: DoodleLoop): string {
 
 // Tweens each category's arc length (and the wash fade) when the segments change on the animated mark. Arcs stay contiguous because
 // offsets are derived from the tweened lengths. Driven by one Animated.Value + a listener (cheap: one state update per frame, large mark only).
-function useTweenedArcs(keys: string[], targets: number[], enabled: boolean) {
+export function useTweenedArcs(keys: string[], targets: number[], enabled: boolean) {
   const shown = useRef<Record<string, number>>({});
   const washShown = useRef(0);
   const [, setFrame] = useState(0);

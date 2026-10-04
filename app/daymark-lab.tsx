@@ -7,6 +7,7 @@ import type { DayMarkVariant } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { DayOrbit } from '@/components/DayOrbit';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
+import { DrawMarkLab } from '@/components/style-lab/DrawMarkLab';
 import type { Project } from '@/domain/types';
 import { prototypeDate } from '@/store/mockData';
 import { addDays, format } from 'date-fns';
@@ -136,6 +137,7 @@ export default function DayMarkLab() {
         <Text style={styles.description}>The same Upcoming card at each urgency step, with the default seven-day attention window. Check that D−3 and D−1 feel noticeable without making the page anxious.</Text>
         <View style={styles.toneStrip}><DeadlineStrip projects={toneSamples} tasks={[]} now={prototypeDate} /></View>
       </View>
+      <DrawMarkLab todaySegments={todaySegments} wide={wide} />
       <Text style={styles.footer}>Pick your style in Settings → Appearance.</Text>
     </View>
   </ScrollView>;
