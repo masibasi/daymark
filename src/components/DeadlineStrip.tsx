@@ -76,13 +76,14 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
         <Ionicons name="arrow-forward" size={13} color={colors.muted} />
       </Pressable>
     </Track>
-    {vertical ? null : <Collapsible open={openId !== null}>{panelProject ? <DeadlinePanel project={panelProject} tasks={tasks} now={now} /> : null}</Collapsible>}
+    {vertical ? null : <Collapsible open={openId !== null}>{panelProject ? <DeadlinePanel project={panelProject} tasks={tasks} now={now} headless /> : null}</Collapsible>}
     </View>
   );
 }
 
 // `inline` (desktop list): the panel continues the tapped card, so it skips the card's own title, deadline and progress.
-function DeadlinePanel({ project, tasks, now, inline }: { project: Project; tasks: Task[]; now: Date; inline?: boolean }) {
+// `headless` (phone strip): the tapped card above is already highlighted, so the panel shows only the steps, edged in the folder's colour.
+function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Project; tasks: Task[]; now: Date; inline?: boolean; headless?: boolean }) {
   const palette = useCategoryPalette()(project.categoryId);
   const setTaskOnToday = useDaymarkStore((state) => state.setTaskOnToday);
   const addProjectTask = useDaymarkStore((state) => state.addProjectTask);
@@ -96,14 +97,14 @@ function DeadlinePanel({ project, tasks, now, inline }: { project: Project; task
   const addStep = () => { if (!stepTitle.trim()) return; addProjectTask(project.id, stepTitle); setStepTitle(''); };
   return (
     <View style={inline ? undefined : styles.panelWrap}>
-      <View style={inline ? styles.panelInline : styles.panel}>
-        {inline ? null : <View style={styles.panelHead}>
+      <View style={inline ? styles.panelInline : [styles.panel, headless && { borderColor: palette.solid }]}>
+        {inline || headless ? null : <View style={styles.panelHead}>
           <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
           {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
           <Text style={styles.panelTitle} numberOfLines={2}>{project.title}</Text>
           {days !== undefined ? <Text style={[styles.days, toneStyle(tone)]}>{selectDeadlineLabel(days)}</Text> : null}
         </View>}
-        {inline ? null : <View style={styles.progressRow}>
+        {inline || headless ? null : <View style={styles.progressRow}>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress.total ? (progress.completed / progress.total) * 100 : 0}%`, backgroundColor: palette.solid }]} /></View>
           <Text style={styles.progressText}>{progress.completed}/{progress.total}</Text>
         </View>}
