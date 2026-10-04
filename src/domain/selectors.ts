@@ -137,6 +137,12 @@ export function selectDayOrbit(tasks: Task[], day: Date, categories: Category[])
   });
 }
 
+// A day is complete when something was planned and every planned task was completed on that day itself (nothing open, moved elsewhere or finished later). Derived from the Day Mark segments so the two never disagree.
+export function selectDayComplete(tasks: Task[], day: Date, categories: Category[]): boolean {
+  const segments = selectDayOrbit(tasks, day, categories);
+  return segments.length > 0 && segments.every((segment) => segment.completion === 1 && segment.lateCompletion === 0);
+}
+
 // Missed on `dayKey` and completed on a later day: resolved later, shown as a lighter band, never as that day's completion.
 function isLateCompletion(task: Task, dayKey: string): boolean {
   return Boolean(task.missedOn?.includes(dayKey) && task.completedAt && differenceInCalendarDays(parseISO(task.completedAt), parseISO(dayKey)) > 0);

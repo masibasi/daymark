@@ -1,10 +1,12 @@
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { eachDayOfInterval, endOfWeek, format, isSameDay, startOfWeek } from 'date-fns';
-import { selectDayOrbit } from '@/domain/selectors';
+import { now } from '@/domain/clock';
+import { selectDayComplete, selectDayOrbit } from '@/domain/selectors';
 import type { Category, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily, motion, space, type } from '@/theme/tokens';
 import { useToggleProgress } from '@/theme/useToggleProgress';
+import { DayNumber } from './DayNumber';
 import { DayOrbit } from './DayOrbit';
 import { PressableScale } from './PressableScale';
 
@@ -23,12 +25,14 @@ interface CompactSummaryProps {
 // Phone Today: one calm row — small Day Mark, "3 done", and this week's seven marks. Tapping the left side expands the full card + history.
 export function CompactSummary({ selectedDate, tasks, categories, completed, total, late = 0, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
   const week = eachDayOfInterval({ start: startOfWeek(selectedDate, { weekStartsOn: 0 }), end: endOfWeek(selectedDate, { weekStartsOn: 0 }) });
+  const dayComplete = selectDayComplete(tasks, selectedDate, categories);
+  const isToday = isSameDay(selectedDate, now());
   const turn = useToggleProgress(expanded, motion.base, true);
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Hide day mark details' : 'Show day mark details'} accessibilityState={{ expanded }} onPress={onToggle} style={styles.lead}>
         <DayOrbit segments={selectDayOrbit(tasks, selectedDate, categories)} size={44} strokeWidth={6} />
-        {expanded ? null : <Text style={[styles.count, completed === 0 && styles.quiet]} numberOfLines={1}>{completed > 0 ? `${completed} done` : total === 0 ? 'Clear day' : 'Nothing yet'}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>}
+        {expanded ? null : dayComplete ? <View style={styles.done}><Text style={styles.count} numberOfLines={1}>All done</Text>{isToday ? <Ionicons name="checkmark-circle" size={16} color={colors.ink} /> : null}</View> : <Text style={[styles.count, completed === 0 && styles.quiet]} numberOfLines={1}>{completed > 0 ? `${completed} done` : total === 0 ? 'Clear day' : 'Nothing yet'}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>}
       </Pressable>
       {expanded ? <Pressable accessibilityElementsHidden style={styles.fill} onPress={onToggle} /> : (
         <View style={styles.week}>
@@ -37,7 +41,7 @@ export function CompactSummary({ selectedDate, tasks, categories, completed, tot
             return (
               <PressableScale key={day.toISOString()} accessibilityRole="button" accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} hitSlop={{ top: 6, bottom: 6 }} onPress={() => onSelectDate(day)} style={styles.day}>
                 <View style={[styles.markWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={22} strokeWidth={3.5} /></View>
-                <Text style={[styles.dayNumber, selected && styles.selectedNumber]}>{format(day, 'd')}</Text>
+                <DayNumber day={day} tasks={tasks} categories={categories} selected={selected} />
               </PressableScale>
             );
           })}
@@ -54,6 +58,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.xxs, borderBottomWidth: 1, borderColor: colors.line },
   lead: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingRight: space.xxs },
   count: { ...type.bodyMedium, color: colors.ink, fontFamily },
+  done: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   quiet: { color: colors.muted },
   late: { ...type.meta, color: colors.muted, fontFamily },
   fill: { flex: 1, alignSelf: 'stretch' },
@@ -61,6 +66,4 @@ const styles = StyleSheet.create({
   day: { width: 27, minWidth: 21, flexShrink: 1, alignItems: 'center', gap: 1 },
   markWrap: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   selected: { backgroundColor: categoryPalette.routine.soft, borderWidth: 1, borderColor: categoryPalette.routine.solid },
-  dayNumber: { fontSize: 9, lineHeight: 12, color: colors.inkSoft, fontFamily },
-  selectedNumber: { color: categoryPalette.routine.ink, fontWeight: '700' },
 });

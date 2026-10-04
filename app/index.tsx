@@ -17,7 +17,7 @@ import { SwipePager } from '@/components/SwipePager';
 import { TodaySchedule } from '@/components/TodaySchedule';
 import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
-import { selectCompletedByCategoryOnDay, selectCompletedCountOnDay, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
+import { selectCompletedByCategoryOnDay, selectCompletedCountOnDay, selectDayComplete, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
 import { now, todayKey } from '@/domain/clock';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
@@ -94,6 +94,7 @@ export default function TodayScreen() {
   const segments = selectDayOrbit(tasks, selectedDate, categories);
   const completed = selectCompletedCountOnDay([...dayTasks, ...missed], selectedDate);
   const late = selectLateCompletedCountOnDay(tasks, selectedDate);
+  const dayComplete = selectDayComplete(tasks, selectedDate, categories);
   const isToday = isSameDay(selectedDate, now());
   const byList = selectCompletedByCategoryOnDay([...dayTasks, ...missed], selectedDate, categories);
   const carryover = isToday ? selectCarryover(tasks, todayKey(), carryoverDismissed) : null;
@@ -130,7 +131,7 @@ export default function TodayScreen() {
         <DayOrbit segments={segments} size={desk ? 120 : wide ? 132 : 112} strokeWidth={desk ? 12 : wide ? 13 : 11} animate />
         <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
           <Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text>
-          {completed > 0 ? <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} done{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text> : <Text style={[styles.orbitNumber, styles.orbitQuiet, desk && styles.orbitNumberDesk]}>{planned === 0 ? 'A clear day' : isToday ? 'Nothing checked off yet' : 'Nothing checked off'}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>}
+          {dayComplete ? <View style={styles.orbitDone}><Text style={[styles.orbitNumber, styles.orbitNumberInline, desk && styles.orbitNumberDesk]}>All done</Text>{isToday ? <Ionicons name="checkmark-circle" size={desk ? 20 : 18} color={colors.ink} /> : null}</View> : completed > 0 ? <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} done{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text> : <Text style={[styles.orbitNumber, styles.orbitQuiet, desk && styles.orbitNumberDesk]}>{planned === 0 ? 'A clear day' : isToday ? 'Nothing checked off yet' : 'Nothing checked off'}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>}
           {byList.length > 0 ? <View style={[styles.legend, desk && styles.legendDesk]}>{byList.map(({ category, count }) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText} numberOfLines={1}>{category.name} {count}</Text></View>)}</View> : null}
         </View>
       </View>
@@ -281,6 +282,8 @@ const styles = StyleSheet.create({
   orbitNumberDesk: { marginTop: 0, textAlign: 'left' },
   legendDesk: { justifyContent: 'flex-start', gap: space.xs, marginTop: space.xs },
   orbitDate: { ...type.meta, color: colors.muted, fontFamily },
+  orbitDone: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs, marginTop: 2 },
+  orbitNumberInline: { marginTop: 0 },
   orbitLate: { color: colors.muted, fontWeight: '400' },
   orbitNumber: { ...type.section, color: colors.ink, marginTop: 2, textAlign: 'center', fontFamily },
   orbitQuiet: { color: colors.muted },

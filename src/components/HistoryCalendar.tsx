@@ -6,6 +6,7 @@ import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { DayNumber } from './DayNumber';
 import { DayOrbit } from './DayOrbit';
 
 interface HistoryCalendarProps {
@@ -58,7 +59,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpa
           return (
             <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, expanded && !isSameMonth(day, selectedDate) && styles.outside]}>
               <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={22} strokeWidth={3.5} /></View>
-              <Text style={[styles.dayNumber, selected && styles.selectedNumber]}>{format(day, 'd')}</Text>
+              <DayNumber day={day} tasks={tasks} categories={categories} selected={selected} />
             </Pressable>
           );
         })}
@@ -81,6 +82,4 @@ const styles = StyleSheet.create({
   outside: { opacity: 0.28 },
   orbitWrap: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   selected: { backgroundColor: categoryPalette.routine.soft, borderWidth: 1, borderColor: categoryPalette.routine.solid },
-  dayNumber: { fontSize: 9, lineHeight: 12, color: colors.inkSoft, fontFamily },
-  selectedNumber: { color: categoryPalette.routine.ink, fontWeight: '700' },
 });

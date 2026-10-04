@@ -1,7 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
-import { selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
+import { selectDayComplete, selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
@@ -34,7 +35,7 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPres
           return (
             <View key={day.toISOString()} style={[styles.cell, compact && styles.cellCompact, !isSameMonth(day, anchor) && styles.outside]}>
               <View style={styles.cellTop}>
-                <Text style={[styles.date, isSameDay(day, anchor) && styles.anchorDate]}>{format(day, 'd')}</Text>
+                <View style={styles.dateWrap}><Text style={[styles.date, isSameDay(day, anchor) && styles.anchorDate]}>{format(day, 'd')}</Text>{selectDayComplete(tasks, day, categories) ? <Ionicons accessibilityLabel="All done" name="checkmark" size={8} color={colors.muted} style={styles.dateCheck} /> : null}</View>
                 <DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={compact ? 18 : 22} strokeWidth={compact ? 3 : 3.5} />
               </View>
               <View style={styles.items}>
@@ -58,6 +59,8 @@ const styles = StyleSheet.create({
   cellCompact: { minHeight: 82, padding: 4 },
   outside: { opacity: 0.35, backgroundColor: colors.canvasMuted },
   cellTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.xs },
+  dateWrap: { width: 24, height: 24 },
+  dateCheck: { position: 'absolute', right: -3, top: 1 },
   date: { width: 24, height: 24, paddingTop: 3, textAlign: 'center', ...type.meta, color: colors.inkSoft, borderRadius: 12, fontFamily },
   anchorDate: { backgroundColor: colors.ink, color: colors.paper },
   items: { gap: 3 },
