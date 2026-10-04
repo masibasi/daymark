@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { format, parseISO, setHours } from 'date-fns';
-import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, DayMarkVariant, Project, Routine, RoutineRepeat, Task, TimeBlock } from '@/domain/types';
+import { isCustomMark, toCustomPoints, type MarkPath } from '@/domain/markPath';
+import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, CustomMark, DayMarkVariant, Project, Routine, RoutineRepeat, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
 import { selectFolderGroups, sortTasksByOrder } from '@/domain/selectors';
@@ -38,6 +39,7 @@ interface DaymarkState {
   calendarDate: string;
   selectedTodayDate: string;
   dayMarkVariant: DayMarkVariant;
+  customMark?: CustomMark; // the drawn Day Mark behind the 'custom' style; synced as a preference row
   hasHydrated: boolean;
   // Past days whose "unfinished from …" banner the user dismissed (last 14 kept).
   carryoverDismissed: string[];
@@ -68,6 +70,7 @@ interface DaymarkState {
   moveTaskToDate: (taskId: string, date?: string) => void;
   setProjectAttentionDays: (projectId: string, days: number) => void;
   setDayMarkVariant: (variant: DayMarkVariant) => void;
+  setCustomMark: (mark: MarkPath) => void;
   // Returns the new folder's id.
   addProject: (input: { title: string; categoryId: CategoryId; deadline?: string; pinned?: boolean }) => string;
   renameProject: (projectId: string, title: string) => void;
@@ -95,7 +98,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 7;
+const STORAGE_VERSION = 8;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -285,6 +288,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
       })),
       setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
+      setCustomMark: (mark) => set({ customMark: { points: toCustomPoints(mark), closed: mark.closed, updatedAt: new Date().toISOString() } }),
       addProject: ({ title, categoryId, deadline, pinned }) => {
         const id = newId('project');
         set((state) => ({
@@ -429,9 +433,11 @@ export const useDaymarkStore = create<DaymarkState>()(
         const variant = of('preference').find((change) => change.id === 'dayMarkVariant' && !change.deleted)?.data as { value?: DayMarkVariant } | undefined;
         const feedsRow = of('preference').find((change) => change.id === 'calendarFeeds' && !change.deleted)?.data as { value?: CalendarFeed[] } | undefined;
         const calendarFeeds = Array.isArray(feedsRow?.value) && !sameData(feedsRow.value, state.calendarFeeds) ? feedsRow.value : state.calendarFeeds;
-        const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current', 'doodle'].includes(variant.value) ? variant.value : state.dayMarkVariant;
-        if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant && calendarFeeds === state.calendarFeeds) return state;
-        return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant, calendarFeeds };
+        const dayMarkVariant = variant?.value && ['ribbon', 'glass', 'wash', 'current', 'doodle', 'custom'].includes(variant.value) ? variant.value : state.dayMarkVariant;
+        const markRow = of('preference').find((change) => change.id === 'customMark' && !change.deleted)?.data as { value?: unknown } | undefined;
+        const customMark = isCustomMark(markRow?.value) && !sameData(markRow.value, state.customMark) ? markRow.value : state.customMark;
+        if (categories === state.categories && projects === state.projects && tasks === state.tasks && timeBlocks === state.timeBlocks && routines === state.routines && dayMarkVariant === state.dayMarkVariant && customMark === state.customMark && calendarFeeds === state.calendarFeeds) return state;
+        return { categories, projects, tasks, timeBlocks, routines, dayMarkVariant, customMark, calendarFeeds };
       }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
@@ -446,6 +452,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         tasks: state.tasks,
         timeBlocks: state.timeBlocks,
         dayMarkVariant: state.dayMarkVariant,
+        customMark: state.customMark,
         calendarFeeds: state.calendarFeeds,
         carryoverDismissed: state.carryoverDismissed,
         collapsedListIds: state.collapsedListIds,
@@ -455,7 +462,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields).
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
@@ -474,6 +481,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       onRehydrateStorage: () => (state) => {
         // The Classic style was retired from Settings; anyone who had it moves to Watercolor wash.
         if (state?.dayMarkVariant === 'current') state.setDayMarkVariant('wash');
+        if (state && !['ribbon', 'glass', 'wash', 'doodle', 'custom'].includes(state.dayMarkVariant)) state.setDayMarkVariant('doodle');
         state?.setHasHydrated(true);
       },
     },

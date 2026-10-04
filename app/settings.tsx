@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -157,7 +158,9 @@ function AppearanceSection() {
   const { width } = useWindowDimensions();
   const variant = useDaymarkStore((state) => state.dayMarkVariant);
   const setVariant = useDaymarkStore((state) => state.setDayMarkVariant);
-  const tileWidth = width >= 700 ? '23%' : '47.5%';
+  const customSelected = variant === 'custom';
+  const hasMark = useDaymarkStore((state) => state.customMark !== undefined);
+  const tileWidth = width >= 700 ? '18%' : '30%';
   return (
     <View style={styles.section}>
       <View style={styles.form}>
@@ -175,9 +178,26 @@ function AppearanceSection() {
               </PressableScale>
             );
           })}
+          <View style={[styles.customCol, { width: tileWidth }]}>
+            <PressableScale accessibilityRole="radio" accessibilityState={{ selected: customSelected }} accessibilityLabel="Custom (beta)" onPress={() => (hasMark ? setVariant('custom') : router.push('/draw-mark'))} style={[styles.tile, customSelected && styles.tileSelected]}>
+              {customSelected ? <View style={styles.tileCheck}><Text style={styles.tileCheckText}>✓</Text></View> : null}
+              {hasMark ? (
+                <>
+                  <DayOrbit variant="custom" segments={previewSegments} size={72} strokeWidth={6.8} animate={customSelected} />
+                  <DayOrbit variant="custom" segments={sampleDay} size={22} strokeWidth={3.5} />
+                </>
+              ) : (
+                <>
+                  <View style={styles.placeholder}><Ionicons name="pencil" size={24} color={colors.muted} /></View>
+                  <Text numberOfLines={1} style={styles.drawYours}>Draw yours</Text>
+                </>
+              )}
+              <Text style={[styles.tileLabel, customSelected && styles.tileLabelSelected]}>Custom (beta)</Text>
+            </PressableScale>
+            {customSelected || hasMark ? <Pressable accessibilityRole="link" onPress={() => router.push('/draw-mark')} hitSlop={8}><Text style={[styles.rowHint, styles.labLink]}>Redraw</Text></Pressable> : null}
+          </View>
         </View>
         <Text style={styles.rowHint}>More themes coming later.</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.push('/daymark-lab')} hitSlop={6}><Text style={[styles.rowHint, styles.labLink]}>Try drawing your own Day Mark (experiment) →</Text></Pressable>
       </View>
     </View>
   );
@@ -205,6 +225,9 @@ export default function SettingsScreen() {
       <CalendarsSection />
       <AppearanceSection />
       <View style={styles.section}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/draw-mark')} style={[styles.row, styles.rowBorder]}>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Draw your Day Mark</Text><Text style={styles.rowHint}>Make the Day Mark your own shape: one stroke, any drawing (Custom, beta).</Text></View>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
         </Pressable>
@@ -216,13 +239,17 @@ export default function SettingsScreen() {
         </Pressable>
       </View>
       <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
+      <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable>
       <Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  labLink: { color: colors.accent, marginTop: space.xs },
+  labLink: { color: colors.accent, marginTop: space.xs, textAlign: 'center' },
+  customCol: { alignItems: 'stretch' },
+  placeholder: { width: 72, height: 72, borderRadius: radius.round, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
+  drawYours: { ...type.meta, color: colors.inkSoft, textAlign: 'center', height: 22, lineHeight: 22, fontFamily },
   scroll: { flex: 1 },
   page: { flexGrow: 1, padding: space.xl, alignItems: 'stretch', justifyContent: 'center', maxWidth: 620, width: '100%', alignSelf: 'center' },
   section: { marginTop: space.xl, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper, overflow: 'hidden' },

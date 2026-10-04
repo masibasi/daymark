@@ -1,14 +1,14 @@
 import { Animated, Platform, View } from 'react-native';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import { simplifyForSize, subpath, pointAtFraction, type MarkPath, type Pt } from '@/domain/markPath';
 import { listColors, type ListColors } from '@/theme/palette';
-import { colors, darkColors, lightColors } from '@/theme/tokens';
+import { colors, darkColors, lightColors, motion } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
-import { useTweenedArcs } from '@/components/DayOrbit';
+import { Ripple, useTweenedArcs } from '@/components/orbitMotion';
 
-// Lab experiment: a Day Mark drawn along a user-made path (Doodle's rendering rules on an arbitrary polyline).
+// The Custom (beta) Day Mark: drawn along a user-made path (Doodle's rendering rules on an arbitrary polyline).
 interface PathMarkProps {
   path: MarkPath;
   segments: DayOrbitSegment[];
@@ -43,6 +43,20 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
     [...segments.map((segment) => segment.share * segment.completion), ...segments.map((segment) => segment.share * (segment.lateCompletion ?? 0))],
     tween,
   );
+  const complete = segments.length > 0 && segments.every((segment) => segment.completion === 1);
+  const [rippleKey, setRippleKey] = useState(0);
+  const wasComplete = useRef(complete);
+  const shareSig = segments.map((segment) => `${segment.categoryId}:${segment.share.toFixed(4)}`).join('|');
+  const lastShareSig = useRef(shareSig);
+  useEffect(() => {
+    const before = wasComplete.current;
+    const sameDay = lastShareSig.current === shareSig; // another day's task set is navigation, not a completion
+    wasComplete.current = complete;
+    lastShareSig.current = shareSig;
+    if (!tween || before || !complete || !sameDay) return undefined;
+    const timer = setTimeout(() => setRippleKey((key) => key + 1), motion.ring * 0.75);
+    return () => clearTimeout(timer);
+  }, [complete, shareSig]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!tween) return undefined;
     const animation = Animated.loop(Animated.sequence([
@@ -88,6 +102,7 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
       </G>
     </>
   );
+  const dominant = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
   const completion = segments.reduce((total, segment) => total + segment.share * segment.completion, 0);
   const glowStyle = { position: 'absolute', left: 0, top: 0, width: size, height: size, opacity: isDark ? 0.4 : 0.32, filter: `blur(${(size * 0.05).toFixed(1)}px)` } as const;
   const breathing = tween ? { transform: [{ scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.01] }) }] } : undefined;
@@ -103,6 +118,7 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
         <Path d={trackD} fill="none" stroke={activeColors.track} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
         {layer}
       </Svg>
+      {tween && dominant ? <Ripple size={size} radiusValue={span / 2} color={markColor(dominant)} fireKey={rippleKey} outline={path.closed ? closedD : trackD} /> : null}
     </Animated.View>
   );
 }

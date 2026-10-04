@@ -165,3 +165,17 @@ export function isMarkPath(value: unknown): value is MarkPath {
   const v = value as { pts?: unknown; closed?: unknown };
   return typeof v.closed === 'boolean' && Array.isArray(v.pts) && v.pts.length >= 2 && v.pts.every((p) => Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number' && Number.isFinite(p[0]) && Number.isFinite(p[1]));
 }
+
+// Store form of a drawn mark: capped at MARK_SAMPLES points, coordinates rounded to 4 decimals (a closed path keeps its repeated end point).
+export function toCustomPoints(mark: MarkPath): Pt[] {
+  const pts = mark.pts.length > MARK_SAMPLES ? resample(mark.pts, MARK_SAMPLES) : mark.pts;
+  const rounded = pts.map(([x, y]): Pt => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]);
+  if (mark.closed) rounded[rounded.length - 1] = [rounded[0][0], rounded[0][1]];
+  return rounded;
+}
+
+export function isCustomMark(value: unknown): value is { points: Pt[]; closed: boolean; updatedAt: string } {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as { points?: unknown; closed?: unknown; updatedAt?: unknown };
+  return typeof v.updatedAt === 'string' && isMarkPath({ pts: v.points, closed: v.closed }) && (v.points as unknown[]).length <= MARK_SAMPLES;
+}

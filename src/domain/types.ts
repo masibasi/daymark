@@ -93,4 +93,11 @@ export interface CalendarFeed {
 
 export type CalendarView = 'week' | 'month';
 
-export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current' | 'doodle';
+export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current' | 'doodle' | 'custom';
+
+// A user-drawn Day Mark ("Custom (beta)"): a normalized unit-box polyline (closed paths repeat the first point last). Synced as a preference row.
+export interface CustomMark {
+  points: [number, number][];
+  closed: boolean;
+  updatedAt: string;
+}

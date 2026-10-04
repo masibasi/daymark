@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Link } from 'expo-router';
 import { parseISO } from 'date-fns';
@@ -67,10 +68,11 @@ export default function DayMarkLab() {
   const selectedTodayDate = useDaymarkStore((s) => s.selectedTodayDate);
   const dayMarkVariant = useDaymarkStore((s) => s.dayMarkVariant);
   const setDayMarkVariant = useDaymarkStore((s) => s.setDayMarkVariant);
+  const [drawing, setDrawing] = useState(false);
   const todaySegments = selectDayOrbit(tasks, parseISO(selectedTodayDate), categories);
   const largeSize = wide ? 132 : 112;
 
-  return <ScrollView contentContainerStyle={styles.scroll}>
+  return <ScrollView contentContainerStyle={styles.scroll} scrollEnabled={!drawing}>
     <View style={styles.page}>
       <Link href="/" style={styles.back}>← Today</Link>
       <Text style={styles.eyebrow}>VISUAL STUDY · V0</Text>
@@ -137,7 +139,7 @@ export default function DayMarkLab() {
         <Text style={styles.description}>The same Upcoming card at each urgency step, with the default seven-day attention window. Check that D−3 and D−1 feel noticeable without making the page anxious.</Text>
         <View style={styles.toneStrip}><DeadlineStrip projects={toneSamples} tasks={[]} now={prototypeDate} /></View>
       </View>
-      <DrawMarkLab todaySegments={todaySegments} wide={wide} />
+      <DrawMarkLab todaySegments={todaySegments} wide={wide} onDrawingChange={setDrawing} />
       <Text style={styles.footer}>Pick your style in Settings → Appearance.</Text>
     </View>
   </ScrollView>;

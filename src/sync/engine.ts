@@ -46,6 +46,7 @@ function trackChanges(prev: DomainState, next: DomainState) {
     changed ||= upserted.length > 0 || removed.length > 0;
   }
   if (prev.dayMarkVariant !== next.dayMarkVariant) { markDirty('preference', 'dayMarkVariant', false); changed = true; }
+  if (prev.customMark !== next.customMark && next.customMark) { markDirty('preference', 'customMark', false); changed = true; }
   if (prev.calendarFeeds !== next.calendarFeeds) { markDirty('preference', 'calendarFeeds', false); changed = true; }
   if (!changed) return;
   saveState();
@@ -65,6 +66,7 @@ function markEverythingDirty() {
   kinds.forEach((kind) => all[kind].forEach((item) => markDirty(kind, item.id, false, undefined, EPOCH)));
   markDirty('preference', 'dayMarkVariant', false, undefined, EPOCH);
   markDirty('preference', 'calendarFeeds', false, undefined, EPOCH);
+  if (current.customMark) markDirty('preference', 'customMark', false, undefined, EPOCH);
 }
 
 async function pull() {
@@ -95,7 +97,7 @@ async function pull() {
 // Current local value for a dirty entry (tombstones use the last known copy).
 function rowData(entry: DirtyEntry, current: DomainState): unknown {
   if (entry.deleted) return entry.data ?? {};
-  if (entry.kind === 'preference') return { value: entry.id === 'calendarFeeds' ? current.calendarFeeds : current.dayMarkVariant };
+  if (entry.kind === 'preference') return entry.id === 'customMark' && !current.customMark ? undefined : { value: entry.id === 'calendarFeeds' ? current.calendarFeeds : entry.id === 'customMark' ? current.customMark : current.dayMarkVariant };
   return collections(current)[entry.kind].find((item) => item.id === entry.id);
 }
 
