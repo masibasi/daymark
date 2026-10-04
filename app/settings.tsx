@@ -177,6 +177,7 @@ function AppearanceSection() {
           })}
         </View>
         <Text style={styles.rowHint}>More themes coming later.</Text>
+        <Pressable accessibilityRole="link" onPress={() => router.push('/daymark-lab')} hitSlop={6}><Text style={[styles.rowHint, styles.labLink]}>Try drawing your own Day Mark (experiment) →</Text></Pressable>
       </View>
     </View>
   );
@@ -221,6 +222,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  labLink: { color: colors.accent, marginTop: space.xs },
   scroll: { flex: 1 },
   page: { flexGrow: 1, padding: space.xl, alignItems: 'stretch', justifyContent: 'center', maxWidth: 620, width: '100%', alignSelf: 'center' },
   section: { marginTop: space.xl, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper, overflow: 'hidden' },
