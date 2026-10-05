@@ -206,6 +206,7 @@ function AppearanceSection() {
 export default function SettingsScreen() {
   const loadSampleData = useDaymarkStore((state) => state.loadSampleData);
   const eraseAllData = useDaymarkStore((state) => state.eraseAllData);
+  const setOnboardingDone = useDaymarkStore((state) => state.setOnboardingDone);
   const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
 
   const onLoadSample = async () => {
@@ -238,6 +239,7 @@ export default function SettingsScreen() {
           <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all folders, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
         </Pressable>
       </View>
+      <Pressable onPress={() => { setOnboardingDone(false); router.replace('/welcome'); }}><Text style={styles.back}>Replay welcome</Text></Pressable>
       <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
       <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable>
       <Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable>

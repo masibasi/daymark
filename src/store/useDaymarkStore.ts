@@ -41,6 +41,9 @@ interface DaymarkState {
   dayMarkVariant: DayMarkVariant;
   customMark?: CustomMark; // the drawn Day Mark behind the 'custom' style; synced as a preference row
   hasHydrated: boolean;
+  // First-run flow (/welcome) finished or skipped; device-local, never synced. Existing users count as done (see migrate).
+  onboardingDone: boolean;
+  setOnboardingDone: (done: boolean) => void;
   // Past days whose "unfinished from …" banner the user dismissed (last 14 kept).
   carryoverDismissed: string[];
   lastDeleted: LastDeleted | null;
@@ -98,7 +101,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 8;
+const STORAGE_VERSION = 9;
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -158,6 +161,8 @@ export const useDaymarkStore = create<DaymarkState>()(
       selectedTodayDate: todayKey(),
       dayMarkVariant: 'doodle',
       hasHydrated: false,
+      onboardingDone: false,
+      setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
       carryoverDismissed: [],
       lastDeleted: null,
       toast: null,
@@ -458,11 +463,12 @@ export const useDaymarkStore = create<DaymarkState>()(
         collapsedListIds: state.collapsedListIds,
         dayMarkCollapsedDesktop: state.dayMarkCollapsedDesktop,
         scheduleCollapsed: state.scheduleCollapsed,
+        onboardingDone: state.onboardingDone,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields).
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields). v8 -> v9: onboardingDone (device-local); anyone with data already is marked done.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
@@ -475,6 +481,10 @@ export const useDaymarkStore = create<DaymarkState>()(
         if (Array.isArray(old.projects)) {
           const ranked = old.projects.slice().sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
           old = { ...old, projects: old.projects.map((project) => ({ ...project, order: typeof project.order === 'number' ? project.order : ranked.indexOf(project) })) };
+        }
+        if (typeof old.onboardingDone !== 'boolean') {
+          const hasData = (old.tasks?.length ?? 0) > 0 || (old.projects?.length ?? 0) > 0 || (old.routines?.length ?? 0) > 0 || !!old.customMark || (!!old.dayMarkVariant && old.dayMarkVariant !== 'doodle');
+          old = { ...old, onboardingDone: hasData };
         }
         return old as DaymarkState;
       },

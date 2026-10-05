@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Slot } from 'expo-router';
+import { Slot, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,8 +24,12 @@ function paintDocument() {
 
 export default function RootLayout() {
   const hasHydrated = useDaymarkStore((state) => state.hasHydrated);
+  const onboardingDone = useDaymarkStore((state) => state.onboardingDone);
+  const pathname = usePathname();
 
   useEffect(() => { if (hasHydrated) startSync(); }, [hasHydrated]);
+  // First run: new installs land on /welcome until they finish or skip it (existing users are marked done on migrate).
+  useEffect(() => { if (hasHydrated && !onboardingDone && pathname !== '/welcome') router.replace('/welcome'); }, [hasHydrated, onboardingDone, pathname]);
   useEffect(registerServiceWorker, []);
   useEffect(paintDocument, []);
 

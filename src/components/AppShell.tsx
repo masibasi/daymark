@@ -48,6 +48,9 @@ export function AppShell({ children }: PropsWithChildren) {
     </View>
   );
 
+  // Full-screen first-run flow: no navigation.
+  if (pathname === '/welcome') return <View style={[styles.root, { paddingTop: insets.top }]}><View style={styles.content}>{children}<UndoToast bottom={space.lg} /></View></View>;
+
   return (
     <View style={[styles.root, { paddingTop: desktop ? 0 : insets.top }]}>
       {desktop ? nav : null}

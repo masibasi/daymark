@@ -96,7 +96,7 @@ export default function FoldersScreen() {
             {section('undated', groups.undated)}
           </>
         ) : (
-          <Text style={styles.empty}>No folders yet. Start one to keep a body of work together, then pull steps into today when you need them.</Text>
+          <Text style={styles.empty}>Keep work that spans days in folders — with or without a deadline.</Text>
         )}
         {archived.length > 0 ? (
           <View style={styles.archive}>
