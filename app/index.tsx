@@ -124,6 +124,8 @@ export default function TodayScreen() {
   const projectNames = Object.fromEntries(projects.map((project) => [project.id, project.title]));
 
   const selectDate = (date: Date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'));
+  // Viewing another day: one tap back to today (the Today tab does the same).
+  const todayButton = isToday ? null : <Pressable accessibilityRole="button" accessibilityLabel="Back to today" onPress={() => setSelectedTodayDate(todayKey())} hitSlop={6} style={({ pressed }) => [styles.todayButton, pressed && styles.todayButtonPressed]}><Ionicons name="return-down-back" size={14} color={colors.ink} /><Text style={styles.todayButtonText}>Today</Text></Pressable>;
 
   const orbitCard = (
     <View style={[styles.orbitCard, wide && styles.orbitCardWide, desk && styles.orbitCardDesk]}>
@@ -205,7 +207,7 @@ export default function TodayScreen() {
       <TaskDragContext.Provider value={drag}>
         <View style={styles.desk}>
           <ScrollView {...scrollProps} style={[styles.deskLeft, width < 1024 && styles.deskLeftNarrow]} contentContainerStyle={styles.deskLeftContent}>
-            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" />
+            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={todayButton} />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
             <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
@@ -231,7 +233,7 @@ export default function TodayScreen() {
       onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
       contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View ref={contentRef} collapsable={false} style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link> : undefined} />
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <View style={styles.headerActions}>{todayButton}<Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link></View> : todayButton} />
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
@@ -266,6 +268,10 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  todayButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: space.sm, borderRadius: 17, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper, marginTop: 2 },
+  todayButtonPressed: { opacity: 0.6 },
+  todayButtonText: { ...type.meta, color: colors.ink, fontFamily },
   settingsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.round },
   scroll: { flexGrow: 1 },
   scrollKeyboard: { paddingBottom: 320 },

@@ -3,6 +3,8 @@ import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { todayKey } from '@/domain/clock';
+import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
@@ -19,11 +21,14 @@ export function AppShell({ children }: PropsWithChildren) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
   const email = useSyncStatus((state) => state.email);
   const desktop = width >= 760;
   const keyboardVisible = useKeyboardVisible();
   const showBottomNav = !desktop && !keyboardVisible;
 
+  // The Today tab always lands on today, even when another day was being viewed.
+  const backToToday = () => setSelectedTodayDate(todayKey());
   const nav = (
     <View style={desktop ? styles.sideNav : [styles.bottomNav, { paddingBottom: Math.max(insets.bottom, space.xs) }]}>
       {desktop ? <Image source={require('../../assets/brand-mark.png')} accessibilityLabel="Daymark" style={styles.brandMark} /> : null}
@@ -32,7 +37,7 @@ export function AppShell({ children }: PropsWithChildren) {
           const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} asChild>
-              <PressableScale accessibilityRole="link" accessibilityLabel={item.label} style={StyleSheet.flatten([desktop ? styles.navItem : styles.tabItem, active && desktop && styles.navItemActive])}>
+              <PressableScale accessibilityRole="link" accessibilityLabel={item.label} onPress={item.href === '/' ? backToToday : undefined} style={StyleSheet.flatten([desktop ? styles.navItem : styles.tabItem, active && desktop && styles.navItemActive])}>
                 <Ionicons name={(active ? item.activeIcon : item.icon) as never} size={desktop ? 21 : 22} color={active ? colors.ink : colors.muted} />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
               </PressableScale>
