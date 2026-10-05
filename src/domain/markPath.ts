@@ -1,13 +1,23 @@
-// Pure geometry for user-drawn Day Marks (lab experiment): clean a hand-drawn stroke into an evenly spaced, normalized path.
+// Pure geometry for user-drawn Day Marks: clean hand-drawn strokes into evenly spaced paths, normalized together into one unit box.
+import type { CustomMark } from './types';
+
 export type Pt = [number, number];
 
-// `pts` live in the unit box (0..1). A closed path repeats its first point as the last, so arc-length fractions run once around the loop.
-export interface MarkPath { pts: Pt[]; closed: boolean }
-export type ProcessResult = { ok: true; mark: MarkPath } | { ok: false; reason: string };
+// `pts` live in the unit box (0..1) shared by every stroke. A closed stroke repeats its first point as the last, so arc-length fractions run once around the loop.
+export interface MarkStroke { pts: Pt[]; closed: boolean }
+// A drawing: strokes in the order they were drawn; the day fills them in that order by arc length across all strokes concatenated.
+export interface MarkPath { strokes: MarkStroke[] }
+export type StrokeResult = { ok: true; stroke: MarkStroke } | { ok: false; reason: string };
 
-export const MARK_SAMPLES = 160;
+export const MARK_MAX_STROKES = 16;
+export const MARK_TOTAL_SAMPLES = 240;
+const LEGACY_FIRST_SAMPLES = 160; // older app versions reject a stored first stroke longer than this
+const MIN_STROKE_POINTS = 12;
 const CLOSE_RATIO = 0.12;
-const MIN_LENGTH_RATIO = 0.2;
+const MIN_STROKE_RATIO = 0.04; // a stroke shorter than this share of the pad side is a tap, not a line
+export const MIN_TOTAL_RATIO = 0.2; // a drawing needs this much total length (share of the pad side) to be worth filling
+export const TOO_SMALL_MESSAGE = 'Too small to fill \u2014 draw a line instead.';
+export const TOO_SHORT_MESSAGE = 'Keep going \u2014 a little more to fill.';
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 export function pathLength(pts: Pt[]): number {
@@ -90,24 +100,30 @@ function bounds(pts: Pt[]) {
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
-// Fit into the unit box, keeping aspect ratio and centring, with `pad` of margin on every side.
-export function normalize(pts: Pt[], pad = 0.06): Pt[] {
-  const b = bounds(pts);
+// Fit all strokes TOGETHER into the unit box, keeping aspect ratio and relative positions, centred, with `pad` of margin on every side.
+export function normalizeStrokes(strokes: MarkStroke[], pad = 0.06): MarkStroke[] {
+  const all: Pt[] = [];
+  for (const stroke of strokes) all.push(...stroke.pts);
+  if (all.length === 0) return strokes;
+  const b = bounds(all);
   const side = Math.max(b.width, b.height) || 1;
   const scale = (1 - pad * 2) / side;
   const offX = 0.5 - (b.width * scale) / 2;
   const offY = 0.5 - (b.height * scale) / 2;
-  return pts.map(([x, y]) => [offX + (x - b.minX) * scale, offY + (y - b.minY) * scale]);
+  return strokes.map((stroke) => ({ closed: stroke.closed, pts: stroke.pts.map(([x, y]): Pt => [offX + (x - b.minX) * scale, offY + (y - b.minY) * scale]) }));
 }
 
-// Raw pointer samples (in pad pixels) -> a clean MarkPath. `boxSize` is the pad side, used to judge "too short".
-export function processStroke(raw: Pt[], boxSize: number, samples = MARK_SAMPLES): ProcessResult {
+export function markLength(strokes: MarkStroke[]): number {
+  return strokes.reduce((total, stroke) => total + pathLength(stroke.pts), 0);
+}
+
+// Raw pointer samples (in pad pixels) -> one smoothed stroke in PAD UNITS (pixel / boxSize, not re-normalized, so it stays where it was drawn).
+export function cleanStroke(raw: Pt[], boxSize: number): StrokeResult {
   const sparse = dropClosePoints(raw, Math.max(1.5, boxSize * 0.008));
-  const tooShort = { ok: false, reason: 'A little longer, please — draw a stroke you would like to see fill up.' } as const;
-  if (sparse.length < 3 || pathLength(sparse) < boxSize * MIN_LENGTH_RATIO) return tooShort;
+  if (sparse.length < 2 || pathLength(sparse) < boxSize * MIN_STROKE_RATIO) return { ok: false, reason: TOO_SMALL_MESSAGE };
   const b = bounds(sparse);
   const diagonal = Math.hypot(b.width, b.height);
-  const closed = dist(sparse[0], sparse[sparse.length - 1]) < diagonal * CLOSE_RATIO;
+  const closed = sparse.length >= 3 && dist(sparse[0], sparse[sparse.length - 1]) < diagonal * CLOSE_RATIO;
   let smooth: Pt[];
   if (closed) {
     const ring = sparse.length > 3 && dist(sparse[0], sparse[sparse.length - 1]) < 1e-6 ? sparse.slice(0, -1) : sparse;
@@ -116,16 +132,86 @@ export function processStroke(raw: Pt[], boxSize: number, samples = MARK_SAMPLES
   } else {
     smooth = chaikin(sparse, 2, false);
   }
-  return { ok: true, mark: { pts: resample(normalize(smooth), samples), closed } };
+  const unit = smooth.map(([x, y]): Pt => [x / boxSize, y / boxSize]);
+  const out = resample(unit, Math.min(160, Math.max(MIN_STROKE_POINTS, Math.round(pathLength(unit) * 120))));
+  if (closed) out[out.length - 1] = out[0];
+  return { ok: true, stroke: { pts: out, closed } };
 }
 
-// Fewer points for tiny marks so the shape stays legible (the path keeps closing on itself).
-export function simplifyForSize(mark: MarkPath, size: number): Pt[] {
-  if (size >= 80) return mark.pts;
-  const count = size < 30 ? 40 : 90;
-  if (mark.pts.length <= count) return mark.pts;
-  const out = resample(mark.pts, count);
-  if (mark.closed) out[out.length - 1] = out[0];
+// Point counts proportional to each stroke's length, at least `min` each, summing to at most `budget` (unless the minimums alone exceed it).
+function allocate(lengths: number[], budget: number, min: number): number[] {
+  const total = lengths.reduce((a, b) => a + b, 0);
+  const counts = lengths.map((l) => Math.max(min, Math.round(total > 0 ? (budget * l) / total : budget / lengths.length)));
+  let sum = counts.reduce((a, b) => a + b, 0);
+  while (sum > budget) {
+    let biggest = -1;
+    counts.forEach((c, i) => { if (c > min && (biggest < 0 || c > counts[biggest])) biggest = i; });
+    if (biggest < 0) break;
+    counts[biggest] -= 1;
+    sum -= 1;
+  }
+  return counts;
+}
+
+function reduceStroke(stroke: MarkStroke, count: number): MarkStroke {
+  if (stroke.pts.length <= count) return stroke;
+  const pts = resample(stroke.pts, count);
+  if (stroke.closed) pts[pts.length - 1] = pts[0];
+  return { pts, closed: stroke.closed };
+}
+
+function reduceStrokes(strokes: MarkStroke[], budget: number, min: number): MarkStroke[] {
+  const counts = allocate(strokes.map((s) => pathLength(s.pts)), budget, min);
+  return strokes.map((stroke, i) => reduceStroke(stroke, counts[i]));
+}
+
+// Cleaned strokes (pad units) -> the normalized, point-budgeted MarkPath. Strokes are normalized together, never individually.
+export function buildMark(strokes: MarkStroke[], budget = MARK_TOTAL_SAMPLES): MarkPath {
+  return { strokes: reduceStrokes(normalizeStrokes(strokes.slice(0, MARK_MAX_STROKES)), budget, MIN_STROKE_POINTS) };
+}
+
+// Fewer points for tiny marks so the shape stays legible (closed strokes keep closing on themselves).
+export function simplifyForSize(mark: MarkPath, size: number): MarkStroke[] {
+  if (size >= 80) return mark.strokes;
+  return reduceStrokes(mark.strokes, size < 30 ? 40 : 90, 6);
+}
+
+// Which stroke a global arc-length fraction (0..1 over all strokes concatenated) lands in, and how far along that stroke.
+export function locateFraction(strokes: MarkStroke[], fraction: number): { index: number; local: number } {
+  const lengths = strokes.map((s) => pathLength(s.pts));
+  const total = lengths.reduce((a, b) => a + b, 0);
+  const target = Math.min(1, Math.max(0, fraction)) * total;
+  let acc = 0;
+  for (let i = 0; i < strokes.length; i += 1) {
+    if (target <= acc + lengths[i] || i === strokes.length - 1) return { index: i, local: lengths[i] > 0 ? Math.min(1, Math.max(0, (target - acc) / lengths[i])) : 0 };
+    acc += lengths[i];
+  }
+  return { index: 0, local: 0 };
+}
+
+export interface MarkPiece { index: number; pts: Pt[]; localFrom: number; localTo: number }
+const MIN_PIECE = 0.0005; // share of the whole drawing
+
+// The part of the drawing between two global fractions, cut into one polyline per stroke it touches (in stroke order).
+export function cutRange(strokes: MarkStroke[], from: number, to: number): MarkPiece[] {
+  const lengths = strokes.map((s) => pathLength(s.pts));
+  const total = lengths.reduce((a, b) => a + b, 0);
+  if (total <= 0 || to <= from) return [];
+  const a = Math.max(0, from) * total;
+  const b = Math.min(1, to) * total;
+  const out: MarkPiece[] = [];
+  let acc = 0;
+  strokes.forEach((stroke, index) => {
+    const len = lengths[index];
+    const lo = Math.max(a, acc);
+    const hi = Math.min(b, acc + len);
+    if (len > 0 && hi - lo > MIN_PIECE * total) {
+      const localFrom = (lo - acc) / len;
+      const localTo = (hi - acc) / len;
+      out.push({ index, localFrom, localTo, pts: subpath(stroke.pts, localFrom, localTo) });
+    }
+    acc += len;
+  });
   return out;
 }
 
@@ -160,22 +246,59 @@ export function presetStroke(name: PresetName, size: number): Pt[] {
   return pts;
 }
 
+const validPts = (pts: unknown): pts is Pt[] => Array.isArray(pts) && pts.length >= 2 && pts.every((p) => Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number' && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+
 export function isMarkPath(value: unknown): value is MarkPath {
   if (typeof value !== 'object' || value === null) return false;
-  const v = value as { pts?: unknown; closed?: unknown };
-  return typeof v.closed === 'boolean' && Array.isArray(v.pts) && v.pts.length >= 2 && v.pts.every((p) => Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number' && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  const v = value as { strokes?: unknown };
+  return Array.isArray(v.strokes) && v.strokes.length >= 1 && v.strokes.length <= MARK_MAX_STROKES && v.strokes.every((s) => typeof s === 'object' && s !== null && typeof (s as { closed?: unknown }).closed === 'boolean' && validPts((s as { pts?: unknown }).pts));
 }
 
-// Store form of a drawn mark: capped at MARK_SAMPLES points, coordinates rounded to 4 decimals (a closed path keeps its repeated end point).
-export function toCustomPoints(mark: MarkPath): Pt[] {
-  const pts = mark.pts.length > MARK_SAMPLES ? resample(mark.pts, MARK_SAMPLES) : mark.pts;
-  const rounded = pts.map(([x, y]): Pt => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]);
-  if (mark.closed) rounded[rounded.length - 1] = [rounded[0][0], rounded[0][1]];
-  return rounded;
+// Reads a saved drawing, accepting the old single-stroke `{ pts, closed }` shape too.
+export function toMarkPath(value: unknown): MarkPath | null {
+  if (isMarkPath(value)) return value;
+  const v = value as { pts?: unknown; closed?: unknown } | null;
+  if (typeof v === 'object' && v !== null && typeof v.closed === 'boolean' && validPts(v.pts)) return { strokes: [{ pts: v.pts, closed: v.closed }] };
+  return null;
 }
 
-export function isCustomMark(value: unknown): value is { points: Pt[]; closed: boolean; updatedAt: string } {
+// A preset as a single cleaned stroke (pad units) / as a finished mark.
+export function presetStrokeClean(name: PresetName, size: number): MarkStroke | null {
+  const result = cleanStroke(presetStroke(name, size), size);
+  return result.ok ? result.stroke : null;
+}
+export function presetMark(name: PresetName, size: number): MarkPath | null {
+  const stroke = presetStrokeClean(name, size);
+  return stroke ? buildMark([stroke]) : null;
+}
+
+const round4 = (p: Pt): Pt => [Math.round(p[0] * 1e4) / 1e4, Math.round(p[1] * 1e4) / 1e4];
+const roundStroke = (stroke: MarkStroke): { points: Pt[]; closed: boolean } => {
+  const points = stroke.pts.map(round4);
+  if (stroke.closed) points[points.length - 1] = [points[0][0], points[0][1]];
+  return { points, closed: stroke.closed };
+};
+
+// Store form of a drawn mark: `strokes` (<= 16, <= 240 points in all, 4 decimals; closed strokes keep their repeated end point) plus the first stroke
+// in the legacy `points`/`closed` fields so older app versions still read something.
+export function toCustomMark(mark: MarkPath, updatedAt: string): CustomMark {
+  const strokes = reduceStrokes(mark.strokes.slice(0, MARK_MAX_STROKES), MARK_TOTAL_SAMPLES, MIN_STROKE_POINTS).map(roundStroke);
+  const first = roundStroke(reduceStroke({ pts: strokes[0].points, closed: strokes[0].closed }, LEGACY_FIRST_SAMPLES));
+  return { points: first.points, closed: first.closed, strokes, updatedAt };
+}
+
+const validCustomStrokes = (value: unknown): value is Array<{ points: Pt[]; closed: boolean }> => Array.isArray(value) && value.length >= 1 && value.length <= MARK_MAX_STROKES
+  && value.every((s) => typeof s === 'object' && s !== null && typeof (s as { closed?: unknown }).closed === 'boolean' && validPts((s as { points?: unknown }).points))
+  && value.reduce((total: number, s: { points: Pt[] }) => total + s.points.length, 0) <= MARK_TOTAL_SAMPLES;
+
+export function isCustomMark(value: unknown): value is CustomMark {
   if (typeof value !== 'object' || value === null) return false;
-  const v = value as { points?: unknown; closed?: unknown; updatedAt?: unknown };
-  return typeof v.updatedAt === 'string' && isMarkPath({ pts: v.points, closed: v.closed }) && (v.points as unknown[]).length <= MARK_SAMPLES;
+  const v = value as { points?: unknown; closed?: unknown; strokes?: unknown; updatedAt?: unknown };
+  return typeof v.updatedAt === 'string' && typeof v.closed === 'boolean' && validPts(v.points) && v.points.length <= MARK_TOTAL_SAMPLES;
+}
+
+// The drawing behind a stored mark: `strokes` when present and valid, else the single legacy stroke.
+export function customToMarkPath(custom: Pick<CustomMark, 'points' | 'closed' | 'strokes'>): MarkPath {
+  if (validCustomStrokes(custom.strokes)) return { strokes: custom.strokes.map((s) => ({ pts: s.points, closed: s.closed })) };
+  return { strokes: [{ pts: custom.points, closed: custom.closed }] };
 }

@@ -95,9 +95,11 @@ export type CalendarView = 'week' | 'month';
 
 export type DayMarkVariant = 'ribbon' | 'glass' | 'wash' | 'current' | 'doodle' | 'custom';
 
-// A user-drawn Day Mark ("Custom (beta)"): a normalized unit-box polyline (closed paths repeat the first point last). Synced as a preference row.
+// A user-drawn Day Mark ("Custom (beta)"): normalized unit-box strokes in drawing order (closed strokes repeat the first point last). Synced as a preference row.
+// `points`/`closed` are the first stroke, kept so older app versions still read something; `strokes` is the full drawing (absent on older saves).
 export interface CustomMark {
   points: [number, number][];
   closed: boolean;
+  strokes?: Array<{ points: [number, number][]; closed: boolean }>;
   updatedAt: string;
 }

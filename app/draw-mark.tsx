@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { MarkDrawPad, ProgressSlider, evenSegments, weekSamples } from '@/components/MarkDrawPad';
 import { PathMark } from '@/components/PathMark';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import type { MarkPath } from '@/domain/markPath';
+import { customToMarkPath, type MarkPath } from '@/domain/markPath';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, darkColors, fontFamily, lightColors, radius, space, type } from '@/theme/tokens';
 
@@ -16,7 +16,7 @@ export default function DrawMarkScreen() {
   const setCustomMark = useDaymarkStore((state) => state.setCustomMark);
   const setDayMarkVariant = useDaymarkStore((state) => state.setDayMarkVariant);
   const showToast = useDaymarkStore((state) => state.showToast);
-  const [initial] = useState<MarkPath | null>(() => (customMark ? { pts: customMark.points, closed: customMark.closed } : null));
+  const [initial] = useState<MarkPath | null>(() => (customMark ? customToMarkPath(customMark) : null));
   const [mark, setMark] = useState<MarkPath | null>(initial);
   const [rejected, setRejected] = useState(false);
   const [drawing, setDrawing] = useState(false);
@@ -35,7 +35,7 @@ export default function DrawMarkScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.page} scrollEnabled={!drawing} keyboardShouldPersistTaps="handled">
-      <ScreenHeader eyebrow="Custom (beta)" title="Draw your Day Mark" subtitle="One stroke, any shape. Your day fills along it in list colors, starting where you started." />
+      <ScreenHeader eyebrow="Custom (beta)" title="Draw your Day Mark" subtitle="Draw anything, in as many strokes as you like. Your day fills them in list colors, in the order you drew." />
       <View style={styles.padWrap}>
         <MarkDrawPad size={padSize} initial={initial} onChange={onChange} onDrawingChange={setDrawing} />
       </View>

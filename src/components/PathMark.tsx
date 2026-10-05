@@ -2,13 +2,13 @@ import { Animated, Platform, View } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
-import { simplifyForSize, subpath, pointAtFraction, type MarkPath, type Pt } from '@/domain/markPath';
+import { cutRange, simplifyForSize, type MarkPath, type MarkPiece, type Pt } from '@/domain/markPath';
 import { listColors, type ListColors } from '@/theme/palette';
 import { colors, darkColors, lightColors, motion } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { Ripple, useTweenedArcs } from '@/components/orbitMotion';
 
-// The Custom (beta) Day Mark: drawn along a user-made path (Doodle's rendering rules on an arbitrary polyline).
+// The Custom (beta) Day Mark: drawn along a user-made path of one or more strokes, filled in drawing order (Doodle's rendering rules on arbitrary polylines).
 interface PathMarkProps {
   path: MarkPath;
   segments: DayOrbitSegment[];
@@ -30,12 +30,10 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
   const stroke = size < 30 ? Math.max(strokeWidth, size * 0.2) : strokeWidth;
   const inset = stroke / 2 + 1;
   const span = size - inset * 2;
-  const unit = useMemo(() => simplifyForSize(path, size), [path, size]);
-  const pts = useMemo<Pt[]>(() => unit.map(([x, y]) => [inset + x * span, inset + y * span]), [unit, inset, span]);
-  // Arc-length fractions are scale-free, so the subpaths are cut from the unit path and scaled afterwards.
-  const place = (cut: Pt[]) => cut.map(([x, y]) => `${(inset + x * span).toFixed(2)} ${(inset + y * span).toFixed(2)}`);
-  const d = (from: number, to: number) => { const cut = place(subpath(unit, from, to)); return cut.length < 2 ? '' : `M ${cut.join(' L ')}`; };
-  const at = (fraction: number): Pt => { const p = pointAtFraction(unit, fraction); return [inset + p[0] * span, inset + p[1] * span]; };
+  const strokes = useMemo(() => simplifyForSize(path, size), [path, size]);
+  // Arc-length fractions are scale-free, so pieces are cut from the unit strokes and scaled afterwards.
+  const place = (p: Pt): Pt => [inset + p[0] * span, inset + p[1] * span];
+  const coords = (pts: Pt[]) => pts.map((p) => { const q = place(p); return `${q[0].toFixed(2)} ${q[1].toFixed(2)}`; }).join(' L ');
 
   const tween = animate && !reduceMotion;
   const arcs = useTweenedArcs(
@@ -75,30 +73,44 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
     offset += fill + late;
     return { segment, from, mid: from + fill, to: from + fill + late, fill, late };
   }).filter((run) => run.fill > 0.0005 || run.late > 0.0005);
-  const filled = runs.length > 0 ? Math.min(1, runs[runs.length - 1].to) : 0;
-  const closed = path.closed && filled >= 0.9995;
-  const first = runs[0];
-  const last = runs[runs.length - 1];
   const markColor = (segment: DayOrbitSegment) => { const c = segmentColors(segment); return isDark ? c.markDark : c.markLight; };
-  const trackD = `M ${pts.map((p) => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' L ')}${path.closed ? ' Z' : ''}`;
+  const trackD = strokes.map((one) => (one.pts.length < 2 ? '' : `M ${coords(one.pts)}${one.closed ? ' Z' : ''}`)).join(' ');
   const capR = stroke / 2;
   const glow = Platform.OS === 'web' && size >= 80 && runs.length > 0;
-  const solo = closed && runs.length === 1;
-  const closedD = `M ${place(unit).join(' L ')} Z`;
+
+  // Each run's solid and late pieces, cut across the strokes in drawing order.
+  interface Piece extends MarkPiece { run: (typeof runs)[number]; kind: 'fill' | 'late' }
+  const pieces: Piece[] = [];
+  runs.forEach((run) => {
+    if (run.fill > 0.0005) cutRange(strokes, run.from, Math.min(run.mid, 1)).forEach((piece) => pieces.push({ ...piece, run, kind: 'fill' }));
+    if (run.late > 0.0005) cutRange(strokes, run.mid, Math.min(run.to, 1)).forEach((piece) => pieces.push({ ...piece, run, kind: 'late' }));
+  });
+  // A closed stroke filled all the way round by one piece draws as a closed path (no seam, no caps).
+  const pieceD = (piece: Piece) => {
+    const source = strokes[piece.index];
+    if (source.closed && piece.localFrom <= 0.0001 && piece.localTo >= 0.9999) return `M ${coords(source.pts.slice(0, -1))} Z`;
+    return piece.pts.length < 2 ? '' : `M ${coords(piece.pts)}`;
+  };
+  const runD = (run: Piece['run'], kind: Piece['kind']) => pieces.filter((piece) => piece.run === run && piece.kind === kind).map(pieceD).filter(Boolean).join(' ');
+  // Round caps at each filled stroke's start and at its end (the fill head, or the end of a fully filled open stroke).
+  const caps: Array<{ key: string; at: Pt; piece: Piece }> = [];
+  strokes.forEach((source, index) => {
+    const own = pieces.filter((piece) => piece.index === index);
+    if (own.length === 0) return;
+    const firstPiece = own[0];
+    const lastPiece = own[own.length - 1];
+    if (source.closed && lastPiece.localTo >= 0.9999) return;
+    caps.push({ key: `s${index}`, at: place(firstPiece.pts[0]), piece: firstPiece }, { key: `e${index}`, at: place(lastPiece.pts[lastPiece.pts.length - 1]), piece: lastPiece });
+  });
+  const capCircles = (kind: Piece['kind']) => caps.filter((cap) => cap.piece.kind === kind).map((cap) => <Circle key={cap.key} cx={cap.at[0]} cy={cap.at[1]} r={capR} fill={markColor(cap.piece.run.segment)} />);
 
   const layer = (
     <>
-      {runs.map((run) => run.fill > 0.0005 ? (
-        <Path key={run.segment.categoryId} d={solo && run.late <= 0.0005 ? closedD : d(run.from, Math.min(run.mid, 1))} fill="none" stroke={markColor(run.segment)} strokeWidth={stroke} strokeLinecap="butt" strokeLinejoin="round" />
-      ) : null)}
-      {!closed && first && filled > 0.001 && first.fill > 0.0005 ? <Circle cx={at(first.from)[0]} cy={at(first.from)[1]} r={capR} fill={markColor(first.segment)} /> : null}
-      {!closed && last && filled > 0.001 && last.late <= 0.0005 ? <Circle cx={at(filled)[0]} cy={at(filled)[1]} r={capR} fill={markColor(last.segment)} /> : null}
+      {runs.map((run) => { const d = runD(run, 'fill'); return d ? <Path key={run.segment.categoryId} d={d} fill="none" stroke={markColor(run.segment)} strokeWidth={stroke} strokeLinecap="butt" strokeLinejoin="round" /> : null; })}
+      {capCircles('fill')}
       <G opacity={lateOpacity}>
-        {runs.map((run) => run.late > 0.0005 ? (
-          <Path key={run.segment.categoryId} d={solo && run.fill <= 0.0005 ? closedD : d(run.mid, Math.min(run.to, 1))} fill="none" stroke={markColor(run.segment)} strokeWidth={stroke} strokeLinecap="butt" strokeLinejoin="round" />
-        ) : null)}
-        {!closed && first && filled > 0.001 && first.fill <= 0.0005 ? <Circle cx={at(first.from)[0]} cy={at(first.from)[1]} r={capR} fill={markColor(first.segment)} /> : null}
-        {!closed && last && filled > 0.001 && last.late > 0.0005 ? <Circle cx={at(filled)[0]} cy={at(filled)[1]} r={capR} fill={markColor(last.segment)} /> : null}
+        {runs.map((run) => { const d = runD(run, 'late'); return d ? <Path key={run.segment.categoryId} d={d} fill="none" stroke={markColor(run.segment)} strokeWidth={stroke} strokeLinecap="butt" strokeLinejoin="round" /> : null; })}
+        {capCircles('late')}
       </G>
     </>
   );
@@ -118,7 +130,7 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
         <Path d={trackD} fill="none" stroke={activeColors.track} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
         {layer}
       </Svg>
-      {tween && dominant ? <Ripple size={size} radiusValue={span / 2} color={markColor(dominant)} fireKey={rippleKey} outline={path.closed ? closedD : trackD} /> : null}
+      {tween && dominant ? <Ripple size={size} radiusValue={span / 2} color={markColor(dominant)} fireKey={rippleKey} outline={trackD} /> : null}
     </Animated.View>
   );
 }

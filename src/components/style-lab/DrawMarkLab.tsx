@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { DayOrbitSegment } from '@/domain/selectors';
-import { isMarkPath, presetStroke, processStroke, type MarkPath } from '@/domain/markPath';
+import { presetMark, toMarkPath, type MarkPath } from '@/domain/markPath';
 import { MarkDrawPad, ProgressSlider, evenSegments, weekSamples } from '@/components/MarkDrawPad';
 import { PathMark } from '@/components/PathMark';
 import { colors, darkColors, fontFamily, radius, space, type } from '@/theme/tokens';
@@ -26,7 +26,7 @@ function loadMark(): MarkPath | null {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     const parsed: unknown = raw ? JSON.parse(raw) : null;
-    return isMarkPath(parsed) ? parsed : null;
+    return toMarkPath(parsed); // also accepts the old single-stroke shape
   } catch { return null; }
 }
 function saveMark(mark: MarkPath | null) {
@@ -44,20 +44,20 @@ export function DrawMarkLab({ todaySegments, wide, onDrawingChange }: Props) {
   const [mark, setMark] = useState<MarkPath | null>(loadMark);
   const [initial] = useState(mark);
   const [progress, setProgress] = useState(0.55);
-  const onChange = useCallback((next: MarkPath | null) => { setMark(next); saveMark(next); }, []);
+  const onChange = useCallback((next: MarkPath | null, rejected: boolean) => { setMark(next); if (!rejected) saveMark(next); }, []);
 
-  const shown = mark ?? (() => { const r = processStroke(presetStroke('Heart', padSize), padSize); return r.ok ? r.mark : null; })();
+  const shown = mark ?? presetMark('Heart', padSize);
   const sliderSegments = evenSegments(progress);
 
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Draw your mark (experiment)</Text>
-      <Text style={styles.description}>Draw one stroke with a finger or the mouse — a star, a heart, a line, anything. The day fills along it in list colors, starting where you started. This is the playground; the real thing is Settings, Appearance, Custom (beta). Here the drawing stays in this browser only.</Text>
+      <Text style={styles.description}>Draw anything with a finger or the mouse — a star, a heart, a smiley, your initials, in as many strokes as you like. The day fills them in list colors, in the order you drew. This is the playground; the real thing is Settings, Appearance, Custom (beta). Here the drawing stays in this browser only.</Text>
       <View style={[styles.body, wide && styles.bodyWide]}>
         <MarkDrawPad size={padSize} initial={initial} onChange={onChange} onDrawingChange={onDrawingChange} />
         <View style={styles.previewCol}>
           {shown ? <>
-            <Text style={styles.groupLabel}>{shown.closed ? 'Closed shape' : 'Open line'} · live progress {Math.round(progress * 100)}%</Text>
+            <Text style={styles.groupLabel}>{shown.strokes.length > 1 ? `${shown.strokes.length} strokes` : shown.strokes[0].closed ? 'Closed shape' : 'Open line'} · live progress {Math.round(progress * 100)}%</Text>
             <View style={styles.sliderRow}>
               <PathMark path={shown} segments={sliderSegments} size={132} strokeWidth={9} />
               <View style={styles.sliderCol}>

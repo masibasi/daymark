@@ -227,7 +227,7 @@ export default function SettingsScreen() {
       <AppearanceSection />
       <View style={styles.section}>
         <Pressable accessibilityRole="button" onPress={() => router.push('/draw-mark')} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Draw your Day Mark</Text><Text style={styles.rowHint}>Make the Day Mark your own shape: one stroke, any drawing (Custom, beta).</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Draw your Day Mark</Text><Text style={styles.rowHint}>Make the Day Mark your own shape: draw anything, stroke by stroke (Custom, beta).</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>

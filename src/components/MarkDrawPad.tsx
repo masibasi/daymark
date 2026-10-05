@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
-import { presetNames, presetStroke, processStroke, type MarkPath, type PresetName, type Pt } from '@/domain/markPath';
+import { MIN_TOTAL_RATIO, TOO_SHORT_MESSAGE, buildMark, cleanStroke, markLength, presetNames, presetStrokeClean, type MarkPath, type MarkStroke, type PresetName, type Pt } from '@/domain/markPath';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 
 const GRID = 8;
@@ -25,7 +25,7 @@ const toD = (pts: Pt[], close = false) => (pts.length < 2 ? '' : `M ${pts.map((p
 interface PadProps {
   size: number;
   initial: MarkPath | null;
-  // Called after every change. `rejected` is true while the last stroke was too short (the mark is then still the previous one).
+  // Called after every change. `rejected` is true while the drawing is too short to fill (the mark is then null).
   onChange: (mark: MarkPath | null, rejected: boolean) => void;
   // True while a finger/mouse is down on the pad, so the parent can freeze its ScrollView.
   onDrawingChange?: (drawing: boolean) => void;
@@ -34,14 +34,15 @@ interface PadProps {
 // The drawing pad + Clear/Undo + presets. Web uses native pointer/touch listeners on the pad's DOM node (iOS Safari and standalone web apps
 // do not reliably feed RN's PanResponder through a scrolling parent); native uses PanResponder with capture.
 export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadProps) {
-  const [mark, setMark] = useState<MarkPath | null>(initial);
-  const [history, setHistory] = useState<Array<MarkPath | null>>([]);
+  // Strokes live in pad units (pixel / size), smoothed but not re-normalized, so the drawing stays where it was drawn; only the emitted MarkPath is normalized.
+  const [strokes, setStrokes] = useState<MarkStroke[]>(() => initial?.strokes ?? []);
+  const [history, setHistory] = useState<MarkStroke[][]>([]);
   const [live, setLive] = useState<Pt[]>([]);
   const [message, setMessage] = useState('');
   const stroke = useRef<Pt[]>([]);
   const frame = useRef<number | null>(null);
-  const markRef = useRef(mark);
-  markRef.current = mark;
+  const strokesRef = useRef(strokes);
+  strokesRef.current = strokes;
   const sizeRef = useRef(size);
   sizeRef.current = size;
   const changeRef = useRef(onChange);
@@ -50,12 +51,18 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
   drawingRef.current = onDrawingChange;
   const padRef = useRef<View>(null);
 
-  const commit = useCallback((next: MarkPath | null) => {
-    setHistory((h) => [...h.slice(-19), markRef.current]);
-    setMark(next);
+  const emit = useCallback((next: MarkStroke[]) => {
+    if (next.length === 0) { setMessage(''); changeRef.current(null, false); return; }
+    if (markLength(next) < MIN_TOTAL_RATIO) { setMessage(TOO_SHORT_MESSAGE); changeRef.current(null, true); return; }
     setMessage('');
-    changeRef.current(next, false);
+    changeRef.current(buildMark(next), false);
   }, []);
+  // Every change to the drawing (stroke, preset, clear) pushes the previous drawing on the undo stack.
+  const commit = useCallback((next: MarkStroke[]) => {
+    setHistory((h) => [...h.slice(-19), strokesRef.current]);
+    setStrokes(next);
+    emit(next);
+  }, [emit]);
   const flush = useCallback(() => {
     frame.current = null;
     setLive(stroke.current.slice());
@@ -76,8 +83,8 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
     setLive([]);
     drawingRef.current?.(false);
     if (raw.length === 0) return;
-    const result = processStroke(raw, sizeRef.current);
-    if (result.ok) commit(result.mark); else { setMessage(result.reason); changeRef.current(markRef.current, true); }
+    const result = cleanStroke(raw, sizeRef.current);
+    if (result.ok) commit([...strokesRef.current, result.stroke]); else setMessage(result.reason);
   }, [commit]);
 
   // Native: PanResponder, captured so a parent ScrollView never steals the gesture.
@@ -168,22 +175,21 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
   }, [begin, extend, finish]);
 
   const applyPreset = (name: PresetName) => {
-    const result = processStroke(presetStroke(name, size), size);
-    if (result.ok) commit(result.mark);
+    const preset = presetStrokeClean(name, size);
+    if (preset) commit([preset]);
   };
   const undo = () => {
     if (history.length === 0) return;
     const previous = history[history.length - 1];
     setHistory(history.slice(0, -1));
-    setMark(previous);
-    setMessage('');
-    onChange(previous, false);
+    setStrokes(previous);
+    emit(previous);
   };
 
   const dots: Array<[number, number]> = [];
   for (let i = 1; i < GRID; i += 1) for (let j = 1; j < GRID; j += 1) dots.push([(i * size) / GRID, (j * size) / GRID]);
   const padStyle = { width: size, height: size, ...(Platform.OS === 'web' ? { touchAction: 'none', userSelect: 'none', cursor: 'crosshair' } : {}) } as object;
-  const committedPts = mark ? mark.pts.map(([x, y]): Pt => [x * size, y * size]) : [];
+  const committedD = strokes.map((one) => toD(one.pts.map(([x, y]): Pt => [x * size, y * size]), one.closed)).join(' ');
 
   return (
     <View style={styles.padCol}>
@@ -191,15 +197,15 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             {dots.map(([x, y]) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={1.2} fill={colors.line} opacity={0.55} />)}
-            {live.length === 0 && committedPts.length > 1 ? <Path d={toD(committedPts, mark?.closed)} fill="none" stroke={colors.accent} strokeOpacity={0.35} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /> : null}
+            {committedD ? <Path d={committedD} fill="none" stroke={colors.accent} strokeOpacity={0.35} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /> : null}
             {live.length > 0 ? <Path d={toD(live)} fill="none" stroke={colors.accent} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /> : null}
           </Svg>
         </View>
         <View ref={padRef} style={padStyle} accessibilityLabel="Drawing pad" {...(Platform.OS === 'web' ? {} : responder.panHandlers)} />
       </View>
-      {message ? <Text style={styles.message}>{message}</Text> : <Text style={styles.hint}>One continuous stroke. End near where you began to close the shape.</Text>}
+      {message ? <Text style={styles.message}>{message}</Text> : <Text style={styles.hint}>Draw freely — several strokes are fine. Your day fills them in the order you drew.</Text>}
       <View style={styles.buttons}>
-        <Pressable accessibilityRole="button" onPress={() => commit(null)} style={styles.button}><Text style={styles.buttonText}>Clear</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { if (strokes.length > 0) commit([]); }} style={styles.button}><Text style={styles.buttonText}>Clear</Text></Pressable>
         <Pressable accessibilityRole="button" onPress={undo} disabled={history.length === 0} style={[styles.button, history.length === 0 && styles.buttonOff]}><Text style={styles.buttonText}>Undo</Text></Pressable>
       </View>
       <View style={styles.buttons}>

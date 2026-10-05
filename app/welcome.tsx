@@ -65,7 +65,7 @@ function Draw({ onDone, onDrawingChange }: { onDone: (mark: MarkPath | null) => 
       <View style={styles.topRow}><Pressable accessibilityRole="button" onPress={() => onDone(null)} hitSlop={10} style={({ pressed }) => pressed && styles.dim}><Text style={styles.skip}>Skip for now</Text></Pressable></View>
       <View style={styles.copy}>
         <Text style={styles.title}>Draw your mark</Text>
-        <Text style={styles.line}>Draw one stroke — any shape. Your day will fill along it.</Text>
+        <Text style={styles.line}>Draw anything — your day fills it in, stroke by stroke.</Text>
       </View>
       <MarkDrawPad size={padSize} initial={null} onChange={onChange} onDrawingChange={onDrawingChange} />
       <View style={styles.previewSlot}>{mark ? <Preview mark={mark} /> : null}</View>

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { format, parseISO, setHours } from 'date-fns';
-import { isCustomMark, toCustomPoints, type MarkPath } from '@/domain/markPath';
+import { isCustomMark, toCustomMark, type MarkPath } from '@/domain/markPath';
 import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, CustomMark, DayMarkVariant, Project, Routine, RoutineRepeat, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
@@ -293,7 +293,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         projects: state.projects.map((project) => project.id === projectId ? { ...project, attentionDays: days } : project),
       })),
       setDayMarkVariant: (dayMarkVariant) => set({ dayMarkVariant }),
-      setCustomMark: (mark) => set({ customMark: { points: toCustomPoints(mark), closed: mark.closed, updatedAt: new Date().toISOString() } }),
+      setCustomMark: (mark) => set({ customMark: toCustomMark(mark, new Date().toISOString()) }),
       addProject: ({ title, categoryId, deadline, pinned }) => {
         const id = newId('project');
         set((state) => ({
@@ -468,7 +468,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields). v8 -> v9: onboardingDone (device-local); anyone with data already is marked done.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields); customMark later gained an optional `strokes` array (multi-stroke drawings) with the first stroke still in points/closed, so it is backward compatible and needs no version bump. v8 -> v9: onboardingDone (device-local); anyone with data already is marked done.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {

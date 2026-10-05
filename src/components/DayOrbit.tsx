@@ -2,6 +2,7 @@ import { Animated, Platform, View } from 'react-native';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
+import { customToMarkPath } from '@/domain/markPath';
 import type { DayMarkVariant } from '@/domain/types';
 import { listColors, type ListColors } from '@/theme/palette';
 import { colors, darkColors, lightColors, motion } from '@/theme/tokens';
@@ -69,7 +70,7 @@ export function DayOrbit(props: DayOrbitProps) {
   const storeVariant = useDaymarkStore((s) => s.dayMarkVariant);
   const customMark = useDaymarkStore((s) => s.customMark);
   const activeVariant = props.variant ?? storeVariant;
-  const path = useMemo(() => (customMark ? { pts: customMark.points, closed: customMark.closed } : null), [customMark]);
+  const path = useMemo(() => (customMark ? customToMarkPath(customMark) : null), [customMark]);
   if (activeVariant === 'custom' && path) return <PathMark path={path} segments={props.segments} size={props.size ?? 42} strokeWidth={(props.strokeWidth ?? 6) * 1.2} animate={props.animate} scheme={props.scheme} />;
   return <RingOrbit {...props} variant={activeVariant === 'custom' ? 'doodle' : activeVariant} />;
 }
