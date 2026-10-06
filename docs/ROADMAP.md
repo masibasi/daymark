@@ -1,5 +1,7 @@
 # Daymark Roadmap
 
+The launch path (reflection, export, English/Korean, accounts, native iOS with notifications and widgets, website, App Store) is planned in `docs/LAUNCH_PLAN.md` (2026-10-06).
+
 ## V0 — interactive visual prototype
 
 - Today, Calendar Week/Month, Projects, Project Detail.
