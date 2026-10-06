@@ -147,6 +147,8 @@ export default function TodayScreen() {
     </View>
   );
 
+  const reflectLink = <Link href="/reflect" accessibilityLabel="Reflect on this week" style={styles.reflectLink}>This week →</Link>;
+
   const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
   const folderList = <DeadlineStrip projects={folders} tasks={tasks} now={now()} vertical />;
@@ -210,6 +212,7 @@ export default function TodayScreen() {
             <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} action={todayButton} />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
+            {reflectLink}
             <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
           </ScrollView>
           <ScrollView
@@ -237,6 +240,7 @@ export default function TodayScreen() {
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
+        {phone ? reflectLink : null}
 
         <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Folders</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to pull a step into today</Text>}</View>
         <DeadlineStrip projects={folders} tasks={tasks} now={now()} compact={phone} />
@@ -326,5 +330,6 @@ const styles = StyleSheet.create({
   historyHint: { ...type.meta, color: colors.muted, marginTop: 2, fontFamily },
   taskCountPhone: { marginTop: 0, alignSelf: 'center' },
   taskCount: { ...type.meta, color: colors.muted, marginLeft: 'auto', marginTop: 8, fontFamily },
+  reflectLink: { ...type.meta, color: colors.muted, alignSelf: 'flex-start', marginTop: space.sm, fontFamily },
   editLists: { ...type.meta, color: colors.muted, marginTop: space.md, alignSelf: 'flex-start', fontFamily },
 });

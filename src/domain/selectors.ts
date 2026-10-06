@@ -252,3 +252,59 @@ export function selectCarryover(tasks: Task[], today: string, dismissed: string[
   }
   return null;
 }
+
+export interface ReflectionList { category: Category; count: number }
+export interface ReflectionFolder { project: Project; steps: number; finished: boolean }
+export interface ReflectionRoutine { routine: Routine; count: number }
+export interface Reflection {
+  total: number;
+  activeDays: number;
+  // Completions per local day (yyyy-MM-dd), only days with at least one.
+  perDay: Record<string, number>;
+  byList: ReflectionList[];
+  folders: ReflectionFolder[];
+  routines: ReflectionRoutine[];
+  // The day with the most completions (earliest wins a tie); null when fewer than 2 days had any.
+  fullestDay: { day: string; count: number } | null;
+}
+
+// "What got done" between two days inclusive. Counts completions only (completedAt on the local day, late ones included); anything unfinished never enters any number.
+export function selectReflection(tasks: Task[], categories: Category[], projects: Project[], routines: Routine[], start: Date, end: Date): Reflection {
+  const startKey = format(start, 'yyyy-MM-dd');
+  const endKey = format(end, 'yyyy-MM-dd');
+  const inRange = (task: Task) => {
+    if (!task.completedAt) return false;
+    const key = format(parseISO(task.completedAt), 'yyyy-MM-dd');
+    return key >= startKey && key <= endKey;
+  };
+  const done = tasks.filter(inRange);
+  const perDay: Record<string, number> = {};
+  done.forEach((task) => { const key = format(parseISO(task.completedAt as string), 'yyyy-MM-dd'); perDay[key] = (perDay[key] ?? 0) + 1; });
+  const days = Object.keys(perDay).sort();
+  const fullestKey = days.reduce<string | null>((best, key) => (best === null || perDay[key] > perDay[best] ? key : best), null);
+
+  const byList = categories.map((category) => ({ category, count: done.filter((task) => task.categoryId === category.id).length })).filter((entry) => entry.count > 0).sort((a, b) => b.count - a.count || a.category.order - b.category.order);
+
+  const folders = projects.flatMap((project) => {
+    const steps = tasks.filter((task) => task.projectId === project.id);
+    const doneSteps = steps.filter(inRange).length;
+    if (doneSteps === 0) return [];
+    const allDone = steps.every((task) => Boolean(task.completedAt));
+    const lastKey = steps.flatMap((task) => (task.completedAt ? [format(parseISO(task.completedAt), 'yyyy-MM-dd')] : [])).sort().pop() as string;
+    return [{ project, steps: doneSteps, finished: allDone && lastKey >= startKey && lastKey <= endKey }];
+  }).sort((a, b) => b.steps - a.steps);
+
+  const routineCounts = new Map<string, number>();
+  done.forEach((task) => { const routine = selectTaskRoutine(routines, task); if (routine) routineCounts.set(routine.id, (routineCounts.get(routine.id) ?? 0) + 1); });
+  const routineRows = routines.map((routine) => ({ routine, count: routineCounts.get(routine.id) ?? 0 })).filter((entry) => entry.count > 0).sort((a, b) => b.count - a.count || a.routine.order - b.routine.order);
+
+  return {
+    total: done.length,
+    activeDays: days.length,
+    perDay,
+    byList,
+    folders,
+    routines: routineRows,
+    fullestDay: days.length >= 2 && fullestKey ? { day: fullestKey, count: perDay[fullestKey] } : null,
+  };
+}

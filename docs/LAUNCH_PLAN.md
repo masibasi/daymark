@@ -12,7 +12,7 @@ Principles for everything below:
 
 Everything here ships to the PWA immediately, so the owner can use it during the dogfooding weeks.
 
-- **A1 Reflection (week and month).** A screen that adds up what got done:
+- **A1 Reflection (week and month).** *Built 2026-10-06 (`/reflect`).* A screen that adds up what got done:
   - the week's seven marks side by side;
   - a month of marks as a grid;
   - "n done this week";

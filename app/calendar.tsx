@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, addWeeks, endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { MonthGrid } from '@/components/MonthGrid';
@@ -48,7 +49,7 @@ export default function CalendarScreen() {
         <View><Text style={styles.eyebrow}>Calendar</Text><Text style={styles.title}>{format(anchor, view === 'week' ? "MMMM yyyy" : 'MMMM yyyy')}</Text></View>
         <View style={styles.toolbarActions}>
           <SegmentedControl value={view} options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} onChange={setView} />
-          <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable></View>
+          <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable><Pressable accessibilityRole="link" accessibilityLabel="Reflect on this period" hitSlop={6} onPress={() => router.push(`/reflect?period=${view}&date=${format(anchor, 'yyyy-MM-dd')}`)} style={styles.reflectButton}><Text style={styles.reflectText}>Reflect</Text></Pressable></View>
         </View>
       </View>
       <View style={styles.gridWrap}>{view === 'week' ? <WeekGrid anchor={anchor} events={events} blocks={blocks} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} /> : <MonthGrid anchor={anchor} events={events} blocks={blocks} projects={projects} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} />}</View>
@@ -76,5 +77,7 @@ const styles = StyleSheet.create({
   iconButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   todayButton: { height: 34, paddingHorizontal: space.sm, borderRadius: 17, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   todayText: { ...type.meta, color: colors.ink, fontFamily },
+  reflectButton: { height: 34, paddingHorizontal: space.xs, justifyContent: 'center', marginLeft: space.xxs },
+  reflectText: { ...type.meta, color: colors.muted, fontFamily },
   gridWrap: { flex: 1, width: '100%', maxWidth: 1380, alignSelf: 'center' },
 });
