@@ -207,7 +207,7 @@ export default function TodayScreen() {
       <TaskDragContext.Provider value={drag}>
         <View style={styles.desk}>
           <ScrollView {...scrollProps} style={[styles.deskLeft, width < 1024 && styles.deskLeftNarrow]} contentContainerStyle={styles.deskLeftContent}>
-            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={todayButton} />
+            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} action={todayButton} />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
             <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
@@ -233,7 +233,7 @@ export default function TodayScreen() {
       onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
       contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View ref={contentRef} collapsable={false} style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} subtitle="Clear · 72° · Los Angeles · sample weather" action={width < 760 ? <View style={styles.headerActions}>{todayButton}<Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link></View> : todayButton} />
+        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} action={width < 760 ? <View style={styles.headerActions}>{todayButton}<Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link></View> : todayButton} />
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}

@@ -6,7 +6,7 @@ Daymark is quiet, crisp, and personal: true black/white foundations, rounded but
 
 ## Information hierarchy
 
-- Today: date and concise weather context → Day Orbit and compact history calendar → the folder strip (pinned folders and every folder with a deadline; tap a card to expand its next steps in a panel below the strip; each step has a ☀︎ Today toggle; a quiet "All folders" link ends the strip) → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
+- Today: date → Day Orbit and compact history calendar → the folder strip (pinned folders and every folder with a deadline; tap a card to expand its next steps in a panel below the strip; each step has a ☀︎ Today toggle; a quiet "All folders" link ends the strip) → selected day's tasks grouped by list, each list ending in an inline "+ Add" row.
 - Week: period controls → day headers/all-day row → hour grid and blocks (no scheduling affordance; events are tappable to import).
 - Month: period controls → seven-column information grid with events, deadlines, and Day Orbits.
 - Folder Detail: editable title, list dot, deadline row ("No deadline · Add" / "Due Sun, Oct 5 · Change · Remove"), pin toggle → progress → steps (open first, done below) → Archive / Delete.
@@ -121,7 +121,7 @@ From 760px up (tablet and desktop) Today uses the column layout: a context colum
 
 Today splits into independent, viewport-height columns inside a layout capped at 1440px and centred, so tasks are on screen without scrolling. Each column is its own ScrollView.
 
-- Left column (360px): date header with the weather line; the Day Mark area; then Folders as a vertical list of compact cards (same order, drop-target ring and "All folders" link as the strip). Tapping a card opens its panel inline directly under that card (one open at a time).
+- Left column (360px): date header; the Day Mark area; then Folders as a vertical list of compact cards (same order, drop-target ring and "All folders" link as the strip). Tapping a card opens its panel inline directly under that card (one open at a time).
 - Day Mark area: collapsible like the phone summary. Collapsed is the compact row (44px mark, "n done", this week's seven marks, chevron); expanded is the Day Mark card (120px mark beside the small date, the "n done" headline and a one-line per-list breakdown of that day's completions) plus the history calendar, which opens as a full month at viewport height ≥ 900px and as the selected week below that. The choice persists per device (`dayMarkCollapsedDesktop`, not synced), default expanded; animation uses the `Collapsible` and chevron motion tokens and is instant under reduce-motion.
 - Main column (flex, max 720px): carry-over banner, "Today's tasks" header with "n left", and the list sections.
 - Schedule block (top of the tasks column, above the carry-over note and "Today's tasks"): a "Schedule" header with a chevron that collapses the block to one line ("Schedule · 3 events"; device-local `scheduleCollapsed`, not synced). Rows are one line each: time (or "All day") and title beside a neutral event rail. At most 3 rows show; a quiet "+N more" expands the rest. Tapping a row opens the same Add-to-day sheet as the Calendar tab. Empty day: "No events · Connect a calendar" (link only when no feed is enabled), else "No events today".

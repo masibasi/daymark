@@ -4,7 +4,7 @@
 
 - **Today is home.** The primary question is what to do now.
 - **The Day Orbit leads Today.** Completion context and the compact history calendar appear before deadlines and task rows, so accomplishment is part of orientation rather than an afterthought.
-- **Today’s header is factual, not motivational.** It shows the selected date and concise weather context; prototype weather is mock data until a provider is explicitly scoped.
+- **Today’s header is factual, not motivational.** It shows the selected date. The mock weather line was removed on 2026-10-06 (owner decision: real weather would need location permission and an API for little value).
 - **Today can revisit another date.** Selecting a day in the compact history calendar changes the visible tasks and completion record without changing the scheduling calendar's role.
 - **The history calendar defaults to collapsed on phone, expanded on desktop.** Collapsed shows just the Sun–Sat week containing the selected date; expanded shows the full month. A quiet toggle in the card header switches between them, and the prev/next arrows move by week or month to match. The user's choice always wins over the width-based default once they toggle it.
 - **Calendar is primary navigation, second to Today.** Its role is viewing events and importing them as Tasks (see the time-blocking pause below).

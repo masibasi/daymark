@@ -27,7 +27,7 @@ Everything here ships to the PWA immediately, so the owner can use it during the
   - Language follows the device by default, with an override in Settings.
   - Korean copy is written, not machine-translated; it should sound as calm as the English.
 - **A4 Cleanup.**
-  - Remove the mock weather line; the owner's decision is pending, and removal is recommended.
+  - Mock weather line removed (2026-10-06).
   - Hide the lab screens from production Settings.
   - Review the empty states.
   - Add contextual first-use tips.
@@ -41,13 +41,13 @@ Everything here ships to the PWA immediately, so the owner can use it during the
 - **B1 Email that actually sends.**
   - A custom SMTP provider (for example Resend), configured in the Supabase dashboard, which the owner sets up.
   - This enables password reset and turns email confirmation back on.
-- **B2 Sign in with Apple and Google** through Supabase OAuth. App Store guideline 4.8: an app that offers Google sign-in must also offer Sign in with Apple. The owner creates the Google Cloud OAuth client and the Apple Services ID.
+- **B2 Sign in with Google, then Apple** through Supabase OAuth. App Store guideline 4.8: an app that offers Google sign-in must also offer Sign in with Apple. The owner creates the Google Cloud OAuth client and the Apple Services ID.
 - **B3 In-app account deletion**, required by App Store guideline 5.1.1(v).
   - An Edge Function deletes the auth user; rows cascade.
   - The device keeps its local copy unless the person also erases it.
 - **B4 Privacy.**
   - Write the privacy policy and the App Store privacy label from the inventory under "What is stored today" below.
-  - Decide whether calendar feed URLs stay device-only.
+  - Calendar feed URLs stay synced so every device shows the same calendars (decided 2026-10-06); the policy names them as stored secrets, and Settings lets the person remove them.
   - No third-party analytics at first.
 
 ### What is stored today
@@ -74,7 +74,7 @@ Notifications that work reliably, widgets, quick actions, native Apple sign-in a
   - **Morning plan** (default 8:30): today's task and event counts, plus folders due today or tomorrow, so deadline alerts are folded in rather than sent separately.
   - **Evening wrap** (default 21:00): only when something got done, as "n done today — see your mark". Never "you didn't finish".
   - **Weekly recap** (Sunday evening): opens Reflection (A1).
-  - **Optional per-task "remind me at"**: the first time-of-day field on a Task. This is a reminder, not time-blocking. Owner decision.
+  - **Optional per-task "remind me at"** (approved 2026-10-06): the first time-of-day field on a Task. This is a reminder, not time-blocking.
   - **Not planned:** streak warnings, missed-task nudges, calendar event alerts (the calendar app already sends these).
   - **Technical note:** local notification text is fixed when it is scheduled. The app reschedules the next few days on every open and every change.
 - **C3 Widgets.** Written in SwiftUI through an Expo config plugin (for example `expo-apple-targets`). The app writes a small snapshot to a shared App Group, and the widget reads it.
@@ -109,11 +109,15 @@ Notifications that work reliably, widgets, quick actions, native Apple sign-in a
 3. Phase C, after Apple Developer enrollment.
 4. Phase D. The website can go up early, since the privacy policy is useful in Phase B anyway.
 
+## Decided 2026-10-06
+
+- Mock weather removed.
+- Per-task "remind me at": yes (native app, C2).
+- Calendar feed URLs: stay synced.
+- iPad supported at launch.
+- Apple Developer enrollment after Phase B. Sign in with Apple needs a Services ID from that membership, so B2 ships Google first, and Apple joins at the start of Phase C.
+
 ## Open owner decisions
 
-- Remove the weather line, or make it real? Real weather needs location permission and a weather API.
-- Per-task "remind me at": yes or no?
-- Calendar feed URLs: synced (as now), or device-only?
-- iPad at launch, or iPhone only?
 - Website subdomain name.
 - Monetization timing. Candidates are recorded in DECISIONS.md: the shape library, per-weekday shapes and themes.
