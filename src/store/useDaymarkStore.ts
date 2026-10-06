@@ -115,7 +115,8 @@ const nextOrder = (tasks: Task[], day: string, categoryId: CategoryId, excludeId
 const leaveDay = (task: Task, nextDate: string | undefined): Task => {
   const from = task.scheduledDate;
   // Moving unfinished work off today or a past day records the miss (owner, 2026-10-03); only future days are plan adjustments.
-  if (!from || from === nextDate || task.completedAt || from > todayKey() || task.missedOn?.includes(from)) return task;
+  // Taking work off today without a new date (back to its folder, or "Remove from day") un-plans it instead: it leaves today with no trace (owner, 2026-10-06).
+  if (!from || from === nextDate || task.completedAt || from > todayKey() || (!nextDate && from === todayKey()) || task.missedOn?.includes(from)) return task;
   return { ...task, missedOn: [...(task.missedOn ?? []), from] };
 };
 
@@ -492,6 +493,20 @@ export const useDaymarkStore = create<DaymarkState>()(
         // The Classic style was retired from Settings; anyone who had it moves to Watercolor wash.
         if (state?.dayMarkVariant === 'current') state.setDayMarkVariant('wash');
         if (state && !['ribbon', 'glass', 'wash', 'doodle', 'custom'].includes(state.dayMarkVariant)) state.setDayMarkVariant('doodle');
+        // Before 2026-10-06, sending a task from today back to its folder also recorded today as a miss, so it stayed on today as a "back in" row.
+        // Clear that today-entry from unscheduled, unfinished tasks (it syncs to other devices like any edit).
+        if (state) {
+          const today = todayKey();
+          const stale = (task: Task) => !task.scheduledDate && !task.completedAt && task.missedOn?.includes(today);
+          if (state.tasks.some(stale)) {
+            useDaymarkStore.setState({ tasks: state.tasks.map((task) => {
+              if (!stale(task)) return task;
+              const missedOn = (task.missedOn ?? []).filter((day) => day !== today);
+              const { missedOn: _old, ...rest } = task;
+              return missedOn.length > 0 ? { ...rest, missedOn } : rest;
+            }) });
+          }
+        }
         state?.setHasHydrated(true);
       },
     },
