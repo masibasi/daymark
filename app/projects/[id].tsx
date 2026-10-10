@@ -11,8 +11,12 @@ import { confirmAction } from '@/domain/confirm';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useFormat, useLocale, useT } from '@/i18n';
 
 export default function ProjectDetailScreen() {
+  const t = useT();
+  const fmt = useFormat();
+  const ko = useLocale().locale === 'ko';
   const { id } = useLocalSearchParams<{ id: string }>();
   const projects = useDaymarkStore((state) => state.projects);
   const tasks = useDaymarkStore((state) => state.tasks);
@@ -33,7 +37,7 @@ export default function ProjectDetailScreen() {
   const project = projects.find((item) => item.id === id);
   const [draft, setDraft] = useState(project?.title ?? '');
   useEffect(() => { setDraft(project?.title ?? ''); }, [project?.title]);
-  if (!project) return <View style={styles.empty}><Text>Folder not found.</Text></View>;
+  if (!project) return <View style={styles.empty}><Text>{t.folders.notFound}</Text></View>;
   const projectTasks = selectProjectTasks(tasks, project.id);
   const openTasks = projectTasks.filter((task) => !task.completedAt);
   const doneTasks = projectTasks.filter((task) => task.completedAt);
@@ -49,7 +53,7 @@ export default function ProjectDetailScreen() {
   };
 
   const removeProject = async () => {
-    const confirmed = await confirmAction('Delete folder', `Delete "${project.title}" and its ${projectTasks.length} step${projectTasks.length === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
+    const confirmed = await confirmAction(t.folders.deleteFolderTitle, t.folders.deleteConfirm(project.title, projectTasks.length), t.common.delete);
     if (confirmed) { deleteProject(project.id); router.replace('/projects'); }
   };
   const commitTitle = () => { if (draft.trim()) renameProject(project.id, draft); else setDraft(project.title); };
@@ -57,66 +61,66 @@ export default function ProjectDetailScreen() {
   const stepRow = (task: (typeof projectTasks)[number]) => {
     const onToday = task.scheduledDate === todayKey();
     return <TaskRow key={task.id} task={task} onToggle={() => toggleTask(task.id)} onDelete={() => deleteTask(task.id)} trailing={task.completedAt
-      ? <Text style={styles.doneDate}>{format(parseISO(task.completedAt), 'MMM d')}</Text>
-      : <Pressable accessibilityLabel={onToday ? `Remove ${task.title} from Today` : `Add ${task.title} to Today`} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}><Ionicons name={onToday ? 'sunny' : 'sunny-outline'} size={16} color={onToday ? palette.solid : colors.muted} /><Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? 'Today' : 'Add'}</Text></Pressable>} />;
+      ? <Text style={styles.doneDate}>{fmt(parseISO(task.completedAt), 'monthDay')}</Text>
+      : <Pressable accessibilityLabel={onToday ? t.strip.removeFromToday(task.title) : t.strip.addToToday(task.title)} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}><Ionicons name={onToday ? 'sunny' : 'sunny-outline'} size={16} color={onToday ? palette.solid : colors.muted} /><Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? t.strip.today : t.strip.add}</Text></Pressable>} />;
   };
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.page}>
-        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Folders</Text></Pressable>
+        <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>{t.today.folders}</Text></Pressable>
         <View style={styles.hero}>
           <View style={[styles.categoryMark, { backgroundColor: palette.solid }]} />
-          <Text style={[styles.kicker, days !== undefined && days < 0 && styles.kickerOverdue]}>{project.deadline && days !== undefined ? `Due ${format(parseISO(project.deadline), 'EEEE, MMMM d')} · ${selectDeadlineLabel(days)}` : 'Folder · No deadline'}</Text>
-          <TextInput value={draft} onChangeText={setDraft} onBlur={commitTitle} onSubmitEditing={commitTitle} accessibilityLabel="Folder name" placeholder="Folder name" placeholderTextColor={colors.muted} style={styles.title} />
+          <Text style={[styles.kicker, ko && styles.untracked, days !== undefined && days < 0 && styles.kickerOverdue]}>{project.deadline && days !== undefined ? t.folders.dueKicker(fmt(parseISO(project.deadline), 'weekdayMonthDay'), selectDeadlineLabel(days)) : t.folders.folderNoDeadline}</Text>
+          <TextInput value={draft} onChangeText={setDraft} onBlur={commitTitle} onSubmitEditing={commitTitle} accessibilityLabel={t.folders.folderName} placeholder={t.folders.folderName} placeholderTextColor={colors.muted} style={styles.title} />
           {project.notes ? <Text style={styles.notes}>{project.notes}</Text> : null}
           <View style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={16} color={colors.muted} />
             {project.deadline ? (
               <>
-                <Text style={styles.metaText}>Due {format(parseISO(project.deadline), 'EEE, MMM d')}</Text>
-                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Change</Text></Pressable>
-                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>Remove</Text></Pressable>
+                <Text style={styles.metaText}>{t.folders.dueOn(fmt(parseISO(project.deadline), 'weekdayShortMonthDay'))}</Text>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>{t.folders.change}</Text></Pressable>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>{t.common.remove}</Text></Pressable>
               </>
             ) : (
               <>
-                <Text style={styles.metaText}>No deadline</Text>
-                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Add</Text></Pressable>
+                <Text style={styles.metaText}>{t.folders.noDeadline}</Text>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>{t.common.add}</Text></Pressable>
               </>
             )}
             <View style={styles.metaSpacer} />
-            <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(project.pinned) }} accessibilityLabel={project.pinned ? 'Unpin from Today' : 'Pin to Today'} onPress={() => setProjectPinned(project.id, !project.pinned)} style={[styles.pinToggle, project.pinned && styles.pinToggleOn]}>
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(project.pinned) }} accessibilityLabel={project.pinned ? t.folders.unpinFromToday : t.folders.pinToToday} onPress={() => setProjectPinned(project.id, !project.pinned)} style={[styles.pinToggle, project.pinned && styles.pinToggleOn]}>
               <MaterialCommunityIcons name={project.pinned ? 'pin' : 'pin-outline'} size={15} color={project.pinned ? colors.ink : colors.muted} />
-              <Text style={[styles.pinText, project.pinned && styles.pinTextOn]}>{project.pinned ? 'Pinned' : 'Pin'}</Text>
+              <Text style={[styles.pinText, project.pinned && styles.pinTextOn]}>{project.pinned ? t.strip.pinned : t.folders.pin}</Text>
             </Pressable>
           </View>
-          {archived ? <View style={styles.notice}><Text style={styles.noticeText}>Archived</Text><Pressable accessibilityRole="button" hitSlop={8} onPress={() => restoreProject(project.id)}><Text style={styles.link}>Restore</Text></Pressable></View> : null}
+          {archived ? <View style={styles.notice}><Text style={styles.noticeText}>{t.folders.archivedNotice}</Text><Pressable accessibilityRole="button" hitSlop={8} onPress={() => restoreProject(project.id)}><Text style={styles.link}>{t.folders.restore}</Text></Pressable></View> : null}
           {!archived && days !== undefined && days < 0 && openTasks.length > 0 ? (
             <View style={styles.notice}>
-              <Text style={styles.noticeText}>Past due</Text>
-              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Move deadline</Text></Pressable>
-              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>Remove deadline</Text></Pressable>
+              <Text style={styles.noticeText}>{t.folders.pastDue}</Text>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>{t.folders.moveDeadline}</Text></Pressable>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setProjectDeadline(project.id)}><Text style={styles.link}>{t.folders.removeDeadline}</Text></Pressable>
             </View>
           ) : null}
-          <View style={styles.progressRow}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progressText}>{progress.completed} of {progress.total} complete</Text></View>
-          {project.deadline ? <View style={styles.attention}><Text style={styles.attentionTitle}>Emphasize this deadline from</Text><View style={styles.attentionChoices}>{[3, 7, 14, 30].map((lead) => <Pressable key={lead} accessibilityRole="button" accessibilityState={{ selected: (project.attentionDays ?? 7) === lead }} onPress={() => setProjectAttentionDays(project.id, lead)} style={[styles.attentionChoice, (project.attentionDays ?? 7) === lead && styles.attentionChoiceSelected]}><Text style={[styles.attentionChoiceText, (project.attentionDays ?? 7) === lead && styles.attentionChoiceTextSelected]}>{lead} days</Text></Pressable>)}</View></View> : null}
+          <View style={styles.progressRow}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View><Text style={styles.progressText}>{t.folders.completeOf(progress.completed, progress.total)}</Text></View>
+          {project.deadline ? <View style={styles.attention}><Text style={styles.attentionTitle}>{t.folders.emphasize}</Text><View style={styles.attentionChoices}>{[3, 7, 14, 30].map((lead) => <Pressable key={lead} accessibilityRole="button" accessibilityState={{ selected: (project.attentionDays ?? 7) === lead }} onPress={() => setProjectAttentionDays(project.id, lead)} style={[styles.attentionChoice, (project.attentionDays ?? 7) === lead && styles.attentionChoiceSelected]}><Text style={[styles.attentionChoiceText, (project.attentionDays ?? 7) === lead && styles.attentionChoiceTextSelected]}>{t.folders.days(lead)}</Text></Pressable>)}</View></View> : null}
         </View>
-        <View style={styles.taskHeader}><Text style={styles.sectionTitle}>Steps</Text><Text style={styles.hint}>Add any step to Today without making a copy.</Text></View>
+        <View style={styles.taskHeader}><Text style={styles.sectionTitle}>{t.folders.steps}</Text><Text style={styles.hint}>{t.folders.stepsHint}</Text></View>
         <View style={styles.taskList}>
-          {projectTasks.length === 0 ? <Text style={styles.emptySteps}>No steps yet. Add the first one below.</Text> : null}
+          {projectTasks.length === 0 ? <Text style={styles.emptySteps}>{t.folders.noSteps}</Text> : null}
           {openTasks.map(stepRow)}
-          {doneTasks.length > 0 ? <Text style={styles.doneLabel}>Done</Text> : null}
+          {doneTasks.length > 0 ? <Text style={styles.doneLabel}>{t.folders.doneLabel}</Text> : null}
           {doneTasks.map(stepRow)}
           <View style={styles.addStepRow}>
-            <TextInput value={stepTitle} onChangeText={setStepTitle} onSubmitEditing={addStep} placeholder="Add a step" placeholderTextColor={colors.muted} style={styles.addStepInput} />
-            <Pressable accessibilityLabel="Save step" onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={17} color={colors.paper} /></Pressable>
+            <TextInput value={stepTitle} onChangeText={setStepTitle} onSubmitEditing={addStep} placeholder={t.strip.addStepPlaceholder} placeholderTextColor={colors.muted} style={styles.addStepInput} />
+            <Pressable accessibilityLabel={t.strip.saveStep} onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={17} color={colors.paper} /></Pressable>
           </View>
         </View>
         <View style={styles.footer}>
-          {archived ? null : <Pressable accessibilityRole="button" onPress={() => archiveProject(project.id)} style={styles.footerAction}><Text style={styles.footerText}>Archive folder</Text></Pressable>}
-          <Pressable accessibilityRole="button" onPress={removeProject} style={styles.footerAction}><Text style={styles.deleteProjectText}>Delete folder</Text></Pressable>
+          {archived ? null : <Pressable accessibilityRole="button" onPress={() => archiveProject(project.id)} style={styles.footerAction}><Text style={styles.footerText}>{t.folders.archiveFolder}</Text></Pressable>}
+          <Pressable accessibilityRole="button" onPress={removeProject} style={styles.footerAction}><Text style={styles.deleteProjectText}>{t.folders.deleteFolderTitle}</Text></Pressable>
         </View>
       </View>
-      {pickerOpen ? <DatePickerModal title={project.deadline ? 'Move the deadline' : 'Set a deadline'} initialMonth={project.deadline ? parseISO(project.deadline) : now()} onPick={(date) => { setProjectDeadline(project.id, date); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} /> : null}
+      {pickerOpen ? <DatePickerModal title={project.deadline ? t.folders.moveDeadlineTitle : t.folders.setDeadline} initialMonth={project.deadline ? parseISO(project.deadline) : now()} onPick={(date) => { setProjectDeadline(project.id, date); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} /> : null}
     </ScrollView>
   );
 }
@@ -128,6 +132,7 @@ const styles = StyleSheet.create({
   backText: { ...type.bodyMedium, color: colors.ink, fontFamily },
   hero: { paddingBottom: space.xl, borderBottomWidth: 1, borderColor: colors.line },
   categoryMark: { width: 42, height: 6, borderRadius: 3, marginBottom: space.lg },
+  untracked: { letterSpacing: 0 },
   kicker: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1, fontFamily },
   kickerOverdue: { color: colors.danger },
   title: { ...type.display, color: colors.ink, marginTop: space.xs, padding: 0, outlineStyle: 'none' as never, fontFamily },

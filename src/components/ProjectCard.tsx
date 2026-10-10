@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { router } from 'expo-router';
 import type { Project, Task } from '@/domain/types';
 import { confirmAction } from '@/domain/confirm';
@@ -11,12 +11,15 @@ import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { FolderCompletionRow } from './FolderCompletionRow';
 import { FolderMenu, type FolderMenuItem } from './FolderMenu';
 import { justDragged } from './useTaskDrag';
+import { useFormat, useT } from '@/i18n';
 
 interface ProjectCardProps { project: Project; tasks: Task[]; now: Date; onMoveUp?: () => void; onMoveDown?: () => void }
 
 // One folder on the Folders tab. The body opens the folder (web: click, ignored right after a drag; native: press); the `…` menu and the
 // completion row sit outside that tap area so they never open the folder.
 export function ProjectCard({ project, tasks, now, onMoveUp, onMoveDown }: ProjectCardProps) {
+  const t = useT();
+  const fmt = useFormat();
   const palette = useCategoryPalette()(project.categoryId);
   const setProjectPinned = useDaymarkStore((state) => state.setProjectPinned);
   const archiveProject = useDaymarkStore((state) => state.archiveProject);
@@ -31,40 +34,40 @@ export function ProjectCard({ project, tasks, now, onMoveUp, onMoveDown }: Proje
   const Body = (Platform.OS === 'web' ? View : Pressable) as typeof Pressable;
 
   const removeFolder = async () => {
-    const confirmed = await confirmAction('Delete folder', `Delete "${project.title}" and its ${progress.total} step${progress.total === 1 ? '' : 's'}? This cannot be undone.`, 'Delete');
+    const confirmed = await confirmAction(t.folders.deleteFolderTitle, t.folders.deleteConfirm(project.title, progress.total), t.common.delete);
     if (confirmed) deleteProject(project.id);
   };
   const items: FolderMenuItem[] = [
-    { label: project.pinned ? 'Unpin' : 'Pin to Today', icon: project.pinned ? 'pin-off' : 'pin', onPress: () => setProjectPinned(project.id, !project.pinned) },
-    ...(onMoveUp ? [{ label: 'Move up', icon: 'arrow-up-outline' as const, onPress: onMoveUp }] : []),
-    ...(onMoveDown ? [{ label: 'Move down', icon: 'arrow-down-outline' as const, onPress: onMoveDown }] : []),
-    { label: 'Archive', icon: 'archive-outline', onPress: () => archiveProject(project.id) },
-    { label: 'Delete', icon: 'trash-outline', onPress: () => { void removeFolder(); }, danger: true },
+    { label: project.pinned ? t.folders.unpin : t.folders.pinToToday, icon: project.pinned ? 'pin-off' : 'pin', onPress: () => setProjectPinned(project.id, !project.pinned) },
+    ...(onMoveUp ? [{ label: t.folders.moveUp, icon: 'arrow-up-outline' as const, onPress: onMoveUp }] : []),
+    ...(onMoveDown ? [{ label: t.folders.moveDown, icon: 'arrow-down-outline' as const, onPress: onMoveDown }] : []),
+    { label: t.folders.archiveAction, icon: 'archive-outline', onPress: () => archiveProject(project.id) },
+    { label: t.common.delete, icon: 'trash-outline', onPress: () => { void removeFolder(); }, danger: true },
   ];
 
   return (
     <View style={styles.card}>
       <View style={[styles.accent, { backgroundColor: palette.solid }]} />
       <View style={styles.content}>
-        <Body accessibilityRole="link" accessibilityLabel={`Open ${project.title}`} {...tap}>
+        <Body accessibilityRole="link" accessibilityLabel={t.folders.openFolder(project.title)} {...tap}>
           <View style={styles.top}>
             <View style={[styles.dot, { backgroundColor: palette.solid }]} />
-            <Text style={styles.date}>{project.deadline ? `Due ${format(parseISO(project.deadline), 'MMM d')}` : 'No deadline'}</Text>
+            <Text style={styles.date}>{project.deadline ? t.folders.dueOn(fmt(parseISO(project.deadline), 'monthDay')) : t.folders.noDeadline}</Text>
             {days !== undefined ? <Text style={[styles.days, days < 0 && styles.overdue, days >= 0 && days <= 3 && { color: colors.accent }]}>{selectDeadlineLabel(days)}</Text> : null}
           </View>
           <View style={styles.titleRow}>
-            {project.pinned ? <MaterialCommunityIcons name="pin" size={16} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
+            {project.pinned ? <MaterialCommunityIcons name="pin" size={16} color={palette.ink} accessibilityLabel={t.strip.pinned} style={styles.pin} /> : null}
             <Text style={styles.title} numberOfLines={2}>{project.title}</Text>
           </View>
           {project.notes ? <Text style={styles.notes} numberOfLines={1}>{project.notes}</Text> : null}
           <View style={styles.bottom}>
             <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: palette.solid }]} /></View>
-            <Text style={styles.progress}>{progress.total === 0 ? 'Empty' : `${progress.completed} of ${progress.total}`}</Text>
+            <Text style={styles.progress}>{progress.total === 0 ? t.folders.emptyFolder : t.folders.progressOf(progress.completed, progress.total)}</Text>
           </View>
         </Body>
         {selectCompletionPrompt(project, tasks) ? <FolderCompletionRow project={project} /> : null}
       </View>
-      <View style={styles.menu}><FolderMenu label={`More options for ${project.title}`} items={items} /></View>
+      <View style={styles.menu}><FolderMenu label={t.folders.moreOptionsFor(project.title)} items={items} /></View>
     </View>
   );
 }

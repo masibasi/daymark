@@ -6,6 +6,7 @@ import { Link } from 'expo-router';
 import { selectTaskFromEvent } from '@/domain/selectors';
 import type { CalendarEvent, Category, Task } from '@/domain/types';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 interface ScheduleListProps {
   events: CalendarEvent[];
@@ -17,13 +18,14 @@ interface ScheduleListProps {
 
 // The displayed day's CalendarEvents. Events are never tasks until the user taps "Add to <day>" (tracked by sourceEventId).
 export function ScheduleList({ events, day, tasks, categories, onAdd }: ScheduleListProps) {
+  const t = useT();
   const [openId, setOpenId] = useState<string | null>(null);
 
   if (events.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No events on this day.</Text>
-        <Link href="/settings" style={styles.emptyHint}>Connect a calendar in Settings</Link>
+        <Text style={styles.emptyTitle}>{t.calendar.noEvents}</Text>
+        <Link href="/settings" style={styles.emptyHint}>{t.calendar.connectInSettings}</Link>
       </View>
     );
   }
@@ -42,7 +44,7 @@ export function ScheduleList({ events, day, tasks, categories, onAdd }: Schedule
                 <Text style={styles.title} numberOfLines={2}>{event.title}</Text>
                 <Text style={styles.time}>{eventTimeRange(event)}</Text>
               </View>
-              {added ? <View style={styles.added}><Ionicons name="checkmark" size={14} color={colors.muted} /><Text style={styles.addedText}>Added</Text></View> : <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={13} color={colors.muted} style={styles.chevron} />}
+              {added ? <View style={styles.added}><Ionicons name="checkmark" size={14} color={colors.muted} /><Text style={styles.addedText}>{t.calendar.added}</Text></View> : <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={13} color={colors.muted} style={styles.chevron} />}
             </Pressable>
             {open ? <View style={styles.actions}><EventActions event={event} day={day} tasks={tasks} categories={categories} onAdd={add} /></View> : null}
           </View>

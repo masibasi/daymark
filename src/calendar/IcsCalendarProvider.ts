@@ -2,6 +2,7 @@ import { parseISO } from 'date-fns';
 import type { CalendarEvent, CalendarFeed } from '@/domain/types';
 import { getClient } from '@/sync/client';
 import type { CalendarListing, CalendarProvider } from './CalendarProvider';
+import { t } from '@/i18n';
 
 // What the calendar-feed Edge Function returns (supabase/functions/calendar-feed/parse.ts FeedEvent).
 interface FeedEventDto {
@@ -28,7 +29,7 @@ export class IcsCalendarProvider implements CalendarProvider {
     const feeds = this.feeds.filter((feed) => feed.enabled).map(({ id, url }) => ({ id, url }));
     if (!feeds.length) return { events: [], errors: [] };
     const { data, error } = await getClient().functions.invoke<FeedResponse>('calendar-feed', { body: { feeds, from: startAt, to: endAt } });
-    if (error || !data) throw new Error(error?.message ?? 'Could not reach the calendar service.');
+    if (error || !data) throw new Error(error?.message ?? t().settings.calendars.unreachable);
     return { events: data.events.map(toEvent), errors: data.errors };
   }
 }

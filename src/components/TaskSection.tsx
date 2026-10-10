@@ -16,6 +16,7 @@ import { ListQuickEdit } from './ListQuickEdit';
 import { RowPresence, isQuietEnter } from './RowPresence';
 import { TaskRow } from './TaskRow';
 import { TaskDragContext, justDragged, useDragStore } from './useTaskDrag';
+import { useT } from '@/i18n';
 
 interface TaskSectionProps {
   category: Category;
@@ -46,6 +47,7 @@ interface TaskSectionProps {
 }
 
 export function TaskSection({ category, tasks, missed, routines, ghosts, selectedDate, projectNames, adding, editingList, collapsed, onToggleCollapsed, onToggleEditList, onCloseEditList, onToggle, onMove, onDelete, onOpenAdd, onCloseAdd, onAddTask, onAddRoutine, onAddFromRoutine, ghostMeta, onRemoveRoutine, onReveal }: TaskSectionProps) {
+  const t = useT();
   const palette = useCategoryPalette()(category);
   const completed = tasks.filter((task) => Boolean(task.completedAt)).length;
   const controller = useContext(TaskDragContext);
@@ -85,7 +87,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
       <View style={[styles.dot, { backgroundColor: palette.solid }]} />
       <Text style={styles.name}>{category.name}</Text>
       <View style={styles.spacer} />
-      {tasks.length + missed.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length + missed.length}{collapsed && left > 0 ? <Text style={styles.left}> · {left} left</Text> : null}</Text> : null}
+      {tasks.length + missed.length > 0 ? <Text style={styles.count}>{completed}/{tasks.length + missed.length}{collapsed && left > 0 ? <Text style={styles.left}> · {t.today.left(left)}</Text> : null}</Text> : null}
     </>
   );
 
@@ -93,7 +95,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
     <View ref={(node) => controller?.registerSection(category.id, !category.archived, node, collapsed)} collapsable={false} style={[styles.section, lifted && styles.lifted]}>
       <View style={styles.heading}>
         {category.archived ? <View style={styles.titleRow}>{headingContent}</View> : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Edit list ${category.name}`} accessibilityState={{ expanded: editingList }} onPress={onToggleEditList} style={(state) => [styles.titleRow, (state as { hovered?: boolean }).hovered && styles.hovered]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t.tasks.editList(category.name)} accessibilityState={{ expanded: editingList }} onPress={onToggleEditList} style={(state) => [styles.titleRow, (state as { hovered?: boolean }).hovered && styles.hovered]}>
             {headingContent}
           </Pressable>
         )}
@@ -140,6 +142,7 @@ export function TaskSection({ category, tasks, missed, routines, ghosts, selecte
 
 // Separate from the header's editor tap: folds the whole list body shut. The chevron turns with the motion tokens.
 function CollapseToggle({ name, collapsed, onPress }: { name: string; collapsed: boolean; onPress: () => void }) {
+  const t = useT();
   const reduced = useReducedMotion();
   const turn = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
   useEffect(() => {
@@ -148,7 +151,7 @@ function CollapseToggle({ name, collapsed, onPress }: { name: string; collapsed:
     return () => animation.stop();
   }, [collapsed]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${collapsed ? 'Expand' : 'Collapse'} ${name}`} accessibilityState={{ expanded: !collapsed }} hitSlop={10} onPress={onPress} style={styles.toggle}>
+    <Pressable accessibilityRole="button" accessibilityLabel={collapsed ? t.tasks.expandList(name) : t.tasks.collapseList(name)} accessibilityState={{ expanded: !collapsed }} hitSlop={10} onPress={onPress} style={styles.toggle}>
       <Animated.View style={{ transform: [{ rotate: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}><Ionicons name="chevron-down" size={14} color={colors.muted} /></Animated.View>
     </Pressable>
   );

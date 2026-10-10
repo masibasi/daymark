@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { DayOrbitSegment } from '@/domain/selectors';
-import { MIN_TOTAL_RATIO, TOO_SHORT_MESSAGE, buildMark, cleanStroke, markLength, presetNames, presetStrokeClean, type MarkPath, type MarkStroke, type PresetName, type Pt } from '@/domain/markPath';
+import { MIN_TOTAL_RATIO, tooShortMessage, buildMark, cleanStroke, markLength, presetNames, presetStrokeClean, type MarkPath, type MarkStroke, type PresetName, type Pt } from '@/domain/markPath';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 const GRID = 8;
 const ORDER = ['study', 'career', 'personal', 'routine'] as const;
@@ -38,6 +39,7 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
   const [strokes, setStrokes] = useState<MarkStroke[]>(() => initial?.strokes ?? []);
   const [history, setHistory] = useState<MarkStroke[][]>([]);
   const [live, setLive] = useState<Pt[]>([]);
+  const t = useT();
   const [message, setMessage] = useState('');
   const stroke = useRef<Pt[]>([]);
   const frame = useRef<number | null>(null);
@@ -53,7 +55,7 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
 
   const emit = useCallback((next: MarkStroke[]) => {
     if (next.length === 0) { setMessage(''); changeRef.current(null, false); return; }
-    if (markLength(next) < MIN_TOTAL_RATIO) { setMessage(TOO_SHORT_MESSAGE); changeRef.current(null, true); return; }
+    if (markLength(next) < MIN_TOTAL_RATIO) { setMessage(tooShortMessage()); changeRef.current(null, true); return; }
     setMessage('');
     changeRef.current(buildMark(next), false);
   }, []);
@@ -201,16 +203,16 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
             {live.length > 0 ? <Path d={toD(live)} fill="none" stroke={colors.accent} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /> : null}
           </Svg>
         </View>
-        <View ref={padRef} style={padStyle} accessibilityLabel="Drawing pad" {...(Platform.OS === 'web' ? {} : responder.panHandlers)} />
+        <View ref={padRef} style={padStyle} accessibilityLabel={t.drawMark.drawingPad} {...(Platform.OS === 'web' ? {} : responder.panHandlers)} />
       </View>
-      {message ? <Text style={styles.message}>{message}</Text> : <Text style={styles.hint}>Draw freely — several strokes are fine. Your day fills them in the order you drew.</Text>}
+      {message ? <Text style={styles.message}>{message}</Text> : <Text style={styles.hint}>{t.drawMark.hint}</Text>}
       <View style={styles.buttons}>
-        <Pressable accessibilityRole="button" onPress={() => { if (strokes.length > 0) commit([]); }} style={styles.button}><Text style={styles.buttonText}>Clear</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={undo} disabled={history.length === 0} style={[styles.button, history.length === 0 && styles.buttonOff]}><Text style={styles.buttonText}>Undo</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { if (strokes.length > 0) commit([]); }} style={styles.button}><Text style={styles.buttonText}>{t.drawMark.clear}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={undo} disabled={history.length === 0} style={[styles.button, history.length === 0 && styles.buttonOff]}><Text style={styles.buttonText}>{t.common.undo}</Text></Pressable>
       </View>
       <View style={styles.buttons}>
         {presetNames.map((name) => (
-          <Pressable key={name} accessibilityRole="button" onPress={() => applyPreset(name)} style={styles.chip}><Text style={styles.chipText}>{name}</Text></Pressable>
+          <Pressable key={name} accessibilityRole="button" onPress={() => applyPreset(name)} style={styles.chip}><Text style={styles.chipText}>{t.drawMark.presets[name]}</Text></Pressable>
         ))}
       </View>
     </View>
@@ -219,6 +221,7 @@ export function MarkDrawPad({ size, initial, onChange, onDrawingChange }: PadPro
 
 // Minimal 0..1 slider (pointer drag via PanResponder; the track is the touch target).
 export function ProgressSlider({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  const t = useT();
   const width = useRef(200);
   const responder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -230,7 +233,7 @@ export function ProgressSlider({ value, onChange }: { value: number; onChange: (
   }), [onChange]);
   const webStyle = (Platform.OS === 'web' ? { touchAction: 'none', userSelect: 'none' } : {}) as object;
   return (
-    <View accessibilityRole="adjustable" accessibilityLabel="Progress" accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }} onLayout={(event) => { width.current = event.nativeEvent.layout.width; }} style={[styles.sliderTrack, webStyle]} {...responder.panHandlers}>
+    <View accessibilityRole="adjustable" accessibilityLabel={t.drawMark.progress} accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }} onLayout={(event) => { width.current = event.nativeEvent.layout.width; }} style={[styles.sliderTrack, webStyle]} {...responder.panHandlers}>
       <View pointerEvents="none" style={styles.sliderRail}>
         <View style={[styles.sliderFill, { width: `${value * 100}%` }]} />
       </View>

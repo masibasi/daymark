@@ -162,6 +162,18 @@ New installs open `/welcome`, a full-screen two-step flow with no tab bar and no
 
 A quiet look back at what got done, by week or month (Mon-first, like Calendar). Reached from a small "This week →" link under Today's Day Mark area and a "Reflect" text button in the Calendar header; it is not a tab. It shows only completions: a big "n done" with "across n days", the period's Day Marks (a row for a week, a grid for a month; tapping a day opens it on Today), "Where it went" as list-colored bars sorted by count, folders with steps done (tagged "Finished" when the last step landed in the period), routines with counts, and the fullest day (only with 2+ active days). Never unfinished counts, percentages of plan, comparisons, streaks or scores; empty periods get a gentle line ("A quiet week."). All numbers come from `selectReflection`; the marks still come from `selectDayOrbit`. Column max 720px.
 
+## Language
+
+Daymark ships in English and Korean; the language follows the device unless Settings → Language overrides it (System / English / 한국어).
+
+- **Voice (English and Korean alike):** calm, short, never scolding. Reflection and the Day Mark count only what got done.
+- **Korean:** 해요체 for sentences ("아직 체크한 일이 없어요"), short nouns for tabs and labels (오늘 / 캘린더 / 폴더 / 설정). Natural, not word-for-word: "A clear day" is "비어 있는 하루", "All done" is "모두 완료", "Leave a mark on every day." is "하루하루에 흔적을 남겨요.". Avoid 합니다체 and exclamation marks. Where a Korean particle would depend on the last letter of a user's own text (a folder or task title), the sentence is rephrased so no particle attaches to it ("삭제했어요: "제목"").
+- **Naming:** "Daymark" stays in Latin letters. The Day Mark is "데이마크". Lists are "목록", folders "폴더", routines "루틴", the Schedule "일정".
+- **Dates** come from per-language date-fns patterns in the dictionaries, never from inline format strings: en `EEEE, MMMM d`, `MMM d`, `h:mm a` and ko `M월 d일 EEEE`, `M월 d일`, `a h:mm`, plus the date-fns `ko` locale. Weekday letters and short names are dictionary arrays (week starts Sunday in the history calendar, Monday in Calendar and Reflection, as before).
+- **Type:** Hangul is set with no letter-spacing tweaks (no wide caps tracking on eyebrows, no negative display kerning); screen headers do this through `useLocale()`.
+- **Length:** Korean labels are usually shorter than the English ones; chips and segmented controls keep their existing tokens. Check new strings at 375px in both languages.
+- User-entered text is never translated. Default list names and sample data are written in the active language when they are created.
+
 ## Experiments
 
 `/mark-lab` (reachable from Settings, "Day Mark lab") keeps a "Draw your mark" playground, the origin of Custom (beta): the user draws freely (finger or mouse, several strokes allowed) and the day's progress fills the strokes in drawing order in list colors, using Doodle's rules (arc-length fractions from the stroke's start, round caps at the filled run's ends, flat joins, lighter late band, seamless loop when a closed shape is full; small sizes get a thicker stroke and a simplified path). Geometry lives in `src/domain/markPath.ts`, rendering in `src/components/PathMark.tsx`. In the lab the drawing stays in `localStorage` (`daymark-lab-mark`) and never touches the store; the shipped version is Custom (beta) above.

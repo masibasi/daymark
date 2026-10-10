@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays, endOfWeek, format, isSameDay, isWith
 import { listColors, type ListColors } from '@/theme/palette';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import type { CalendarEvent, Category, CategoryId, Project, Routine, RoutineRepeat, Task } from './types';
+import { formatDate, t } from '@/i18n';
 
 export interface DayOrbitSegment {
   categoryId: CategoryId;
@@ -109,7 +110,8 @@ export function selectCompletionPrompt(project: Project, tasks: Task[]): boolean
 }
 
 export function selectDeadlineLabel(days: number): string {
-  return days < 0 ? `Overdue · ${-days} day${days === -1 ? '' : 's'}` : days === 0 ? 'Due today' : `D−${days}`;
+  const { deadline } = t();
+  return days < 0 ? deadline.overdue(-days) : days === 0 ? deadline.dueToday : deadline.countdown(days);
 }
 
 export function selectDeadlineDays(deadline: string, now: Date): number {
@@ -157,8 +159,8 @@ export function selectLateCompletedCountOnDay(tasks: Task[], day: Date): number 
 export function selectCarriedLabel(task: Task): string | undefined {
   const days = task.missedOn;
   if (!days || days.length === 0) return undefined;
-  const earliest = format(parseISO(days.slice().sort()[0]), 'MMM d');
-  return days.length === 1 ? `From ${earliest}` : `From ${earliest} · moved ${days.length}×`;
+  const earliest = formatDate(parseISO(days.slice().sort()[0]), 'monthDay');
+  return days.length === 1 ? t().routines.carriedFrom(earliest) : t().routines.carriedFromMoved(earliest, days.length);
 }
 
 export function selectCompletedCountOnDay(tasks: Task[], day: Date): number {
@@ -176,7 +178,6 @@ export function selectRoutineWeekDone(tasks: Task[], routineId: string, day: Dat
   return tasks.filter((task) => task.routineId === routineId && task.completedAt && isWithinInterval(parseISO(task.completedAt), interval)).length;
 }
 
-const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const sameDays = (days: number[], want: number[]) => days.length === want.length && want.every((day) => days.includes(day));
 
 // Preset the repeat matches, for picker highlighting; 'custom' for any other weekday set.
@@ -190,20 +191,21 @@ export function selectRepeatPreset(repeat: RoutineRepeat | undefined): 'daily' |
 
 // Short summary of when a routine repeats, e.g. "Every day", "Mon · Wed · Fri", "3 times a week".
 export function selectRepeatSummary(repeat: RoutineRepeat | undefined): string {
+  const copy = t().routines;
   const preset = selectRepeatPreset(repeat);
-  if (preset === 'daily') return 'Every day';
-  if (preset === 'weekdays') return 'Weekdays';
-  if (preset === 'weekends') return 'Weekends';
-  if (repeat?.kind === 'perWeek') return `${repeat.times} ${repeat.times === 1 ? 'time' : 'times'} a week`;
-  if (repeat?.kind === 'weekdays') return repeat.days.length === 0 ? 'No days' : [1, 2, 3, 4, 5, 6, 0].filter((day) => repeat.days.includes(day)).map((day) => WEEKDAY_NAMES[day]).join(' · ');
-  return 'Every day';
+  if (preset === 'daily') return copy.everyDay;
+  if (preset === 'weekdays') return copy.weekdays;
+  if (preset === 'weekends') return copy.weekends;
+  if (repeat?.kind === 'perWeek') return copy.timesAWeek(repeat.times);
+  if (repeat?.kind === 'weekdays') return repeat.days.length === 0 ? copy.noDays : [1, 2, 3, 4, 5, 6, 0].filter((day) => repeat.days.includes(day)).map((day) => copy.weekdayNames[day]).join(copy.daySeparator);
+  return copy.everyDay;
 }
 
 // Ghost meta line under the title: nothing for daily routines, progress for per-week ones.
 export function selectRoutineMeta(routine: Routine, tasks: Task[], day: Date): string | undefined {
   const repeat = routine.repeat;
   if (!repeat || repeat.kind === 'daily') return undefined;
-  if (repeat.kind === 'perWeek') return `${selectRoutineWeekDone(tasks, routine.id, day)} of ${repeat.times} this week`;
+  if (repeat.kind === 'perWeek') return t().routines.doneThisWeek(selectRoutineWeekDone(tasks, routine.id, day), repeat.times);
   return selectRepeatSummary(repeat);
 }
 

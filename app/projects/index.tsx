@@ -14,10 +14,12 @@ import type { Project } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 type Group = 'pinned' | 'undated';
 
 export default function FoldersScreen() {
+  const t = useT();
   const categories = useDaymarkStore((state) => state.categories);
   const projects = useDaymarkStore((state) => state.projects);
   const tasks = useDaymarkStore((state) => state.tasks);
@@ -65,7 +67,7 @@ export default function FoldersScreen() {
 
   const removeArchived = async (project: Project) => {
     const total = selectProjectProgress(tasks, project.id).total;
-    if (await confirmAction('Delete folder', `Delete "${project.title}" and its ${total} step${total === 1 ? '' : 's'}? This cannot be undone.`, 'Delete')) deleteProject(project.id);
+    if (await confirmAction(t.folders.deleteFolderTitle, t.folders.deleteConfirm(project.title, total), t.common.delete)) deleteProject(project.id);
   };
 
   return (
@@ -78,30 +80,29 @@ export default function FoldersScreen() {
     >
       <View style={styles.page}>
         <ScreenHeader
-          eyebrow="Persistent work"
-          title="Folders"
-          subtitle="Keep work in folders; pull what you need into today."
+          eyebrow={t.folders.eyebrow}
+          title={t.folders.title}
+          subtitle={t.folders.subtitle}
           action={<NewProjectComposer categories={categories} projects={projects} onCreate={addProject} />}
         />
         <View style={styles.summary}>
-          <Text style={styles.summaryNumber}>{activeCount}</Text>
-          <Text style={styles.summaryText}>{activeCount === 1 ? 'folder' : 'folders'}</Text>
-          {nextDeadline ? <><View style={styles.summaryDivider} /><Text style={styles.summaryText}>{nextDeadlineDays === 0 ? 'Next deadline is today' : `Next deadline in ${nextDeadlineDays} day${nextDeadlineDays === 1 ? '' : 's'}`}</Text></> : null}
+          <Text style={styles.summaryText}><Text style={styles.summaryNumber}>{activeCount}</Text>{t.folders.countSuffix(activeCount)}</Text>
+          {nextDeadline ? <><View style={styles.summaryDivider} /><Text style={styles.summaryText}>{nextDeadlineDays === 0 ? t.folders.nextDeadlineToday : t.folders.nextDeadlineIn(nextDeadlineDays ?? 0)}</Text></> : null}
         </View>
         {activeCount > 0 ? (
           <>
-            {groups.pinned.length > 0 ? <><Text style={styles.sectionLabel}>Pinned</Text>{section('pinned', groups.pinned)}</> : null}
-            <Text style={styles.sectionLabel}>Folders</Text>
+            {groups.pinned.length > 0 ? <><Text style={styles.sectionLabel}>{t.strip.pinned}</Text>{section('pinned', groups.pinned)}</> : null}
+            <Text style={styles.sectionLabel}>{t.today.folders}</Text>
             {groups.dated.map((project) => card(project))}
             {section('undated', groups.undated)}
           </>
         ) : (
-          <Text style={styles.empty}>Keep work that spans days in folders — with or without a deadline.</Text>
+          <Text style={styles.empty}>{t.folders.empty}</Text>
         )}
         {archived.length > 0 ? (
           <View style={styles.archive}>
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: archiveOpen }} onPress={() => setArchiveOpen(!archiveOpen)} style={styles.archiveHead}>
-              <Text style={styles.archiveLabel}>Archive ({archived.length})</Text>
+              <Text style={styles.archiveLabel}>{t.folders.archive(archived.length)}</Text>
               <Ionicons name={archiveOpen ? 'chevron-up' : 'chevron-down'} size={14} color={colors.muted} />
             </Pressable>
             <Collapsible open={archiveOpen}>
@@ -109,8 +110,8 @@ export default function FoldersScreen() {
                 <View key={project.id} style={styles.archivedRow}>
                   <View style={[styles.archivedDot, { backgroundColor: paletteFor(project.categoryId).solid }]} />
                   <Text style={styles.archivedTitle} numberOfLines={1}>{project.title}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Restore ${project.title}`} hitSlop={8} onPress={() => restoreProject(project.id)}><Text style={styles.archivedAction}>Restore</Text></Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${project.title}`} hitSlop={8} onPress={() => { void removeArchived(project); }}><Text style={styles.archivedDelete}>Delete</Text></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t.folders.restoreName(project.title)} hitSlop={8} onPress={() => restoreProject(project.id)}><Text style={styles.archivedAction}>{t.folders.restore}</Text></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t.folders.deleteName(project.title)} hitSlop={8} onPress={() => { void removeArchived(project); }}><Text style={styles.archivedDelete}>{t.common.delete}</Text></Pressable>
                 </View>
               ))}
             </Collapsible>

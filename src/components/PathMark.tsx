@@ -7,6 +7,7 @@ import { listColors, type ListColors } from '@/theme/palette';
 import { colors, darkColors, lightColors, motion } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { Ripple, useTweenedArcs } from '@/components/orbitMotion';
+import { t } from '@/i18n';
 
 // The Custom (beta) Day Mark: drawn along a user-made path of one or more strokes, filled in drawing order (Doodle's rendering rules on arbitrary polylines).
 interface PathMarkProps {
@@ -120,7 +121,7 @@ export function PathMark({ path, segments, size = 132, strokeWidth = 6, scheme, 
   const breathing = tween ? { transform: [{ scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.01] }) }] } : undefined;
 
   return (
-    <Animated.View accessibilityLabel={`${Math.round(completion * 100)} percent complete drawn mark`} style={[{ width: size, height: size }, breathing]}>
+    <Animated.View accessibilityLabel={t().drawMark.markPercent(Math.round(completion * 100))} style={[{ width: size, height: size }, breathing]}>
       {glow ? (
         <View pointerEvents="none" style={glowStyle as object}>
           <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{layer}</Svg>

@@ -10,15 +10,17 @@ import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
 import { PressableScale } from './PressableScale';
 import { UndoToast } from './UndoToast';
+import { useT } from '@/i18n';
 
 const navItems = [
-  { href: '/', label: 'Today', icon: 'sunny-outline', activeIcon: 'sunny' },
-  { href: '/calendar', label: 'Calendar', icon: 'calendar-outline', activeIcon: 'calendar' },
-  { href: '/projects', label: 'Folders', icon: 'folder-outline', activeIcon: 'folder' },
+  { href: '/', label: 'today', icon: 'sunny-outline', activeIcon: 'sunny' },
+  { href: '/calendar', label: 'calendar', icon: 'calendar-outline', activeIcon: 'calendar' },
+  { href: '/projects', label: 'folders', icon: 'folder-outline', activeIcon: 'folder' },
 ] as const;
 
 export function AppShell({ children }: PropsWithChildren) {
   const { width } = useWindowDimensions();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
@@ -37,9 +39,9 @@ export function AppShell({ children }: PropsWithChildren) {
           const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} asChild>
-              <PressableScale accessibilityRole="link" accessibilityLabel={item.label} onPress={item.href === '/' ? backToToday : undefined} style={StyleSheet.flatten([desktop ? styles.navItem : styles.tabItem, active && desktop && styles.navItemActive])}>
+              <PressableScale accessibilityRole="link" accessibilityLabel={t.nav[item.label]} onPress={item.href === '/' ? backToToday : undefined} style={StyleSheet.flatten([desktop ? styles.navItem : styles.tabItem, active && desktop && styles.navItemActive])}>
                 <Ionicons name={(active ? item.activeIcon : item.icon) as never} size={desktop ? 21 : 22} color={active ? colors.ink : colors.muted} />
-                <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
+                <Text style={[styles.navLabel, active && styles.navLabelActive]}>{t.nav[item.label]}</Text>
               </PressableScale>
             </Link>
           );

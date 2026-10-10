@@ -19,6 +19,7 @@ import { TaskSection } from '@/components/TaskSection';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
 import { selectCompletedByCategoryOnDay, selectCompletedCountOnDay, selectDayComplete, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
+import { useFormat, useT } from '@/i18n';
 import { now, todayKey } from '@/domain/clock';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -26,6 +27,8 @@ import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens'
 import { isReducedMotion } from '@/theme/useReducedMotion';
 
 export default function TodayScreen() {
+  const t = useT();
+  const fmt = useFormat();
   const { width, height } = useWindowDimensions();
   const wide = width >= 820;
   const phone = width < 760;
@@ -111,7 +114,7 @@ export default function TodayScreen() {
     }, []),
     onDrop: (taskId, toCategoryId, toIndex) => moveTaskInDay(taskId, toCategoryId, toIndex, selectedTodayDate),
     onDropFolder: (taskId, folderId) => moveTaskToFolder(taskId, folderId),
-    onBlocked: () => showToast('Completed tasks and folder steps stay where they are'),
+    onBlocked: () => showToast(t.today.blocked),
   });
   // Bring the opened inline input comfortably into view above the keyboard.
   const reveal = (node: View | null) => {
@@ -125,15 +128,15 @@ export default function TodayScreen() {
 
   const selectDate = (date: Date) => setSelectedTodayDate(format(date, 'yyyy-MM-dd'));
   // Viewing another day: one tap back to today (the Today tab does the same).
-  const todayButton = isToday ? null : <Pressable accessibilityRole="button" accessibilityLabel="Back to today" onPress={() => setSelectedTodayDate(todayKey())} hitSlop={6} style={({ pressed }) => [styles.todayButton, pressed && styles.todayButtonPressed]}><Ionicons name="return-down-back" size={14} color={colors.ink} /><Text style={styles.todayButtonText}>Today</Text></Pressable>;
+  const todayButton = isToday ? null : <Pressable accessibilityRole="button" accessibilityLabel={t.today.backToToday} onPress={() => setSelectedTodayDate(todayKey())} hitSlop={6} style={({ pressed }) => [styles.todayButton, pressed && styles.todayButtonPressed]}><Ionicons name="return-down-back" size={14} color={colors.ink} /><Text style={styles.todayButtonText}>{t.common.today}</Text></Pressable>;
 
   const orbitCard = (
     <View style={[styles.orbitCard, wide && styles.orbitCardWide, desk && styles.orbitCardDesk]}>
       <View style={desk ? styles.orbitDeskBody : styles.orbitBody}>
         <DayOrbit segments={segments} size={desk ? 120 : wide ? 132 : 112} strokeWidth={desk ? 12 : wide ? 13 : 11} animate />
         <View style={desk ? styles.orbitDeskCopy : styles.orbitBody}>
-          <Text style={styles.orbitDate}>{isToday ? 'Today' : format(selectedDate, 'MMM d')}</Text>
-          {dayComplete ? <View style={styles.orbitDone}><Text style={[styles.orbitNumber, styles.orbitNumberInline, desk && styles.orbitNumberDesk]}>All done</Text>{isToday ? <Ionicons name="checkmark-circle" size={desk ? 20 : 18} color={colors.ink} /> : null}</View> : completed > 0 ? <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{completed} done{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text> : <Text style={[styles.orbitNumber, styles.orbitQuiet, desk && styles.orbitNumberDesk]}>{planned === 0 ? 'A clear day' : isToday ? 'Nothing checked off yet' : 'Nothing checked off'}{late > 0 ? <Text style={styles.orbitLate}> · {late} later</Text> : null}</Text>}
+          <Text style={styles.orbitDate}>{isToday ? t.common.today : fmt(selectedDate, 'monthDay')}</Text>
+          {dayComplete ? <View style={styles.orbitDone}><Text style={[styles.orbitNumber, styles.orbitNumberInline, desk && styles.orbitNumberDesk]}>{t.today.allDone}</Text>{isToday ? <Ionicons name="checkmark-circle" size={desk ? 20 : 18} color={colors.ink} /> : null}</View> : completed > 0 ? <Text style={[styles.orbitNumber, desk && styles.orbitNumberDesk]}>{t.today.doneCount(completed)}{late > 0 ? <Text style={styles.orbitLate}> · {t.today.laterCount(late)}</Text> : null}</Text> : <Text style={[styles.orbitNumber, styles.orbitQuiet, desk && styles.orbitNumberDesk]}>{planned === 0 ? t.today.clearDay : isToday ? t.today.nothingYetToday : t.today.nothingChecked}{late > 0 ? <Text style={styles.orbitLate}> · {t.today.laterCount(late)}</Text> : null}</Text>}
           {byList.length > 0 ? <View style={[styles.legend, desk && styles.legendDesk]}>{byList.map(({ category, count }) => <View key={category.id} style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: paletteFor(category).solid }]} /><Text style={styles.legendText} numberOfLines={1}>{category.name} {count}</Text></View>)}</View> : null}
         </View>
       </View>
@@ -147,7 +150,7 @@ export default function TodayScreen() {
     </View>
   );
 
-  const reflectLink = <Link href="/reflect" accessibilityLabel="Reflect on this week" style={styles.reflectLink}>This week →</Link>;
+  const reflectLink = <Link href="/reflect" accessibilityLabel={t.today.reflectLabel} style={styles.reflectLink}>{t.today.reflectLink}</Link>;
 
   const schedule = <ScheduleList events={dayEvents} day={selectedDate} tasks={tasks} categories={categories} onAdd={(event, categoryId) => addTaskFromEvent(event, categoryId, selectedTodayDate)} />;
 
@@ -165,7 +168,7 @@ export default function TodayScreen() {
         />
       ) : null}
       <FadeOnChange token={selectedTodayDate}>
-          {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? "Today's tasks" : format(selectedDate, 'EEEE, MMM d')}</Text>{!isToday ? <Text style={styles.historyHint}>Tasks and completions from this day</Text> : null}</View><Text style={styles.taskCount}>{Math.max(0, planned - completed)} left</Text></View>}
+          {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? t.today.todaysTasks : fmt(selectedDate, 'weekdayMonthDayShort')}</Text>{!isToday ? <Text style={styles.historyHint}>{t.today.historyHint}</Text> : null}</View><Text style={styles.taskCount}>{t.today.left(Math.max(0, planned - completed))}</Text></View>}
           {sections.map((group) => (
             <TaskSection
               key={group.category.id}
@@ -195,7 +198,7 @@ export default function TodayScreen() {
               onReveal={reveal}
             />
           ))}
-          <Link href="/lists" style={styles.editLists}>Edit lists</Link>
+          <Link href="/lists" style={styles.editLists}>{t.today.editLists}</Link>
       </FadeOnChange>
     </View>
   );
@@ -209,11 +212,11 @@ export default function TodayScreen() {
       <TaskDragContext.Provider value={drag}>
         <View style={styles.desk}>
           <ScrollView {...scrollProps} style={[styles.deskLeft, width < 1024 && styles.deskLeftNarrow]} contentContainerStyle={styles.deskLeftContent}>
-            <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} action={todayButton} />
+            <ScreenHeader eyebrow={isToday ? t.common.today : t.today.dayArchive} title={fmt(selectedDate, 'weekdayMonthDay')} action={todayButton} />
             <View style={styles.deskSummary}><CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={!dayMarkCollapsed} onToggle={toggleDayMark} onSelectDate={selectDate} /></View>
             <Collapsible open={!dayMarkCollapsed}><View style={styles.deskStack}>{orbitCard}<HistoryCalendar selectedDate={selectedDate} tasks={tasks} onSelectDate={selectDate} defaultExpanded={height >= 900} /></View></Collapsible>
             {reflectLink}
-            <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>Folders</Text><Text style={styles.sectionHint}>Tap one to pull a step into today</Text></View>{folderList}</View>
+            <View style={styles.deskBlock}><View style={styles.upcomingHeader}><Text style={styles.sectionLabel}>{t.today.folders}</Text><Text style={styles.sectionHint}>{t.today.foldersHint}</Text></View>{folderList}</View>
           </ScrollView>
           <ScrollView
             {...scrollProps} ref={scrollRef} style={styles.deskMain} contentContainerStyle={styles.deskMainContent}
@@ -236,27 +239,27 @@ export default function TodayScreen() {
       onContentSizeChange={(_w, height) => { maxScrollY.current = Math.max(0, height - viewportHeight.current); }}
       contentContainerStyle={[styles.scroll, addingListId !== null && !wide && styles.scrollKeyboard]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View ref={contentRef} collapsable={false} style={styles.page}>
-        <ScreenHeader eyebrow={isToday ? 'Today' : 'Day archive'} title={format(selectedDate, 'EEEE, MMMM d')} action={width < 760 ? <View style={styles.headerActions}>{todayButton}<Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel="Settings and account" hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link></View> : todayButton} />
+        <ScreenHeader eyebrow={isToday ? t.common.today : t.today.dayArchive} title={fmt(selectedDate, 'weekdayMonthDay')} action={width < 760 ? <View style={styles.headerActions}>{todayButton}<Link href="/settings" asChild><Pressable accessibilityRole="link" accessibilityLabel={t.today.settingsLabel} hitSlop={8} style={styles.settingsButton}><Ionicons name="person-circle-outline" size={26} color={colors.inkSoft} /></Pressable></Link></View> : todayButton} />
 
         {phone ? <CompactSummary selectedDate={selectedDate} tasks={tasks} categories={categories} completed={completed} total={planned} late={late} expanded={summaryOpen} onToggle={() => setSummaryOpen((open) => !open)} onSelectDate={selectDate} /> : null}
         {phone ? <Collapsible open={summaryOpen}>{overview}</Collapsible> : overview}
         {phone ? reflectLink : null}
 
-        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>Folders</Text>{phone ? null : <Text style={styles.sectionHint}>Tap one to pull a step into today</Text>}</View>
+        <View style={[styles.upcomingHeader, phone && styles.upcomingHeaderPhone]}><Text style={styles.sectionLabel}>{t.today.folders}</Text>{phone ? null : <Text style={styles.sectionHint}>{t.today.foldersHint}</Text>}</View>
         <DeadlineStrip projects={folders} tasks={tasks} now={now()} compact={phone} />
 
-        {!phone ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>Schedule</Text>{schedule}</View> : null}
+        {!phone ? <View style={styles.scheduleSection}><Text style={styles.sectionTitle}>{t.today.schedule}</Text>{schedule}</View> : null}
 
         {phone ? (
           <View style={styles.tabs}>
             {(['tasks', 'schedule'] as const).map((key) => (
               <PressableScale key={key} accessibilityRole="tab" accessibilityState={{ selected: page === key }} onPress={() => setPage(key)} onLayout={(event) => { const { x, width } = event.nativeEvent.layout; tabBox.current[key] = { x, width }; if (key === page) moveIndicator(key, false); }} style={styles.tab}>
-                <Text style={[styles.tabText, page === key && styles.tabTextActive]}>{key === 'tasks' ? 'Tasks' : 'Schedule'}</Text>
+                <Text style={[styles.tabText, page === key && styles.tabTextActive]}>{key === 'tasks' ? t.today.tasksTab : t.today.schedule}</Text>
                 {key === 'schedule' && dayEvents.length > 0 ? <Text style={styles.tabCount}>{dayEvents.length}</Text> : null}
               </PressableScale>
             ))}
             {indicatorReady ? <Animated.View pointerEvents="none" style={[styles.tabIndicator, { left: indicatorX, width: indicatorW }]} /> : null}
-            {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{Math.max(0, planned - completed)} left</Text> : null}
+            {page === 'tasks' ? <Text style={[styles.taskCount, styles.taskCountPhone]}>{t.today.left(Math.max(0, planned - completed))}</Text> : null}
           </View>
         ) : null}
 

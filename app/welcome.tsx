@@ -8,6 +8,7 @@ import type { MarkPath } from '@/domain/markPath';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, motion, nativeDriver, radius, space, type } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
+import { useT } from '@/i18n';
 
 const FILL = 0.7;
 
@@ -28,20 +29,22 @@ function useFillIn() {
 }
 
 function Dots({ step }: { step: number }) {
-  return <View style={styles.dots} accessibilityLabel={`Step ${step + 1} of 2`}>{[0, 1].map((i) => <View key={i} style={[styles.dot, i === step && styles.dotOn]} />)}</View>;
+  const t = useT();
+  return <View style={styles.dots} accessibilityLabel={t.welcome.stepOf(step + 1, 2)}>{[0, 1].map((i) => <View key={i} style={[styles.dot, i === step && styles.dotOn]} />)}</View>;
 }
 
 function Welcome({ onNext }: { onNext: () => void }) {
+  const t = useT();
   const progress = useFillIn();
   return (
     <StepIn>
       <Image source={require('../assets/brand-mark.png')} accessibilityLabel="Daymark" style={styles.brand} />
       <View style={styles.copy}>
         <Text style={styles.title}>Daymark</Text>
-        <Text style={styles.line}>Leave a mark on every day.</Text>
+        <Text style={styles.line}>{t.welcome.tagline}</Text>
       </View>
       <DayOrbit variant="doodle" segments={evenSegments(progress)} size={168} strokeWidth={11} animate />
-      <Pressable accessibilityRole="button" onPress={onNext} style={({ pressed }) => [styles.button, styles.primary, pressed && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>Get started</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={onNext} style={({ pressed }) => [styles.button, styles.primary, pressed && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>{t.welcome.getStarted}</Text></Pressable>
     </StepIn>
   );
 }
@@ -52,6 +55,7 @@ function Preview({ mark }: { mark: MarkPath }) {
 }
 
 function Draw({ onDone, onDrawingChange }: { onDone: (mark: MarkPath | null) => void; onDrawingChange: (drawing: boolean) => void }) {
+  const t = useT();
   const { width, height } = useWindowDimensions();
   const [mark, setMark] = useState<MarkPath | null>(null);
   const [rejected, setRejected] = useState(false);
@@ -62,21 +66,22 @@ function Draw({ onDone, onDrawingChange }: { onDone: (mark: MarkPath | null) => 
   return (
     <StepIn compact>
       {/* Skip lives at the top so it never falls below the fold on short phones. */}
-      <View style={styles.topRow}><Pressable accessibilityRole="button" onPress={() => onDone(null)} hitSlop={10} style={({ pressed }) => pressed && styles.dim}><Text style={styles.skip}>Skip for now</Text></Pressable></View>
+      <View style={styles.topRow}><Pressable accessibilityRole="button" onPress={() => onDone(null)} hitSlop={10} style={({ pressed }) => pressed && styles.dim}><Text style={styles.skip}>{t.welcome.skip}</Text></Pressable></View>
       <View style={styles.copy}>
-        <Text style={styles.title}>Draw your mark</Text>
-        <Text style={styles.line}>Draw anything — your day fills it in, stroke by stroke.</Text>
+        <Text style={styles.title}>{t.welcome.drawTitle}</Text>
+        <Text style={styles.line}>{t.welcome.drawLine}</Text>
       </View>
       <MarkDrawPad size={padSize} initial={null} onChange={onChange} onDrawingChange={onDrawingChange} />
       <View style={styles.previewSlot}>{mark ? <Preview mark={mark} /> : null}</View>
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={() => onDone(mark)} style={({ pressed }) => [styles.button, styles.primary, (pressed || !canSave) && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>Use this mark</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={() => onDone(mark)} style={({ pressed }) => [styles.button, styles.primary, (pressed || !canSave) && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>{t.drawMark.useThisMark}</Text></Pressable>
       </View>
     </StepIn>
   );
 }
 
 export default function WelcomeScreen() {
+  const t = useT();
   const [step, setStep] = useState(0);
   const [drawing, setDrawing] = useState(false);
   const setOnboardingDone = useDaymarkStore((state) => state.setOnboardingDone);
@@ -87,7 +92,7 @@ export default function WelcomeScreen() {
     if (mark) { setCustomMark(mark); setDayMarkVariant('custom'); }
     setOnboardingDone(true);
     router.replace('/');
-    if (mark) showToast('Your Day Mark is set');
+    if (mark) showToast(t.toasts.markSet);
   };
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.page} scrollEnabled={!drawing} keyboardShouldPersistTaps="handled">

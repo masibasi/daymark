@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { Link } from 'expo-router';
 import { selectTaskFromEvent } from '@/domain/selectors';
 import type { CalendarEvent, Category, Task } from '@/domain/types';
@@ -9,9 +9,10 @@ import { colors, fontFamily, space, type } from '@/theme/tokens';
 import { Collapsible } from './Collapsible';
 import { EventActions, eventTimeRange } from './EventActions';
 import { EventSheet } from './EventSheet';
+import { formatDate, t, useT } from '@/i18n';
 
 const VISIBLE = 3;
-const timeLabel = (event: CalendarEvent) => (event.allDay ? 'All day' : format(parseISO(event.startAt), 'h:mm a'));
+const timeLabel = (event: CalendarEvent) => (event.allDay ? t().common.allDay : formatDate(parseISO(event.startAt), 'time'));
 
 interface TodayScheduleProps {
   events: CalendarEvent[];
@@ -27,13 +28,14 @@ interface TodayScheduleProps {
 // Column layout (tablet + desktop): a compact Schedule block at the top of the tasks column. One line per event, three by default
 // with a quiet "+N more"; tapping a row opens the same Add-to-day sheet as the Calendar tab. The block collapses to one line.
 export function TodaySchedule({ events, day, tasks, categories, hasFeeds, collapsed, onToggleCollapsed, onAdd }: TodayScheduleProps) {
+  const t = useT();
   const [more, setMore] = useState(false);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const count = events.length;
   const row = (event: CalendarEvent) => {
     const added = Boolean(selectTaskFromEvent(tasks, event.id, day));
     return (
-      <Pressable key={event.id} accessibilityRole="button" accessibilityLabel={`${event.title}, ${eventTimeRange(event)}${added ? ', added' : ''}`} onPress={() => setSelected(event)} style={styles.row}>
+      <Pressable key={event.id} accessibilityRole="button" accessibilityLabel={`${event.title}, ${eventTimeRange(event)}${added ? t.calendar.addedSuffix : ''}`} onPress={() => setSelected(event)} style={styles.row}>
         <View style={[styles.rail, event.allDay && styles.railAllDay]} />
         <Text style={styles.time}>{timeLabel(event)}</Text>
         <Text style={[styles.title, added && styles.titleAdded]} numberOfLines={1}>{event.title}</Text>
@@ -43,25 +45,25 @@ export function TodaySchedule({ events, day, tasks, categories, hasFeeds, collap
   };
   return (
     <View style={styles.block}>
-      <Pressable accessibilityRole="button" accessibilityLabel={collapsed ? 'Expand schedule' : 'Collapse schedule'} accessibilityState={{ expanded: !collapsed }} onPress={onToggleCollapsed} style={styles.header}>
-        <Text style={styles.heading}>Schedule</Text>
-        {collapsed && count > 0 ? <Text style={styles.meta}>· {count} {count === 1 ? 'event' : 'events'}</Text> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={collapsed ? t.calendar.expandSchedule : t.calendar.collapseSchedule} accessibilityState={{ expanded: !collapsed }} onPress={onToggleCollapsed} style={styles.header}>
+        <Text style={styles.heading}>{t.today.schedule}</Text>
+        {collapsed && count > 0 ? <Text style={styles.meta}>· {t.calendar.eventCount(count)}</Text> : null}
         <Ionicons name={collapsed ? 'chevron-down' : 'chevron-up'} size={14} color={colors.muted} style={styles.chevron} />
       </Pressable>
       <Collapsible open={!collapsed}>
         <View style={styles.body}>
           {count === 0 ? (
-            <Text style={styles.empty}>{hasFeeds ? 'No events today' : 'No events · '}{hasFeeds ? null : <Link href="/settings" style={styles.emptyLink}>Connect a calendar</Link>}</Text>
+            <Text style={styles.empty}>{hasFeeds ? t.calendar.noEventsToday : t.calendar.noEventsDot}{hasFeeds ? null : <Link href="/settings" style={styles.emptyLink}>{t.calendar.connectCalendar}</Link>}</Text>
           ) : (
             <>
               {events.slice(0, VISIBLE).map(row)}
               {count > VISIBLE ? <Collapsible open={more}><View>{events.slice(VISIBLE).map(row)}</View></Collapsible> : null}
-              {count > VISIBLE ? <Pressable accessibilityRole="button" onPress={() => setMore(!more)} style={styles.moreButton}><Text style={styles.moreText}>{more ? 'Show less' : `+${count - VISIBLE} more`}</Text></Pressable> : null}
+              {count > VISIBLE ? <Pressable accessibilityRole="button" onPress={() => setMore(!more)} style={styles.moreButton}><Text style={styles.moreText}>{more ? t.calendar.showLess : t.calendar.moreCount(count - VISIBLE)}</Text></Pressable> : null}
             </>
           )}
         </View>
       </Collapsible>
-      <EventSheet visible={selected !== null} title={selected?.title ?? ''} subtitle={selected ? `${format(day, 'EEE, MMM d')} · ${eventTimeRange(selected)}` : ''} onClose={() => setSelected(null)}>
+      <EventSheet visible={selected !== null} title={selected?.title ?? ''} subtitle={selected ? `${formatDate(day, 'weekdayShortMonthDay')} · ${eventTimeRange(selected)}` : ''} onClose={() => setSelected(null)}>
         {selected ? <EventActions event={selected} day={day} tasks={tasks} categories={categories} onAdd={(event, categoryId) => { onAdd(event, categoryId); setSelected(null); }} /> : null}
       </EventSheet>
     </View>

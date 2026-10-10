@@ -9,6 +9,7 @@ import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import { now, todayKey } from '@/domain/clock';
 import { selectFolderGroups, sortTasksByOrder } from '@/domain/selectors';
 import { applyChanges, sameData, type RemoteChange } from '@/sync/merge';
+import { setActiveLanguage, t, type Language } from '@/i18n';
 import { initialCategories, initialEvents, initialProjects, initialTasks, initialTimeBlocks } from './mockData';
 
 // What the last delete removed, so Undo can put it back exactly (same ids, order, completedAt). Never persisted.
@@ -42,6 +43,9 @@ interface DaymarkState {
   dayMarkVariant: DayMarkVariant;
   customMark?: CustomMark; // the drawn Day Mark behind the 'custom' style; synced as a preference row
   hasHydrated: boolean;
+  // UI language: 'system' follows the device. Device-local (persisted, never synced); the active value is mirrored into src/i18n.
+  language: Language;
+  setLanguage: (language: Language) => void;
   // First-run flow (/welcome) finished or skipped; device-local, never synced. Existing users count as done (see migrate).
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
@@ -103,7 +107,8 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 9;
+const STORAGE_VERSION = 10;
+const LANGUAGES: Language[] = ['system', 'en', 'ko'];
 
 let toastCounter = 0;
 const makeToast = (message: string, undoable: boolean): Toast => ({ id: ++toastCounter, message, undoable });
@@ -145,7 +150,7 @@ function nextColorKey(categories: Category[]): CategoryColorKey {
 export const useDaymarkStore = create<DaymarkState>()(
   persist(
     (set, get) => ({
-      categories: initialCategories,
+      categories: initialCategories('system'),
       routines: [],
       projects: [],
       tasks: [],
@@ -164,6 +169,8 @@ export const useDaymarkStore = create<DaymarkState>()(
       selectedTodayDate: todayKey(),
       dayMarkVariant: 'doodle',
       hasHydrated: false,
+      language: 'system',
+      setLanguage: (language) => { setActiveLanguage(language); set({ language }); },
       onboardingDone: false,
       setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
       carryoverDismissed: [],
@@ -228,7 +235,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         const index = state.routines.findIndex((routine) => routine.id === id);
         if (index < 0) return state;
         const routine = state.routines[index];
-        return { routines: state.routines.filter((item) => item.id !== id), lastDeleted: { kind: 'routine', routine, index }, toast: makeToast(`Removed routine "${routine.title}"`, true) };
+        return { routines: state.routines.filter((item) => item.id !== id), lastDeleted: { kind: 'routine', routine, index }, toast: makeToast(t().toasts.removedRoutine(routine.title), true) };
       }),
       addTaskFromRoutine: (routineId, date, complete) => set((state) => {
         const routine = state.routines.find((item) => item.id === routineId);
@@ -244,11 +251,11 @@ export const useDaymarkStore = create<DaymarkState>()(
         let target = categoryId ? categories.find((item) => item.id === categoryId) : undefined;
         if (!categoryId) {
           const order = categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
-          target = { id: newId('list'), name: 'Schedule', colorKey: nextColorKey(categories), order };
+          target = { id: newId('list'), name: t().calendar.scheduleListName, colorKey: nextColorKey(categories), order };
           categories = [...categories, target];
         }
         if (!target || target.archived) return state;
-        return { categories, tasks: [...state.tasks, { id: newId('task'), title: event.title.trim() || 'Event', categoryId: target.id, scheduledDate: date, sourceEventId: event.id, order: nextOrder(state.tasks, date, target.id) }] };
+        return { categories, tasks: [...state.tasks, { id: newId('task'), title: event.title.trim() || t().calendar.eventFallback, categoryId: target.id, scheduledDate: date, sourceEventId: event.id, order: nextOrder(state.tasks, date, target.id) }] };
       }),
       // Reorder within a list or move to another list on `day`. `toIndex` counts the target list without the moved task.
       // Completed tasks and project tasks may reorder but never change list. Returns false when nothing was changed.
@@ -331,7 +338,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         return {
           projects: state.projects.map((item) => item.id === projectId ? { ...item, status: 'archived' as const, archivedAt: now().toISOString() } : item),
           lastDeleted: { kind: 'archive', project },
-          toast: makeToast(`Archived "${project.title}"`, true),
+          toast: makeToast(t().toasts.archived(project.title), true),
         };
       }),
       restoreProject: (projectId) => set((state) => ({
@@ -364,7 +371,7 @@ export const useDaymarkStore = create<DaymarkState>()(
           // A new open step re-opens the "all steps done" question.
           projects: project.completionAcknowledged ? state.projects.map((item) => item.id === projectId ? { ...item, completionAcknowledged: false } : item) : state.projects,
           lastDeleted: { kind: 'move', task, project },
-          toast: makeToast(`Moved to "${project.title}"`, true),
+          toast: makeToast(t().toasts.movedToFolder(project.title), true),
         });
         return true;
       },
@@ -400,10 +407,10 @@ export const useDaymarkStore = create<DaymarkState>()(
           tasks: state.tasks.filter((item) => item.id !== taskId),
           timeBlocks: state.timeBlocks.filter((block) => block.taskId !== taskId),
           lastDeleted: { kind: 'task', task, timeBlocks: state.timeBlocks.filter((block) => block.taskId === taskId), index },
-          toast: makeToast(`Deleted "${task.title}"`, true),
+          toast: makeToast(t().toasts.deleted(task.title), true),
         };
       }),
-      addCalendarFeed: (name, url) => set((state) => ({ calendarFeeds: [...state.calendarFeeds, { id: newId('feed'), name: name.trim() || 'Calendar', url, enabled: true }] })),
+      addCalendarFeed: (name, url) => set((state) => ({ calendarFeeds: [...state.calendarFeeds, { id: newId('feed'), name: name.trim() || t().settings.calendars.defaultFeedName, url, enabled: true }] })),
       setCalendarFeedEnabled: (id, enabled) => set((state) => ({ calendarFeeds: state.calendarFeeds.map((feed) => feed.id === id ? { ...feed, enabled } : feed) })),
       removeCalendarFeed: (id) => set((state) => ({
         calendarFeeds: state.calendarFeeds.filter((feed) => feed.id !== id),
@@ -420,13 +427,14 @@ export const useDaymarkStore = create<DaymarkState>()(
         return { events: [...kept, ...loaded.filter((event) => event.feedId !== undefined && live.has(event.feedId) && !known.has(event.id))], feedErrors: errors };
       }),
       loadSampleData: () => set((state) => {
-        const missing = initialCategories.filter((category) => !state.categories.some((item) => item.id === category.id));
+        const defaults = initialCategories(state.language);
+        const missing = defaults.filter((category) => !state.categories.some((item) => item.id === category.id));
         const base = state.categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
         return {
           // Sample data uses the four default lists, so bring back any of them that were archived too.
-          categories: [...state.categories.map((category) => initialCategories.some((item) => item.id === category.id) ? { ...category, archived: false } : category), ...missing.map((category, index) => ({ ...category, order: base + index }))],
-          projects: initialProjects, tasks: initialTasks, timeBlocks: initialTimeBlocks,
-          events: [...state.events.filter((event) => event.provider !== 'mock'), ...initialEvents],
+          categories: [...state.categories.map((category) => defaults.some((item) => item.id === category.id) ? { ...category, archived: false } : category), ...missing.map((category, index) => ({ ...category, order: base + index }))],
+          projects: initialProjects(state.language), tasks: initialTasks(state.language), timeBlocks: initialTimeBlocks,
+          events: [...state.events.filter((event) => event.provider !== 'mock'), ...initialEvents(state.language)],
         };
       }),
       eraseAllData: () => set((state) => ({ projects: [], tasks: [], timeBlocks: [], events: state.events.filter((event) => event.provider !== 'mock'), lastDeleted: null, toast: null })),
@@ -434,7 +442,7 @@ export const useDaymarkStore = create<DaymarkState>()(
       importBackup: (data) => set({
         categories: data.categories, projects: data.projects, tasks: data.tasks, routines: data.routines, timeBlocks: data.timeBlocks,
         dayMarkVariant: data.dayMarkVariant, customMark: data.customMark, calendarFeeds: data.calendarFeeds,
-        onboardingDone: true, selectedTodayDate: todayKey(), lastDeleted: null, toast: makeToast('Backup restored', false),
+        onboardingDone: true, selectedTodayDate: todayKey(), lastDeleted: null, toast: makeToast(t().toasts.backupRestored, false),
       }),
       // Synced rows from another device. Upserts/removes by id per kind; leaves `order` and all derived rules alone.
       applyRemoteItems: (changes) => set((state) => {
@@ -473,11 +481,12 @@ export const useDaymarkStore = create<DaymarkState>()(
         dayMarkCollapsedDesktop: state.dayMarkCollapsedDesktop,
         scheduleCollapsed: state.scheduleCollapsed,
         onboardingDone: state.onboardingDone,
+        language: state.language,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields); customMark later gained an optional `strokes` array (multi-stroke drawings) with the first stroke still in points/closed, so it is backward compatible and needs no version bump. v8 -> v9: onboardingDone (device-local); anyone with data already is marked done.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields); customMark later gained an optional `strokes` array (multi-stroke drawings) with the first stroke still in points/closed, so it is backward compatible and needs no version bump. v8 -> v9: onboardingDone (device-local); anyone with data already is marked done. v9 -> v10: language ('system' | 'en' | 'ko', device-local, never synced); pass-through, a missing value falls back to the 'system' default and is checked on rehydrate.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
@@ -485,7 +494,7 @@ export const useDaymarkStore = create<DaymarkState>()(
         } else if (version < 1 || !Array.isArray(old.categories)) {
           // Only unreadable or pre-v1 data resets. Any other version (including a newer one written by a
           // later deploy) passes through so a version bump can never wipe someone's tasks.
-          return { categories: initialCategories, routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'doodle' as DayMarkVariant } as unknown as DaymarkState;
+          return { categories: initialCategories('system'), routines: [], projects: [], tasks: [], timeBlocks: [], dayMarkVariant: 'doodle' as DayMarkVariant } as unknown as DaymarkState;
         }
         if (Array.isArray(old.projects)) {
           const ranked = old.projects.slice().sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
@@ -498,6 +507,10 @@ export const useDaymarkStore = create<DaymarkState>()(
         return old as DaymarkState;
       },
       onRehydrateStorage: () => (state) => {
+        // Follow the saved language before anything renders (a missing or unknown value means 'system').
+        if (state) {
+          if (LANGUAGES.includes(state.language)) setActiveLanguage(state.language); else state.setLanguage('system');
+        }
         // The Classic style was retired from Settings; anyone who had it moves to Watercolor wash.
         if (state?.dayMarkVariant === 'current') state.setDayMarkVariant('wash');
         if (state && !['ribbon', 'glass', 'wash', 'doodle', 'custom'].includes(state.dayMarkVariant)) state.setDayMarkVariant('doodle');

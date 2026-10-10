@@ -1,5 +1,6 @@
 // Pure geometry for user-drawn Day Marks: clean hand-drawn strokes into evenly spaced paths, normalized together into one unit box.
 import type { CustomMark } from './types';
+import { t } from '@/i18n';
 
 export type Pt = [number, number];
 
@@ -16,8 +17,9 @@ const MIN_STROKE_POINTS = 12;
 const CLOSE_RATIO = 0.12;
 const MIN_STROKE_RATIO = 0.04; // a stroke shorter than this share of the pad side is a tap, not a line
 export const MIN_TOTAL_RATIO = 0.2; // a drawing needs this much total length (share of the pad side) to be worth filling
-export const TOO_SMALL_MESSAGE = 'Too small to fill \u2014 draw a line instead.';
-export const TOO_SHORT_MESSAGE = 'Keep going \u2014 a little more to fill.';
+// Read at call time so they follow the active language.
+export const tooSmallMessage = () => t().drawMark.tooSmall;
+export const tooShortMessage = () => t().drawMark.tooShort;
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 export function pathLength(pts: Pt[]): number {
@@ -120,7 +122,7 @@ export function markLength(strokes: MarkStroke[]): number {
 // Raw pointer samples (in pad pixels) -> one smoothed stroke in PAD UNITS (pixel / boxSize, not re-normalized, so it stays where it was drawn).
 export function cleanStroke(raw: Pt[], boxSize: number): StrokeResult {
   const sparse = dropClosePoints(raw, Math.max(1.5, boxSize * 0.008));
-  if (sparse.length < 2 || pathLength(sparse) < boxSize * MIN_STROKE_RATIO) return { ok: false, reason: TOO_SMALL_MESSAGE };
+  if (sparse.length < 2 || pathLength(sparse) < boxSize * MIN_STROKE_RATIO) return { ok: false, reason: tooSmallMessage() };
   const b = bounds(sparse);
   const diagonal = Math.hypot(b.width, b.height);
   const closed = sparse.length >= 3 && dist(sparse[0], sparse[sparse.length - 1]) < diagonal * CLOSE_RATIO;

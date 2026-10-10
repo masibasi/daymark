@@ -1,6 +1,6 @@
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { eachDayOfInterval, endOfWeek, format, isSameDay, startOfWeek } from 'date-fns';
+import { eachDayOfInterval, endOfWeek, isSameDay, startOfWeek } from 'date-fns';
 import { now } from '@/domain/clock';
 import { selectDayComplete, selectDayOrbit } from '@/domain/selectors';
 import type { Category, Task } from '@/domain/types';
@@ -9,6 +9,7 @@ import { useToggleProgress } from '@/theme/useToggleProgress';
 import { DayNumber } from './DayNumber';
 import { DayOrbit } from './DayOrbit';
 import { PressableScale } from './PressableScale';
+import { useFormat, useT } from '@/i18n';
 
 interface CompactSummaryProps {
   selectedDate: Date;
@@ -24,22 +25,24 @@ interface CompactSummaryProps {
 
 // Phone Today: one calm row — small Day Mark, "3 done", and this week's seven marks. Tapping the left side expands the full card + history.
 export function CompactSummary({ selectedDate, tasks, categories, completed, total, late = 0, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
+  const t = useT();
+  const fmt = useFormat();
   const week = eachDayOfInterval({ start: startOfWeek(selectedDate, { weekStartsOn: 0 }), end: endOfWeek(selectedDate, { weekStartsOn: 0 }) });
   const dayComplete = selectDayComplete(tasks, selectedDate, categories);
   const isToday = isSameDay(selectedDate, now());
   const turn = useToggleProgress(expanded, motion.base, true);
   return (
     <View style={styles.row}>
-      <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Hide day mark details' : 'Show day mark details'} accessibilityState={{ expanded }} onPress={onToggle} style={styles.lead}>
+      <Pressable accessibilityRole="button" accessibilityLabel={expanded ? t.today.hideDayMark : t.today.showDayMark} accessibilityState={{ expanded }} onPress={onToggle} style={styles.lead}>
         <DayOrbit segments={selectDayOrbit(tasks, selectedDate, categories)} size={44} strokeWidth={6} />
-        {expanded ? null : dayComplete ? <View style={styles.done}><Text style={styles.count} numberOfLines={1}>All done</Text>{isToday ? <Ionicons name="checkmark-circle" size={16} color={colors.ink} /> : null}</View> : <Text style={[styles.count, completed === 0 && styles.quiet]} numberOfLines={1}>{completed > 0 ? `${completed} done` : total === 0 ? 'Clear day' : 'Nothing yet'}{late > 0 ? <Text style={styles.late}> · {late} later</Text> : null}</Text>}
+        {expanded ? null : dayComplete ? <View style={styles.done}><Text style={styles.count} numberOfLines={1}>{t.today.allDone}</Text>{isToday ? <Ionicons name="checkmark-circle" size={16} color={colors.ink} /> : null}</View> : <Text style={[styles.count, completed === 0 && styles.quiet]} numberOfLines={1}>{completed > 0 ? t.today.doneCount(completed) : total === 0 ? t.today.compactClear : t.today.compactNothing}{late > 0 ? <Text style={styles.late}> · {t.today.laterCount(late)}</Text> : null}</Text>}
       </Pressable>
       {expanded ? <Pressable accessibilityElementsHidden style={styles.fill} onPress={onToggle} /> : (
         <View style={styles.week}>
           {week.map((day) => {
             const selected = isSameDay(day, selectedDate);
             return (
-              <PressableScale key={day.toISOString()} accessibilityRole="button" accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} hitSlop={{ top: 6, bottom: 6 }} onPress={() => onSelectDate(day)} style={styles.day}>
+              <PressableScale key={day.toISOString()} accessibilityRole="button" accessibilityLabel={t.today.openDay(fmt(day, 'monthDayLong'))} accessibilityState={{ selected }} hitSlop={{ top: 6, bottom: 6 }} onPress={() => onSelectDate(day)} style={styles.day}>
                 <View style={[styles.markWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={22} strokeWidth={3.5} /></View>
                 <DayNumber day={day} tasks={tasks} categories={categories} selected={selected} />
               </PressableScale>

@@ -1,22 +1,30 @@
 import type { CalendarEvent, Category, Project, Task, TimeBlock } from '@/domain/types';
+import { dictionaryFor, resolveLocale, type Dictionary, type Language } from '@/i18n';
 
 export const prototypeDate = new Date('2026-09-22T10:30:00-07:00');
 
-export const initialCategories: Category[] = [
-  { id: 'study', name: 'Study', colorKey: 'study', order: 0 },
-  { id: 'career', name: 'Career', colorKey: 'career', order: 1 },
-  { id: 'personal', name: 'Personal', colorKey: 'personal', order: 2 },
-  { id: 'routine', name: 'Health', colorKey: 'routine', order: 3 },
-];
+// Sample and default content is created in the active language at creation time; stored data is never renamed afterwards.
+const copyFor = (language: Language): Dictionary => dictionaryFor(resolveLocale(language));
+const lookup = (map: Record<string, string>, id: string) => map[id] ?? id;
 
-export const initialProjects: Project[] = [
+export const initialCategories = (language: Language): Category[] => {
+  const names = copyFor(language).sample.categories;
+  return [
+    { id: 'study', name: names.study, colorKey: 'study', order: 0 },
+    { id: 'career', name: names.career, colorKey: 'career', order: 1 },
+    { id: 'personal', name: names.personal, colorKey: 'personal', order: 2 },
+    { id: 'routine', name: names.routine, colorKey: 'routine', order: 3 },
+  ];
+};
+
+const sampleProjects: Project[] = [
   { id: 'agentic-ai', order: 0, title: 'Agentic AI Assignment', categoryId: 'study', deadline: '2026-09-27', status: 'active', notes: 'Build, deploy, and record the final MCP demo.' },
   { id: 'iui-project', order: 1, title: 'IUI Project', categoryId: 'study', deadline: '2026-10-03', status: 'active', notes: 'Prototype and evaluate the interaction flow.' },
   { id: 'portfolio', order: 2, title: 'Portfolio refresh', categoryId: 'career', deadline: '2026-10-14', status: 'active', notes: 'Tighten case studies before recruiting season.' },
   { id: 'move-plan', order: 3, title: 'October move', categoryId: 'personal', deadline: '2026-10-20', status: 'active' },
 ];
 
-export const initialTasks: Task[] = [
+const sampleTasks: Task[] = [
   { id: 'history-14-study', title: 'Outline interaction study', categoryId: 'study', scheduledDate: '2026-09-14', completedAt: '2026-09-14T10:20:00-07:00' },
   { id: 'history-14-routine', title: 'Morning run', categoryId: 'routine', scheduledDate: '2026-09-14', completedAt: '2026-09-14T07:10:00-07:00' },
   { id: 'history-16-career', title: 'Coffee chat prep', categoryId: 'career', scheduledDate: '2026-09-16', completedAt: '2026-09-16T15:00:00-07:00' },
@@ -49,7 +57,7 @@ export const initialTasks: Task[] = [
   { id: 'headshots', title: 'Choose new headshots', categoryId: 'career', projectId: 'portfolio' },
 ];
 
-export const initialEvents: CalendarEvent[] = [
+const sampleEvents: CalendarEvent[] = [
   { id: 'e1', provider: 'mock', externalId: 'gcal-1', title: 'CSCI 599 · IUI', startAt: '2026-09-21T14:00:00-07:00', endAt: '2026-09-21T15:30:00-07:00', allDay: false, colorKey: 'event' },
   { id: 'e2', provider: 'mock', externalId: 'gcal-2', title: 'Team critique', startAt: '2026-09-22T11:00:00-07:00', endAt: '2026-09-22T12:00:00-07:00', allDay: false, colorKey: 'event' },
   { id: 'e3', provider: 'mock', externalId: 'gcal-3', title: 'Career fair', startAt: '2026-09-23T13:00:00-07:00', endAt: '2026-09-23T15:00:00-07:00', allDay: false, colorKey: 'event' },
@@ -65,3 +73,22 @@ export const initialTimeBlocks: TimeBlock[] = [
   { id: 'b2', taskId: 'apply', startAt: '2026-09-23T09:00:00-07:00', endAt: '2026-09-23T10:00:00-07:00' },
   { id: 'b3', taskId: 'gym', startAt: '2026-09-24T17:00:00-07:00', endAt: '2026-09-24T18:00:00-07:00' },
 ];
+
+export const initialProjects = (language: Language): Project[] => {
+  const { projects, projectNotes } = copyFor(language).sample;
+  return sampleProjects.map((project) => {
+    const { notes, ...rest } = project;
+    const note = notes ? lookup(projectNotes, project.id) : undefined;
+    return { ...rest, title: lookup(projects, project.id), ...(note ? { notes: note } : {}) };
+  });
+};
+
+export const initialTasks = (language: Language): Task[] => {
+  const { tasks } = copyFor(language).sample;
+  return sampleTasks.map((task) => ({ ...task, title: lookup(tasks, task.id) }));
+};
+
+export const initialEvents = (language: Language): CalendarEvent[] => {
+  const { events } = copyFor(language).sample;
+  return sampleEvents.map((event) => ({ ...event, title: lookup(events, event.id) }));
+};

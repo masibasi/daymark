@@ -1,13 +1,8 @@
 // Pure backup logic: build, validate and parse a full JSON backup, and flatten tasks to CSV. No React / React Native imports.
 import { format, parseISO } from 'date-fns';
+import { formatDate, t } from '@/i18n';
 import { isCustomMark } from './markPath';
 import type { CalendarFeed, Category, CustomMark, DayMarkVariant, Project, Routine, Task, TimeBlock } from './types';
-
-export const BACKUP_COPY = {
-  notBackup: "This file isn't a Daymark backup.",
-  tooNew: 'This backup was made by a newer version of Daymark. Update the app and try again.',
-  unreadable: "That file couldn't be read.",
-};
 
 export const BACKUP_APP = 'daymark';
 export const BACKUP_FORMAT = 1;
@@ -57,12 +52,12 @@ function clean<T>(value: unknown, ok: (item: Record<string, unknown>) => boolean
 export function parseBackup(text: string): ParseResult {
   const fail = (reason: string): ParseResult => ({ ok: false, reason });
   let raw: unknown;
-  try { raw = JSON.parse(text.replace(/^﻿/, '')); } catch { return fail(BACKUP_COPY.notBackup); }
-  if (!isRecord(raw) || raw.app !== BACKUP_APP || typeof raw.format !== 'number' || !isRecord(raw.data)) return fail(BACKUP_COPY.notBackup);
-  if (!Number.isInteger(raw.format) || raw.format < 1) return fail(BACKUP_COPY.notBackup);
-  if (raw.format > BACKUP_FORMAT) return fail(BACKUP_COPY.tooNew);
+  try { raw = JSON.parse(text.replace(/^﻿/, '')); } catch { return fail(t().backup.notBackup); }
+  if (!isRecord(raw) || raw.app !== BACKUP_APP || typeof raw.format !== 'number' || !isRecord(raw.data)) return fail(t().backup.notBackup);
+  if (!Number.isInteger(raw.format) || raw.format < 1) return fail(t().backup.notBackup);
+  if (raw.format > BACKUP_FORMAT) return fail(t().backup.tooNew);
   const data = raw.data;
-  if (!Array.isArray(data.categories) || !Array.isArray(data.tasks)) return fail(BACKUP_COPY.notBackup);
+  if (!Array.isArray(data.categories) || !Array.isArray(data.tasks)) return fail(t().backup.notBackup);
 
   const categories = clean<Category>(data.categories, (c) => str(c.name) && typeof c.order === 'number' && Number.isFinite(c.order) && str(c.colorKey));
   const categoryIds = new Set(categories.map((c) => c.id));
@@ -83,11 +78,12 @@ export function parseBackup(text: string): ParseResult {
 }
 
 export function countsLine(counts: BackupCounts, exportedAt: string): string {
-  const when = Date.parse(exportedAt) > 0 ? `, exported ${format(parseISO(exportedAt), 'MMM d')}` : '';
-  const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-  return `${n(counts.lists, 'list', 'lists')} · ${n(counts.folders, 'folder', 'folders')} · ${n(counts.tasks, 'task', 'tasks')} · ${n(counts.routines, 'routine', 'routines')}${when}`;
+  const copy = t().backup;
+  const when = Date.parse(exportedAt) > 0 ? copy.exportedOn(formatDate(parseISO(exportedAt), 'monthDay')) : '';
+  return [copy.lists(counts.lists), copy.folders(counts.folders), copy.tasks(counts.tasks), copy.routines(counts.routines)].join(copy.separator) + when;
 }
 
+// CSV headers and the done/open status stay English in every language: a spreadsheet export is a data file, and fixed column names keep it portable.
 const CSV_HEADER = ['Title', 'List', 'Folder', 'Scheduled date', 'Completed at', 'Routine', 'Status'];
 
 // Quote when needed; neutralise cells a spreadsheet would run as a formula.

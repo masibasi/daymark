@@ -8,6 +8,7 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { categoryPalette, colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { DayNumber } from './DayNumber';
 import { DayOrbit } from './DayOrbit';
+import { useFormat, useT } from '@/i18n';
 
 interface HistoryCalendarProps {
   selectedDate: Date;
@@ -18,6 +19,8 @@ interface HistoryCalendarProps {
 
 export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpanded }: HistoryCalendarProps) {
   const { width } = useWindowDimensions();
+  const t = useT();
+  const fmt = useFormat();
   const categories = useDaymarkStore((state) => state.categories);
   const [expanded, setExpanded] = useState(() => defaultExpanded ?? width >= 820);
 
@@ -37,27 +40,27 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpa
   return (
     <View style={[styles.card, expanded && styles.cardExpanded]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{format(selectedDate, 'MMMM yyyy')}</Text>
+        <Text style={styles.title}>{fmt(selectedDate, 'monthYear')}</Text>
         <View style={styles.controls}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={expanded ? 'Show one week' : 'Show full month'}
+            accessibilityLabel={expanded ? t.calendar.showOneWeek : t.calendar.showFullMonth}
             accessibilityState={{ expanded }}
             onPress={() => setExpanded((current) => !current)}
             style={styles.arrow}
           >
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.ink} />
           </Pressable>
-          <Pressable accessibilityLabel={expanded ? 'Previous history month' : 'Previous history week'} onPress={goToPrevious} style={styles.arrow}><Ionicons name="chevron-back" size={16} color={colors.ink} /></Pressable>
-          <Pressable accessibilityLabel={expanded ? 'Next history month' : 'Next history week'} onPress={goToNext} style={styles.arrow}><Ionicons name="chevron-forward" size={16} color={colors.ink} /></Pressable>
+          <Pressable accessibilityLabel={expanded ? t.calendar.previousHistoryMonth : t.calendar.previousHistoryWeek} onPress={goToPrevious} style={styles.arrow}><Ionicons name="chevron-back" size={16} color={colors.ink} /></Pressable>
+          <Pressable accessibilityLabel={expanded ? t.calendar.nextHistoryMonth : t.calendar.nextHistoryWeek} onPress={goToNext} style={styles.arrow}><Ionicons name="chevron-forward" size={16} color={colors.ink} /></Pressable>
         </View>
       </View>
-      <View style={styles.weekdays}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
+      <View style={styles.weekdays}>{t.calendar.weekdayLetters.map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
       <View style={styles.grid}>
         {days.map((day) => {
           const selected = isSameDay(day, selectedDate);
           return (
-            <Pressable key={day.toISOString()} accessibilityLabel={`Open ${format(day, 'MMMM d')}`} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, expanded && !isSameMonth(day, selectedDate) && styles.outside]}>
+            <Pressable key={day.toISOString()} accessibilityLabel={t.today.openDay(fmt(day, 'monthDayLong'))} accessibilityState={{ selected }} onPress={() => onSelectDate(day)} style={[styles.day, expanded && !isSameMonth(day, selectedDate) && styles.outside]}>
               <View style={[styles.orbitWrap, selected && styles.selected]}><DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={22} strokeWidth={3.5} /></View>
               <DayNumber day={day} tasks={tasks} categories={categories} selected={selected} />
             </Pressable>

@@ -4,16 +4,18 @@ import { format } from 'date-fns';
 import { selectDayComplete } from '@/domain/selectors';
 import type { Category, Task } from '@/domain/types';
 import { categoryPalette, colors, fontFamily } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 interface DayNumberProps { day: Date; tasks: Task[]; categories: Category[]; selected: boolean }
 
 // Date number under a 22px day mark; a day where everything planned got done carries a tiny muted check after it.
 export function DayNumber({ day, tasks, categories, selected }: DayNumberProps) {
+  const t = useT();
   const complete = selectDayComplete(tasks, day, categories);
   return (
     <View style={styles.row}>
       <Text style={[styles.number, selected && styles.selected]}>{format(day, 'd')}</Text>
-      {complete ? <Ionicons accessibilityLabel="All done" name="checkmark" size={9} color={colors.muted} style={styles.check} /> : null}
+      {complete ? <Ionicons accessibilityLabel={t.today.allDone} name="checkmark" size={9} color={colors.muted} style={styles.check} /> : null}
     </View>
   );
 }

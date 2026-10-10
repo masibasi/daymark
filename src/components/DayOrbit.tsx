@@ -10,6 +10,7 @@ import { useReducedMotion } from '@/theme/useReducedMotion';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { PathMark } from '@/components/PathMark';
 import { Ripple, useTweenedArcs } from '@/components/orbitMotion';
+import { t } from '@/i18n';
 
 interface DayOrbitProps {
   segments: DayOrbitSegment[];
@@ -140,7 +141,7 @@ function RingOrbit({ segments, size = 42, strokeWidth = 6, animate = false, vari
     const liquidSegments = segments.filter((segment) => segment.completion > 0);
     let liquidX = size / 2 - innerRadius;
     return (
-      <Animated.View accessibilityLabel={complete ? 'Completed daily mark' : 'Daily completion orbit'} style={[{ width: size, height: size }, baselineAnimatedStyle]}>
+      <Animated.View accessibilityLabel={complete ? t().drawMark.orbitCompleted : t().drawMark.orbitIdle} style={[{ width: size, height: size }, baselineAnimatedStyle]}>
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <Defs>
             <ClipPath id={clipId}><Circle cx={size / 2} cy={size / 2} r={innerRadius} /></ClipPath>
@@ -217,7 +218,7 @@ function RingOrbit({ segments, size = 42, strokeWidth = 6, animate = false, vari
   const center = size / 2;
   const dominantSegment = segments.length > 0 ? segments.reduce((a, b) => (b.share > a.share ? b : a)) : undefined;
   const ripple = animate && dominantSegment ? <Ripple size={size} radiusValue={radiusValue} color={markColor(dominantSegment)} fireKey={rippleKey} /> : null;
-  const label = `${Math.round(completion * 100)} percent complete daily mark`;
+  const label = t().drawMark.orbitPercent(Math.round(completion * 100));
 
   if (activeVariant === 'doodle') {
     const doodleStroke = strokeWidth * 1.2;

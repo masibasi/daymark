@@ -2,21 +2,23 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 interface EventSheetProps { visible: boolean; title: string; subtitle: string; onClose: () => void; children: ReactNode }
 
 // Calendar tap target: a bottom sheet on phones (slides up), the same card centred on larger screens.
 export function EventSheet({ visible, title, subtitle, onClose, children }: EventSheetProps) {
   const { width } = useWindowDimensions();
+  const t = useT();
   const compact = width < 680;
   return (
     <Modal visible={visible} transparent animationType={compact ? 'slide' : 'fade'} onRequestClose={onClose}>
-      <Pressable accessibilityLabel="Close" style={[styles.backdrop, compact ? styles.backdropCompact : styles.backdropWide]} onPress={onClose}>
+      <Pressable accessibilityLabel={t.common.close} style={[styles.backdrop, compact ? styles.backdropCompact : styles.backdropWide]} onPress={onClose}>
         <Pressable style={[styles.card, compact ? styles.cardCompact : styles.cardWide]} onPress={(event) => event.stopPropagation()}>
           {compact ? <View style={styles.handle} /> : null}
           <View style={styles.header}>
             <View style={styles.copy}><Text style={styles.title} numberOfLines={3}>{title}</Text><Text style={styles.subtitle}>{subtitle}</Text></View>
-            <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.close}><Ionicons name="close" size={18} color={colors.ink} /></Pressable>
+            <Pressable accessibilityLabel={t.common.close} onPress={onClose} style={styles.close}><Ionicons name="close" size={18} color={colors.ink} /></Pressable>
           </View>
           <View style={styles.body}>{children}</View>
         </Pressable>

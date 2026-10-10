@@ -11,10 +11,12 @@ import type { Category, Routine } from '@/domain/types';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 interface ListRowProps { category: Category; routines: Routine[]; first: boolean; last: boolean; onlyOne: boolean }
 
 function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
+  const t = useT();
   const updateCategory = useDaymarkStore((state) => state.updateCategory);
   const moveCategory = useDaymarkStore((state) => state.moveCategory);
   const archiveCategory = useDaymarkStore((state) => state.archiveCategory);
@@ -31,40 +33,41 @@ function ListRow({ category, routines, first, last, onlyOne }: ListRowProps) {
   };
 
   const remove = async () => {
-    const confirmed = await confirmAction('Remove list', `Remove "${category.name}"? Its past tasks and history stay, with this list's name and color. It just stops appearing for new tasks.`, 'Remove');
+    const confirmed = await confirmAction(t.lists.removeTitle, t.lists.removeConfirm(category.name), t.common.remove);
     if (confirmed) archiveCategory(category.id);
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.nameRow}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Change color of ${category.name}`} accessibilityState={{ expanded: picking }} onPress={() => setPicking(!picking)} hitSlop={8} style={[styles.dotButton, { backgroundColor: palette.solid }]} />
-        <TextInput value={name} onChangeText={setName} onBlur={commit} onSubmitEditing={commit} accessibilityLabel={`Name of ${category.name}`} style={styles.nameInput} />
-        <Pressable accessibilityRole="button" accessibilityLabel={`Move ${category.name} up`} disabled={first} onPress={() => moveCategory(category.id, -1)} style={[styles.arrow, first && styles.disabled]}><Ionicons name="arrow-up" size={16} color={colors.ink} /></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Move ${category.name} down`} disabled={last} onPress={() => moveCategory(category.id, 1)} style={[styles.arrow, last && styles.disabled]}><Ionicons name="arrow-down" size={16} color={colors.ink} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.lists.changeColorOf(category.name)} accessibilityState={{ expanded: picking }} onPress={() => setPicking(!picking)} hitSlop={8} style={[styles.dotButton, { backgroundColor: palette.solid }]} />
+        <TextInput value={name} onChangeText={setName} onBlur={commit} onSubmitEditing={commit} accessibilityLabel={t.tasks.nameOf(category.name)} style={styles.nameInput} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t.lists.moveUp(category.name)} disabled={first} onPress={() => moveCategory(category.id, -1)} style={[styles.arrow, first && styles.disabled]}><Ionicons name="arrow-up" size={16} color={colors.ink} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.lists.moveDown(category.name)} disabled={last} onPress={() => moveCategory(category.id, 1)} style={[styles.arrow, last && styles.disabled]}><Ionicons name="arrow-down" size={16} color={colors.ink} /></Pressable>
       </View>
       {picking ? <ListColorPicker category={category} style={styles.picker} /> : null}
       {routines.length > 0 ? (
         <View style={styles.routines}>
-          <Text style={styles.routinesLabel}>Routines</Text>
+          <Text style={styles.routinesLabel}>{t.lists.routines}</Text>
           {routines.map((routine) => (
             <View key={routine.id} style={[styles.chip, { backgroundColor: palette.soft }]}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Repeat for ${routine.title}: ${selectRepeatSummary(routine.repeat)}`} onPress={() => setRepeatFor(routine.id)} style={styles.chipMain}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t.lists.repeatFor(routine.title, selectRepeatSummary(routine.repeat))} onPress={() => setRepeatFor(routine.id)} style={styles.chipMain}>
                 <Text style={[styles.chipText, { color: palette.ink }]}>{routine.title}</Text>
                 <Text style={[styles.chipRepeat, { color: palette.ink }]}>{selectRepeatSummary(routine.repeat)}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Remove routine ${routine.title}`} onPress={() => removeRoutine(routine.id)} hitSlop={8}><Ionicons name="close" size={14} color={palette.ink} /></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t.lists.removeRoutine(routine.title)} onPress={() => removeRoutine(routine.id)} hitSlop={8}><Ionicons name="close" size={14} color={palette.ink} /></Pressable>
             </View>
           ))}
         </View>
       ) : null}
       {repeatFor ? <RoutineRepeatPicker routineId={repeatFor} onClose={() => setRepeatFor(null)} /> : null}
-      {onlyOne ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${category.name}`} onPress={remove} style={styles.remove}><Text style={styles.removeText}>Remove</Text></Pressable>}
+      {onlyOne ? null : <Pressable accessibilityRole="button" accessibilityLabel={t.lists.removeName(category.name)} onPress={remove} style={styles.remove}><Text style={styles.removeText}>{t.common.remove}</Text></Pressable>}
     </View>
   );
 }
 
 export default function ListsScreen() {
+  const t = useT();
   const categories = useDaymarkStore((state) => state.categories);
   const routines = useDaymarkStore((state) => state.routines);
   const addCategory = useDaymarkStore((state) => state.addCategory);
@@ -82,19 +85,19 @@ export default function ListsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       <View style={styles.page}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>Back</Text></Pressable>
-        <ScreenHeader eyebrow="Daymark" title="Lists" subtitle="Name, color, and order the lists your day is sorted into." />
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.back}><Ionicons name="arrow-back" size={18} color={colors.ink} /><Text style={styles.backText}>{t.lists.back}</Text></Pressable>
+        <ScreenHeader eyebrow={t.lists.eyebrow} title={t.lists.title} subtitle={t.lists.subtitle} />
         <View style={styles.stack}>
           {active.map((category, index) => <ListRow key={category.id} category={category} routines={selectRoutinesForList(routines, category.id)} first={index === 0} last={index === active.length - 1} onlyOne={active.length <= 1} />)}
         </View>
         {adding ? (
           <View style={styles.newRow}>
-            <TextInput autoFocus value={newName} onChangeText={setNewName} onSubmitEditing={create} placeholder="List name" placeholderTextColor={colors.muted} accessibilityLabel="New list name" style={styles.nameInput} />
-            <Pressable accessibilityRole="button" onPress={create}><Text style={styles.newAction}>Add</Text></Pressable>
-            <Pressable accessibilityRole="button" onPress={() => { setAdding(false); setNewName(''); }}><Text style={styles.cancel}>Cancel</Text></Pressable>
+            <TextInput autoFocus value={newName} onChangeText={setNewName} onSubmitEditing={create} placeholder={t.lists.listName} placeholderTextColor={colors.muted} accessibilityLabel={t.lists.newListName} style={styles.nameInput} />
+            <Pressable accessibilityRole="button" onPress={create}><Text style={styles.newAction}>{t.common.add}</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setAdding(false); setNewName(''); }}><Text style={styles.cancel}>{t.common.cancel}</Text></Pressable>
           </View>
         ) : (
-          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.newButton}><Ionicons name="add" size={17} color={colors.ink} /><Text style={styles.newText}>New list</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.newButton}><Ionicons name="add" size={17} color={colors.ink} /><Text style={styles.newText}>{t.lists.newList}</Text></Pressable>
         )}
       </View>
     </ScrollView>

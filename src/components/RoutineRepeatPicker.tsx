@@ -6,20 +6,18 @@ import type { RoutineRepeat } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { PressableScale } from './PressableScale';
+import { useT } from '@/i18n';
 
-const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const TIMES = [1, 2, 3, 4, 5, 6];
 
 type Choice = 'daily' | 'weekdays' | 'weekends' | 'custom' | 'perWeek';
-const CHOICES: { key: Choice; label: string }[] = [
-  { key: 'daily', label: 'Every day' }, { key: 'weekdays', label: 'Weekdays' }, { key: 'weekends', label: 'Weekends' },
-  { key: 'custom', label: 'Custom days' }, { key: 'perWeek', label: 'Times a week' },
-];
+const CHOICE_KEYS: Choice[] = ['daily', 'weekdays', 'weekends', 'custom', 'perWeek'];
 
 // "Repeat…" for a routine: presets, custom day chips, or N times a week. Changes apply immediately through updateRoutine.
 export function RoutineRepeatPicker({ routineId, onClose }: { routineId: string; onClose: () => void }) {
+  const t = useT();
+  const CHOICES = CHOICE_KEYS.map((key) => ({ key, label: key === 'daily' ? t.routines.everyDay : key === 'weekdays' ? t.routines.weekdays : key === 'weekends' ? t.routines.weekends : key === 'custom' ? t.tasks.customDays : t.tasks.timesAWeekChoice }));
   const routine = useDaymarkStore((state) => state.routines.find((item) => item.id === routineId));
   const updateRoutine = useDaymarkStore((state) => state.updateRoutine);
   const [customOpen, setCustomOpen] = useState(false);
@@ -48,9 +46,9 @@ export function RoutineRepeatPicker({ routineId, onClose }: { routineId: string;
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
       <View style={styles.shade}>
-        <Pressable accessibilityLabel="Close" style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable accessibilityLabel={t.common.close} style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.card}>
-          <View style={styles.header}><Text style={styles.heading}>Repeat</Text><Pressable accessibilityLabel="Close" onPress={onClose} hitSlop={8}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
+          <View style={styles.header}><Text style={styles.heading}>{t.tasks.repeatTitle}</Text><Pressable accessibilityLabel={t.common.close} onPress={onClose} hitSlop={8}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
           <Text style={styles.sub} numberOfLines={1}>{routine.title}</Text>
           {CHOICES.map((item) => (
             <Pressable key={item.key} accessibilityRole="radio" accessibilityState={{ selected: choice === item.key }} onPress={() => choose(item.key)} style={styles.row}>
@@ -61,8 +59,8 @@ export function RoutineRepeatPicker({ routineId, onClose }: { routineId: string;
           {choice === 'custom' ? (
             <View style={styles.chips}>
               {DAY_ORDER.map((day) => (
-                <PressableScale key={day} accessibilityRole="checkbox" accessibilityLabel={DAY_NAMES[day]} accessibilityState={{ checked: days.includes(day) }} onPress={() => toggleDay(day)} style={[styles.chip, days.includes(day) && styles.chipOn]}>
-                  <Text style={[styles.chipText, days.includes(day) && styles.chipTextOn]}>{DAY_LETTERS[day]}</Text>
+                <PressableScale key={day} accessibilityRole="checkbox" accessibilityLabel={t.tasks.dayNames[day]} accessibilityState={{ checked: days.includes(day) }} onPress={() => toggleDay(day)} style={[styles.chip, days.includes(day) && styles.chipOn]}>
+                  <Text style={[styles.chipText, days.includes(day) && styles.chipTextOn]}>{t.tasks.dayLetters[day]}</Text>
                 </PressableScale>
               ))}
             </View>
@@ -71,12 +69,12 @@ export function RoutineRepeatPicker({ routineId, onClose }: { routineId: string;
             <View>
               <View style={styles.chips}>
                 {TIMES.map((count) => (
-                  <PressableScale key={count} accessibilityRole="radio" accessibilityLabel={`${count} times a week`} accessibilityState={{ selected: times === count }} onPress={() => set({ kind: 'perWeek', times: count })} style={[styles.chip, times === count && styles.chipOn]}>
+                  <PressableScale key={count} accessibilityRole="radio" accessibilityLabel={t.routines.timesAWeek(count)} accessibilityState={{ selected: times === count }} onPress={() => set({ kind: 'perWeek', times: count })} style={[styles.chip, times === count && styles.chipOn]}>
                     <Text style={[styles.chipText, times === count && styles.chipTextOn]}>{count}</Text>
                   </PressableScale>
                 ))}
               </View>
-              <Text style={styles.hint}>Shows each day until you have done it this many times, then rests until Monday.</Text>
+              <Text style={styles.hint}>{t.tasks.perWeekHint}</Text>
             </View>
           ) : null}
         </View>

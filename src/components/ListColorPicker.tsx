@@ -10,6 +10,7 @@ import { presetHues, presetNeutrals, presetTones } from '@/theme/presetColors';
 import { categoryColorKeys, categoryPalette, colors, darkColors, fontFamily, lightColors, radius, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
 import { HslSlider } from './HslSlider';
+import { useT } from '@/i18n';
 
 interface ListColorPickerProps { category: Category; style?: StyleProp<ViewStyle> }
 
@@ -47,15 +48,16 @@ function PreviewCard({ scheme, solidHex, name }: { scheme: 'light' | 'dark'; sol
 }
 
 function CustomColor({ category, solid, onPick }: { category: Category; solid: string; onPick: (hex: string) => void }) {
+  const t = useT();
   const start = useMemo(() => { const { h, s, l } = hexToHsl(solid); return { h, s: clamp(s, SAT.min, SAT.max), l: clamp(l, LIGHT.min, LIGHT.max) }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [hsl, setHsl] = useState(start);
   const set = (patch: Partial<typeof hsl>) => { const next = { ...hsl, ...patch }; setHsl(next); onPick(hslToHex(next)); };
   const hex = hslToHex(hsl);
   return (
     <View>
-      <HslSlider label="Hue" value={hsl.h} min={0} max={360} step={1} display={`${Math.round(hsl.h)}°`} thumbColor={hex} stops={ramp(60, (t) => hslToHex({ h: t * 360, s: hsl.s, l: hsl.l }))} onChange={(h) => set({ h })} />
-      <HslSlider label="Saturation" value={hsl.s * 100} min={SAT.min * 100} max={SAT.max * 100} step={1} display={`${Math.round(hsl.s * 100)}%`} thumbColor={hex} stops={ramp(24, (t) => hslToHex({ h: hsl.h, s: SAT.min + t * (SAT.max - SAT.min), l: hsl.l }))} onChange={(s) => set({ s: s / 100 })} />
-      <HslSlider label="Lightness" value={hsl.l * 100} min={LIGHT.min * 100} max={LIGHT.max * 100} step={1} display={`${Math.round(hsl.l * 100)}%`} thumbColor={hex} stops={ramp(24, (t) => hslToHex({ h: hsl.h, s: hsl.s, l: LIGHT.min + t * (LIGHT.max - LIGHT.min) }))} onChange={(l) => set({ l: l / 100 })} />
+      <HslSlider label={t.colorPicker.hue} value={hsl.h} min={0} max={360} step={1} display={`${Math.round(hsl.h)}°`} thumbColor={hex} stops={ramp(60, (t) => hslToHex({ h: t * 360, s: hsl.s, l: hsl.l }))} onChange={(h) => set({ h })} />
+      <HslSlider label={t.colorPicker.saturation} value={hsl.s * 100} min={SAT.min * 100} max={SAT.max * 100} step={1} display={`${Math.round(hsl.s * 100)}%`} thumbColor={hex} stops={ramp(24, (t) => hslToHex({ h: hsl.h, s: SAT.min + t * (SAT.max - SAT.min), l: hsl.l }))} onChange={(s) => set({ s: s / 100 })} />
+      <HslSlider label={t.colorPicker.lightness} value={hsl.l * 100} min={LIGHT.min * 100} max={LIGHT.max * 100} step={1} display={`${Math.round(hsl.l * 100)}%`} thumbColor={hex} stops={ramp(24, (t) => hslToHex({ h: hsl.h, s: hsl.s, l: LIGHT.min + t * (LIGHT.max - LIGHT.min) }))} onChange={(l) => set({ l: l / 100 })} />
       <View style={styles.previews}>
         <PreviewCard scheme="light" solidHex={hex} name={category.name} />
         <PreviewCard scheme="dark" solidHex={hex} name={category.name} />
@@ -66,6 +68,7 @@ function CustomColor({ category, solid, onPick }: { category: Category; solid: s
 
 // Recolor a list: 12 hues x 3 tones, neutrals and the classic twelve, or a custom HSL color with guardrails. Changes apply (and sync) immediately.
 export function ListColorPicker({ category, style }: ListColorPickerProps) {
+  const t = useT();
   const updateCategory = useDaymarkStore((state) => state.updateCategory);
   const categories = useDaymarkStore((state) => state.categories);
   const [tab, setTab] = useState<'presets' | 'custom'>('presets');
@@ -88,7 +91,7 @@ export function ListColorPicker({ category, style }: ListColorPickerProps) {
       <View style={styles.tabs}>
         {(['presets', 'custom'] as const).map((item) => (
           <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={[styles.tab, tab === item && styles.tabOn]}>
-            <Text style={[styles.tabText, tab === item && styles.tabTextOn]}>{item === 'presets' ? 'Presets' : 'Custom'}</Text>
+            <Text style={[styles.tabText, tab === item && styles.tabTextOn]}>{item === 'presets' ? t.colorPicker.presetsTab : t.colorPicker.customTab}</Text>
           </Pressable>
         ))}
       </View>
@@ -98,20 +101,20 @@ export function ListColorPicker({ category, style }: ListColorPickerProps) {
             <View key={groupIndex} style={styles.group}>
               {presetTones.map((tone, toneIndex) => (
                 <View key={tone} style={styles.swatchRow}>
-                  {group.map((hue) => <Swatch key={hue.name} hex={hue.tones[toneIndex]} label={`${hue.label}, ${tone}`} selected={chosen === hue.tones[toneIndex]} size={size} onPress={() => updateCategory(category.id, { color: hue.tones[toneIndex] })} />)}
+                  {group.map((hue) => <Swatch key={hue.name} hex={hue.tones[toneIndex]} label={t.colorPicker.toneLabel(t.colorPicker.names[hue.name as keyof typeof t.colorPicker.names] ?? hue.label, t.colorPicker.tones[tone])} selected={chosen === hue.tones[toneIndex]} size={size} onPress={() => updateCategory(category.id, { color: hue.tones[toneIndex] })} />)}
                 </View>
               ))}
             </View>
           ))}
           <View style={styles.swatchRow}>
-            {presetNeutrals.map((item) => <Swatch key={item.name} hex={item.hex} label={item.label} selected={chosen === item.hex} size={size} onPress={() => updateCategory(category.id, { color: item.hex })} />)}
+            {presetNeutrals.map((item) => <Swatch key={item.name} hex={item.hex} label={t.colorPicker.names[item.name as keyof typeof t.colorPicker.names] ?? item.label} selected={chosen === item.hex} size={size} onPress={() => updateCategory(category.id, { color: item.hex })} />)}
           </View>
           <View style={[styles.swatchRow, styles.classic]}>
-            {categoryColorKeys.map((key) => <Swatch key={key} hex={categoryPalette[key].solid} label={`Classic ${key}`} selected={!category.color && category.colorKey === key} size={size} onPress={() => updateCategory(category.id, { colorKey: key, color: null })} />)}
+            {categoryColorKeys.map((key) => <Swatch key={key} hex={categoryPalette[key].solid} label={t.colorPicker.classic(key)} selected={!category.color && category.colorKey === key} size={size} onPress={() => updateCategory(category.id, { colorKey: key, color: null })} />)}
           </View>
         </View>
       ) : <CustomColor category={category} solid={solid} onPick={pickHex} />}
-      {near ? <Text style={styles.note}>Very close to {near.name}'s color</Text> : null}
+      {near ? <Text style={styles.note}>{t.colorPicker.veryClose(near.name)}</Text> : null}
     </View>
   );
 }

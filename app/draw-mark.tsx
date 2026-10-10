@@ -7,10 +7,13 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { customToMarkPath, type MarkPath } from '@/domain/markPath';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, darkColors, fontFamily, lightColors, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/settings'); };
 
 export default function DrawMarkScreen() {
+  const t = useT();
+  const fmtPercent = (value: number) => Math.round(value * 100);
   const { width } = useWindowDimensions();
   const customMark = useDaymarkStore((state) => state.customMark);
   const setCustomMark = useDaymarkStore((state) => state.setCustomMark);
@@ -29,24 +32,24 @@ export default function DrawMarkScreen() {
     if (!mark || rejected) return;
     setCustomMark(mark);
     setDayMarkVariant('custom');
-    showToast('Your Day Mark is set');
+    showToast(t.toasts.markSet);
     leave();
   };
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.page} scrollEnabled={!drawing} keyboardShouldPersistTaps="handled">
-      <ScreenHeader eyebrow="Custom (beta)" title="Draw your Day Mark" subtitle="Draw anything, in as many strokes as you like. Your day fills them in list colors, in the order you drew." />
+      <ScreenHeader eyebrow={t.drawMark.eyebrow} title={t.drawMark.title} subtitle={t.drawMark.subtitle} />
       <View style={styles.padWrap}>
         <MarkDrawPad size={padSize} initial={initial} onChange={onChange} onDrawingChange={setDrawing} />
       </View>
       {mark ? (
         <View style={styles.preview}>
-          <Text style={styles.label}>Preview · {Math.round(progress * 100)}%</Text>
+          <Text style={styles.label}>{t.drawMark.preview(fmtPercent(progress))}</Text>
           <View style={styles.sliderRow}>
             <PathMark path={mark} segments={evenSegments(progress)} size={120} strokeWidth={9} />
             <View style={styles.sliderCol}><ProgressSlider value={progress} onChange={setProgress} /></View>
           </View>
-          <Text style={styles.label}>In the calendar</Text>
+          <Text style={styles.label}>{t.drawMark.inCalendar}</Text>
           <View style={styles.week}>
             {weekSamples.map((sample) => (
               <View key={sample.day} style={styles.weekDay}>
@@ -55,7 +58,7 @@ export default function DrawMarkScreen() {
               </View>
             ))}
           </View>
-          <Text style={styles.label}>Light and dark</Text>
+          <Text style={styles.label}>{t.drawMark.lightDark}</Text>
           <View style={styles.schemes}>
             <View style={[styles.panel, { backgroundColor: lightColors.canvas }]}>
               <PathMark path={mark} segments={evenSegments(1)} size={48} strokeWidth={5} scheme="light" />
@@ -69,8 +72,8 @@ export default function DrawMarkScreen() {
         </View>
       ) : null}
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={save} style={({ pressed }) => [styles.button, styles.primary, (pressed || !canSave) && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>Use this mark</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={leave} style={({ pressed }) => [styles.button, pressed && styles.dim]}><Text style={styles.buttonText}>Cancel</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={save} style={({ pressed }) => [styles.button, styles.primary, (pressed || !canSave) && styles.dim]}><Text style={[styles.buttonText, styles.primaryText]}>{t.drawMark.useThisMark}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={leave} style={({ pressed }) => [styles.button, pressed && styles.dim]}><Text style={styles.buttonText}>{t.common.cancel}</Text></Pressable>
       </View>
     </ScrollView>
   );

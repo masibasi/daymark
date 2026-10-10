@@ -5,9 +5,10 @@ import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { checkFeedUrl } from '@/calendar/feedUrl';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { DayOrbit } from '@/components/DayOrbit';
 import { PressableScale } from '@/components/PressableScale';
-import { buildBackup, countsLine, parseBackup, tasksToCsv, BACKUP_COPY, type Backup, type BackupCounts } from '@/domain/backup';
+import { buildBackup, countsLine, parseBackup, tasksToCsv, type Backup, type BackupCounts } from '@/domain/backup';
 import { confirmAction } from '@/domain/confirm';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
@@ -16,30 +17,20 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { signIn, signOut, signUp, syncNow } from '@/sync/engine';
 import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
-
-const DATA_COPY = {
-  exportBackup: 'Export backup (JSON)',
-  exportBackupHint: 'A full copy of your lists, folders, tasks, routines and settings that you can import again.',
-  exportBackupNote: 'Includes your calendar feed links — keep the file private.',
-  exportCsv: 'Export tasks (CSV)',
-  exportCsvHint: 'One row per task, for spreadsheets. Export only; it cannot be imported back.',
-  importBackup: 'Import backup',
-  importBackupHint: 'Restore from a Daymark backup file.',
-  replaceWarning: "This replaces everything on this device. If you're signed in, your other devices will match it too.",
-  replace: 'Replace',
-  cancel: 'Cancel',
-  exportFailed: "The file couldn't be saved. Please try again.",
-};
+import { formatDate, t, useT } from '@/i18n';
 
 function syncLine({ status, lastSyncedAt, error }: ReturnType<typeof useSyncStatus.getState>) {
-  if (status === 'syncing') return 'Syncing…';
-  if (status === 'offline') return 'Offline — changes will sync later';
-  if (status === 'error') return error ?? 'Sync failed.';
-  if (!lastSyncedAt) return 'Not synced yet';
-  return Date.now() - lastSyncedAt < 60_000 ? 'Synced just now' : `Synced at ${format(lastSyncedAt, 'h:mm a')}`;
+  const copy = t().settings.sync;
+  if (status === 'syncing') return copy.syncing;
+  if (status === 'offline') return copy.offline;
+  if (status === 'error') return error ?? copy.failed;
+  if (!lastSyncedAt) return copy.notYet;
+  return Date.now() - lastSyncedAt < 60_000 ? copy.justNow : copy.syncedAt(formatDate(lastSyncedAt, 'time'));
 }
 
 function DataSection() {
+  const t = useT();
+  const DATA_COPY = t.settings.data;
   const [pending, setPending] = useState<{ backup: Backup; counts: BackupCounts }>();
   const [message, setMessage] = useState<string>();
 
@@ -62,7 +53,7 @@ function DataSection() {
       if (text === undefined) return;
       const parsed = parseBackup(text);
       if (parsed.ok) setPending({ backup: parsed.backup, counts: parsed.counts }); else setMessage(parsed.reason);
-    } catch { setMessage(BACKUP_COPY.unreadable); }
+    } catch { setMessage(t.backup.unreadable); }
   };
   const replace = () => {
     if (!pending) return;
@@ -88,7 +79,7 @@ function DataSection() {
           <Text accessibilityLiveRegion="polite" style={styles.rowHint}>{DATA_COPY.replaceWarning}</Text>
           <View style={styles.buttons}>
             <Pressable accessibilityRole="button" onPress={replace} style={({ pressed }) => [styles.button, styles.buttonPrimary, pressed && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>{DATA_COPY.replace}</Text></Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setPending(undefined)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{DATA_COPY.cancel}</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setPending(undefined)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{t.common.cancel}</Text></Pressable>
           </View>
         </View>
       ) : null}
@@ -97,6 +88,8 @@ function DataSection() {
 }
 
 function AccountSection() {
+  const t = useT();
+  const copy = t.settings.account;
   const sync = useSyncStatus();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -104,28 +97,28 @@ function AccountSection() {
   const [error, setError] = useState<string>();
 
   const submit = async (create: boolean) => {
-    if (!email.trim() || password.length < 6) { setError('Enter your email and a password of at least 6 characters.'); return; }
+    if (!email.trim() || password.length < 6) { setError(copy.needCredentials); return; }
     setBusy(true);
     setError(undefined);
-    const message = await (create ? signUp : signIn)(email, password).catch((failure: unknown) => (failure as { message?: string })?.message ?? 'Something went wrong.');
+    const message = await (create ? signUp : signIn)(email, password).catch((failure: unknown) => (failure as { message?: string })?.message ?? copy.wentWrong);
     setBusy(false);
     if (message) setError(message); else setPassword('');
   };
 
   const onSignOut = async () => {
-    if (await confirmAction('Sign out', 'Sign out? Data stays on this device; it stops syncing.', 'Sign out')) await signOut();
+    if (await confirmAction(copy.signOutTitle, copy.signOutConfirm, copy.signOut)) await signOut();
   };
 
   if (sync.status !== 'signedOut') {
     return (
       <View style={styles.section}>
         <View style={[styles.row, styles.rowBorder]}>
-          <Text style={styles.rowTitle}>Signed in as {sync.email}</Text>
+          <Text style={styles.rowTitle}>{copy.signedInAs(sync.email ?? '')}</Text>
           <Text style={[styles.rowHint, sync.status === 'error' && styles.danger]}>{syncLine(sync)}</Text>
         </View>
         <View style={styles.actions}>
-          <Pressable accessibilityRole="button" disabled={sync.status === 'syncing'} onPress={() => { void syncNow(); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Sync now</Text></Pressable>
-          <Pressable accessibilityRole="button" onPress={onSignOut} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Sign out</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={sync.status === 'syncing'} onPress={() => { void syncNow(); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{copy.syncNow}</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={onSignOut} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{copy.signOut}</Text></Pressable>
         </View>
       </View>
     );
@@ -133,13 +126,13 @@ function AccountSection() {
   return (
     <View style={styles.section}>
       <View style={styles.form}>
-        <Text style={styles.rowHint}>Sign in to sync Daymark between your phone and computer.</Text>
-        <TextInput value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!busy} />
-        <TextInput value={password} onChangeText={setPassword} placeholder="Password (6+ characters)" placeholderTextColor={colors.muted} style={styles.input} secureTextEntry autoCapitalize="none" autoComplete="current-password" textContentType="password" editable={!busy} onSubmitEditing={() => submit(false)} />
+        <Text style={styles.rowHint}>{copy.signInPrompt}</Text>
+        <TextInput value={email} onChangeText={setEmail} placeholder={copy.email} placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!busy} />
+        <TextInput value={password} onChangeText={setPassword} placeholder={copy.password} placeholderTextColor={colors.muted} style={styles.input} secureTextEntry autoCapitalize="none" autoComplete="current-password" textContentType="password" editable={!busy} onSubmitEditing={() => submit(false)} />
         {error ? <Text accessibilityLiveRegion="polite" style={[styles.rowHint, styles.danger]}>{error}</Text> : null}
         <View style={styles.buttons}>
-          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit(false)} style={({ pressed }) => [styles.button, styles.buttonPrimary, (pressed || busy) && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>{busy ? 'Working…' : 'Sign in'}</Text></Pressable>
-          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit(true)} style={({ pressed }) => [styles.button, (pressed || busy) && styles.pressed]}><Text style={styles.buttonText}>Create account</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit(false)} style={({ pressed }) => [styles.button, styles.buttonPrimary, (pressed || busy) && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>{busy ? copy.working : copy.signIn}</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => submit(true)} style={({ pressed }) => [styles.button, (pressed || busy) && styles.pressed]}><Text style={styles.buttonText}>{copy.createAccount}</Text></Pressable>
         </View>
       </View>
     </View>
@@ -148,6 +141,8 @@ function AccountSection() {
 
 // Read-only iCal feeds. The secret URL lives only in the owner's account (RLS-protected preference row) and is fetched server-side.
 function CalendarsSection() {
+  const t = useT();
+  const copy = t.settings.calendars;
   const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
   const feeds = useDaymarkStore((state) => state.calendarFeeds);
   const feedErrors = useDaymarkStore((state) => state.feedErrors);
@@ -162,58 +157,58 @@ function CalendarsSection() {
   const add = () => {
     const checked = checkFeedUrl(url);
     if ('error' in checked) { setError(checked.error); return; }
-    if (feeds.length >= 10) { setError('You can connect up to 10 calendars.'); return; }
+    if (feeds.length >= 10) { setError(copy.limit); return; }
     addCalendarFeed(name, checked.url);
     setName(''); setUrl(''); setError(undefined); setAdding(false);
   };
   const remove = async (id: string, label: string) => {
-    if (await confirmAction('Remove calendar', `Remove "${label}"? Its events disappear from Daymark; your calendar itself is untouched.`, 'Remove')) removeCalendarFeed(id);
+    if (await confirmAction(copy.removeTitle, copy.removeConfirm(label), t.common.remove)) removeCalendarFeed(id);
   };
 
   if (!signedIn) {
-    return <View style={styles.section}><View style={styles.row}><Text style={styles.rowTitle}>Calendars</Text><Text style={styles.rowHint}>Sign in to connect your calendars.</Text></View></View>;
+    return <View style={styles.section}><View style={styles.row}><Text style={styles.rowTitle}>{copy.title}</Text><Text style={styles.rowHint}>{copy.signInToConnect}</Text></View></View>;
   }
   return (
     <View style={styles.section}>
       <View style={[styles.row, (feeds.length > 0 || adding) && styles.rowBorder]}>
-        <Text style={styles.rowTitle}>Calendars</Text>
-        <Text style={styles.rowHint}>Show Google or Apple Calendar events on your Schedule. Read-only: Daymark never changes your calendars.</Text>
+        <Text style={styles.rowTitle}>{copy.title}</Text>
+        <Text style={styles.rowHint}>{copy.hint}</Text>
       </View>
       {feeds.map((feed, index) => (
         <View key={feed.id} style={[styles.row, styles.feedRow, (index < feeds.length - 1 || adding) && styles.rowBorder]}>
           <View style={styles.rowCopy}>
             <Text style={styles.rowTitle} numberOfLines={1}>{feed.name}</Text>
             {feedErrors[feed.id] && feed.enabled ? <Text style={[styles.rowHint, styles.danger]}>{feedErrors[feed.id]}</Text> : null}
-            <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${feed.name}`} onPress={() => { void remove(feed.id, feed.name); }}><Text style={[styles.rowHint, styles.danger]}>Remove</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={copy.removeName(feed.name)} onPress={() => { void remove(feed.id, feed.name); }}><Text style={[styles.rowHint, styles.danger]}>{t.common.remove}</Text></Pressable>
           </View>
-          <Switch accessibilityLabel={`Show ${feed.name}`} value={feed.enabled} onValueChange={(value) => setEnabled(feed.id, value)} trackColor={{ true: colors.ink, false: colors.line }} thumbColor={colors.paper} {...{ activeThumbColor: colors.paper }} />
+          <Switch accessibilityLabel={copy.showName(feed.name)} value={feed.enabled} onValueChange={(value) => setEnabled(feed.id, value)} trackColor={{ true: colors.ink, false: colors.line }} thumbColor={colors.paper} {...{ activeThumbColor: colors.paper }} />
         </View>
       ))}
       {adding ? (
         <View style={styles.form}>
-          <TextInput value={name} onChangeText={setName} placeholder="Name (e.g. School)" placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} />
-          <TextInput value={url} onChangeText={setUrl} placeholder="iCal link (https:// or webcal://)" placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} keyboardType="url" onSubmitEditing={add} />
-          <Text style={styles.rowHint}>Google: Settings › your calendar › "Secret address in iCal format". Apple: Calendar › ⓘ › Public Calendar › Share Link. This link is private; it is stored only in your account and never shown to anyone else.</Text>
+          <TextInput value={name} onChangeText={setName} placeholder={copy.namePlaceholder} placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} />
+          <TextInput value={url} onChangeText={setUrl} placeholder={copy.urlPlaceholder} placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false} keyboardType="url" onSubmitEditing={add} />
+          <Text style={styles.rowHint}>{copy.linkHelp}</Text>
           {error ? <Text accessibilityLiveRegion="polite" style={[styles.rowHint, styles.danger]}>{error}</Text> : null}
           <View style={styles.buttons}>
-            <Pressable accessibilityRole="button" onPress={add} style={({ pressed }) => [styles.button, styles.buttonPrimary, pressed && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>Add</Text></Pressable>
-            <Pressable accessibilityRole="button" onPress={() => { setAdding(false); setError(undefined); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Cancel</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={add} style={({ pressed }) => [styles.button, styles.buttonPrimary, pressed && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>{t.common.add}</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => { setAdding(false); setError(undefined); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{t.common.cancel}</Text></Pressable>
           </View>
         </View>
       ) : (
         <View style={styles.actions}>
-          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>Add calendar</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{copy.add}</Text></Pressable>
         </View>
       )}
     </View>
   );
 }
 
-const markStyles: Array<{ variant: DayMarkVariant; label: string }> = [
-  { variant: 'wash', label: 'Watercolor wash' },
-  { variant: 'ribbon', label: 'Soft ribbon' },
-  { variant: 'glass', label: 'Glass tube' },
-  { variant: 'doodle', label: 'Doodle' },
+const markStyles: Array<{ variant: DayMarkVariant; label: 'wash' | 'ribbon' | 'glass' | 'doodle' }> = [
+  { variant: 'wash', label: 'wash' },
+  { variant: 'ribbon', label: 'ribbon' },
+  { variant: 'glass', label: 'glass' },
+  { variant: 'doodle', label: 'doodle' },
 ];
 
 // A realistic partly-done day: three lists, mixed completion.
@@ -229,6 +224,8 @@ const sampleDay: DayOrbitSegment[] = [
 
 function AppearanceSection() {
   const { width } = useWindowDimensions();
+  const t = useT();
+  const copy = t.settings.appearance;
   const variant = useDaymarkStore((state) => state.dayMarkVariant);
   const setVariant = useDaymarkStore((state) => state.setDayMarkVariant);
   const customSelected = variant === 'custom';
@@ -237,10 +234,11 @@ function AppearanceSection() {
   return (
     <View style={styles.section}>
       <View style={styles.form}>
-        <Text style={styles.rowTitle}>Day Mark style</Text>
-        <Text style={styles.rowHint}>How your day's progress looks on Today and in the calendar.</Text>
+        <Text style={styles.rowTitle}>{copy.dayMarkStyle}</Text>
+        <Text style={styles.rowHint}>{copy.dayMarkStyleHint}</Text>
         <View style={styles.tiles}>
-          {markStyles.map(({ variant: option, label }) => {
+          {markStyles.map(({ variant: option, label: labelKey }) => {
+            const label = copy[labelKey];
             const selected = option === variant;
             return (
               <PressableScale key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={label} onPress={() => setVariant(option)} style={[styles.tile, { width: tileWidth }, selected && styles.tileSelected]}>
@@ -252,7 +250,7 @@ function AppearanceSection() {
             );
           })}
           <View style={[styles.customCol, { width: tileWidth }]}>
-            <PressableScale accessibilityRole="radio" accessibilityState={{ selected: customSelected }} accessibilityLabel="Custom (beta)" onPress={() => (hasMark ? setVariant('custom') : router.push('/draw-mark'))} style={[styles.tile, customSelected && styles.tileSelected]}>
+            <PressableScale accessibilityRole="radio" accessibilityState={{ selected: customSelected }} accessibilityLabel={copy.custom} onPress={() => (hasMark ? setVariant('custom') : router.push('/draw-mark'))} style={[styles.tile, customSelected && styles.tileSelected]}>
               {customSelected ? <View style={styles.tileCheck}><Text style={styles.tileCheckText}>✓</Text></View> : null}
               {hasMark ? (
                 <>
@@ -262,66 +260,87 @@ function AppearanceSection() {
               ) : (
                 <>
                   <View style={styles.placeholder}><Ionicons name="pencil" size={24} color={colors.muted} /></View>
-                  <Text numberOfLines={1} style={styles.drawYours}>Draw yours</Text>
+                  <Text numberOfLines={1} style={styles.drawYours}>{copy.drawYours}</Text>
                 </>
               )}
-              <Text style={[styles.tileLabel, customSelected && styles.tileLabelSelected]}>Custom (beta)</Text>
+              <Text style={[styles.tileLabel, customSelected && styles.tileLabelSelected]}>{copy.custom}</Text>
             </PressableScale>
-            {customSelected || hasMark ? <Pressable accessibilityRole="link" onPress={() => router.push('/draw-mark')} hitSlop={8}><Text style={[styles.rowHint, styles.labLink]}>Redraw</Text></Pressable> : null}
+            {customSelected || hasMark ? <Pressable accessibilityRole="link" onPress={() => router.push('/draw-mark')} hitSlop={8}><Text style={[styles.rowHint, styles.labLink]}>{copy.redraw}</Text></Pressable> : null}
           </View>
         </View>
-        <Text style={styles.rowHint}>More themes coming later.</Text>
+        <Text style={styles.rowHint}>{copy.moreThemes}</Text>
+      </View>
+    </View>
+  );
+}
+
+function LanguageSection() {
+  const t = useT();
+  const language = useDaymarkStore((state) => state.language);
+  const setLanguage = useDaymarkStore((state) => state.setLanguage);
+  return (
+    <View style={styles.section}>
+      <View style={styles.form}>
+        <Text style={styles.rowTitle}>{t.settings.language.title}</Text>
+        <Text style={styles.rowHint}>{t.settings.language.hint}</Text>
+        <View style={styles.segmented}>
+          <SegmentedControl value={language} options={[{ value: 'system', label: t.settings.language.system }, { value: 'en', label: t.settings.language.english }, { value: 'ko', label: t.settings.language.korean }]} onChange={setLanguage} />
+        </View>
       </View>
     </View>
   );
 }
 
 export default function SettingsScreen() {
+  const t = useT();
+  const rows = t.settings.rows;
   const loadSampleData = useDaymarkStore((state) => state.loadSampleData);
   const eraseAllData = useDaymarkStore((state) => state.eraseAllData);
   const setOnboardingDone = useDaymarkStore((state) => state.setOnboardingDone);
   const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
 
   const onLoadSample = async () => {
-    const confirmed = await confirmAction('Load sample data', 'This replaces your current folders, tasks, and time blocks with sample data. Continue?', 'Load sample data');
+    const confirmed = await confirmAction(rows.loadSample, rows.loadSampleConfirm, rows.loadSample);
     if (confirmed) loadSampleData();
   };
 
   const onEraseAll = async () => {
-    const confirmed = await confirmAction('Erase all data', `This permanently clears all folders, tasks, and time blocks on this device.${signedIn ? ' Because you are signed in, it also erases your synced data on your other devices.' : ''} Continue?`, 'Erase all data');
+    const confirmed = await confirmAction(rows.erase, rows.eraseConfirm(signedIn), rows.erase);
     if (confirmed) eraseAllData();
   };
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-      <ScreenHeader eyebrow="Daymark" title="Settings" subtitle={signedIn ? 'Synced to your account and kept on this device.' : 'Data is saved only on this device/browser.'} />
+      <ScreenHeader eyebrow={t.settings.eyebrow} title={t.settings.title} subtitle={signedIn ? t.settings.subtitleSignedIn : t.settings.subtitleLocal} />
       <AccountSection />
       <CalendarsSection />
       <AppearanceSection />
+      <LanguageSection />
       <View style={styles.section}>
         <Pressable accessibilityRole="button" onPress={() => router.push('/draw-mark')} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Draw your Day Mark</Text><Text style={styles.rowHint}>Make the Day Mark your own shape: draw anything, stroke by stroke (Custom, beta).</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>{rows.drawDayMark}</Text><Text style={styles.rowHint}>{rows.drawDayMarkHint}</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push('/lists')} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Lists</Text><Text style={styles.rowHint}>Add, rename, recolor, reorder, or remove your lists and routines.</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>{rows.lists}</Text><Text style={styles.rowHint}>{rows.listsHint}</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onLoadSample} style={[styles.row, styles.rowBorder]}>
-          <View style={styles.rowCopy}><Text style={styles.rowTitle}>Load sample data</Text><Text style={styles.rowHint}>Replace your folders, tasks, and time blocks with sample data and sample events.</Text></View>
+          <View style={styles.rowCopy}><Text style={styles.rowTitle}>{rows.loadSample}</Text><Text style={styles.rowHint}>{rows.loadSampleHint}</Text></View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onEraseAll} style={styles.row}>
-          <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all folders, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
+          <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>{rows.erase}</Text><Text style={styles.rowHint}>{rows.eraseHint(signedIn)}</Text></View>
         </Pressable>
       </View>
       <DataSection />
-      <Pressable onPress={() => { setOnboardingDone(false); router.replace('/welcome'); }}><Text style={styles.back}>Replay welcome</Text></Pressable>
+      <Pressable onPress={() => { setOnboardingDone(false); router.replace('/welcome'); }}><Text style={styles.back}>{rows.replayWelcome}</Text></Pressable>
       <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
       <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable>
-      <Pressable onPress={() => router.back()}><Text style={styles.back}>Go back</Text></Pressable>
+      <Pressable onPress={() => router.back()}><Text style={styles.back}>{rows.goBack}</Text></Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  segmented: { alignSelf: 'flex-start', marginTop: space.xxs },
   labLink: { color: colors.accent, marginTop: space.xs, textAlign: 'center' },
   customCol: { alignItems: 'stretch' },
   placeholder: { width: 72, height: 72, borderRadius: radius.round, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },

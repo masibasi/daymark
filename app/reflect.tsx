@@ -13,34 +13,9 @@ import type { Category, Task } from '@/domain/types';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { formatWith, useFormat, useLocale, useT } from '@/i18n';
 
 type Period = 'week' | 'month';
-
-// All copy lives here so it can move into the string dictionaries later (A3).
-const STR = {
-  eyebrow: 'Reflect',
-  week: 'Week',
-  month: 'Month',
-  thisWeek: 'This week',
-  thisMonth: 'This month',
-  weekOf: (date: Date) => `Week of ${format(date, 'MMM d')}`,
-  monthTitle: (date: Date) => format(date, 'MMMM yyyy'),
-  previous: (period: Period) => `Previous ${period}`,
-  next: (period: Period) => `Next ${period}`,
-  done: (count: number) => `${count} done`,
-  acrossDays: (days: number) => `across ${days} ${days === 1 ? 'day' : 'days'}`,
-  emptyCurrent: (period: Period) => `Nothing checked off yet this ${period}. Your marks will gather here.`,
-  emptyPast: (period: Period) => `A quiet ${period}.`,
-  whereItWent: 'Where it went',
-  folders: 'Folders',
-  steps: (count: number) => `${count} ${count === 1 ? 'step' : 'steps'}`,
-  finished: 'Finished',
-  routines: 'Routines',
-  times: (count: number) => `${count} ${count === 1 ? 'time' : 'times'}`,
-  fullestDay: 'Fullest day',
-  fullestLine: (date: Date, count: number) => `${format(date, 'EEEE')} · ${count} done`,
-  open: (date: Date) => `Open ${format(date, 'MMMM d')}`,
-} as const;
 
 const keyOf = (date: Date) => format(date, 'yyyy-MM-dd');
 // Monday-first, like the Calendar tab.
@@ -70,6 +45,9 @@ function openDay(day: Date, setSelected: (date: string) => void) {
 }
 
 export default function ReflectScreen() {
+  const t = useT();
+  const fmt = useFormat();
+  const ko = useLocale().locale === 'ko';
   const { width } = useWindowDimensions();
   const desk = width >= 760;
   const params = useLocalSearchParams<{ period?: string; date?: string }>();
@@ -88,7 +66,7 @@ export default function ReflectScreen() {
   const isCurrent = !isAfter(today, end) && !isAfter(start, today);
   const nextDisabled = !isAfter(today, end); // the period already reaches today
   const reflection = selectReflection(tasks, categories, projects, routines, start, end);
-  const title = isCurrent ? (period === 'week' ? STR.thisWeek : STR.monthTitle(start)) : period === 'week' ? STR.weekOf(start) : STR.monthTitle(start);
+  const title = isCurrent ? (period === 'week' ? t.reflect.thisWeek : fmt(start, 'monthYear')) : period === 'week' ? t.reflect.weekOf(fmt(start, 'monthDay')) : fmt(start, 'monthYear');
   const step = (direction: -1 | 1) => setAnchor((current) => (period === 'week' ? (direction < 0 ? subWeeks : addWeeks) : (direction < 0 ? subMonths : addMonths))(current, 1));
   const changePeriod = (next: Period) => { setPeriod(next); setAnchor((current) => (isAfter(startOfDay(current), today) ? today : current)); };
   const select = (day: Date) => openDay(day, setSelectedTodayDate);
@@ -104,7 +82,7 @@ export default function ReflectScreen() {
     // Only days with something done get a mark; empty and future days stay a plain number (Reflection never shows what was left).
     if (future || !reflection.perDay[keyOf(day)]) return <View key={keyOf(day)} style={cellStyle}><View style={{ height: size }} />{label}</View>;
     return (
-      <PressableScale key={keyOf(day)} accessibilityRole="button" accessibilityLabel={STR.open(day)} onPress={() => select(day)} style={cellStyle}>
+      <PressableScale key={keyOf(day)} accessibilityRole="button" accessibilityLabel={t.today.openDay(fmt(day, 'monthDayLong'))} onPress={() => select(day)} style={cellStyle}>
         <DayMark day={day} tasks={tasks} categories={categories} size={size} strokeWidth={strokeWidth} />
         {label}
       </PressableScale>
@@ -116,27 +94,27 @@ export default function ReflectScreen() {
       <View style={styles.column}>
         <View style={styles.headerRow}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>{STR.eyebrow}</Text>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.eyebrow, ko && styles.untracked]}>{t.reflect.eyebrow}</Text>
+            <Text style={[styles.title, ko && styles.untracked]}>{title}</Text>
           </View>
           <View style={styles.periodControls}>
-            <Pressable accessibilityRole="button" accessibilityLabel={STR.previous(period)} onPress={() => step(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={STR.next(period)} accessibilityState={{ disabled: nextDisabled }} disabled={nextDisabled} onPress={() => step(1)} style={[styles.iconButton, nextDisabled && styles.iconDisabled]}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t.reflect.previous(period)} onPress={() => step(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t.reflect.next(period)} accessibilityState={{ disabled: nextDisabled }} disabled={nextDisabled} onPress={() => step(1)} style={[styles.iconButton, nextDisabled && styles.iconDisabled]}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable>
           </View>
         </View>
-        <View style={styles.segment}><SegmentedControl value={period} options={[{ value: 'week', label: STR.week }, { value: 'month', label: STR.month }]} onChange={changePeriod} /></View>
+        <View style={styles.segment}><SegmentedControl value={period} options={[{ value: 'week', label: t.reflect.week }, { value: 'month', label: t.reflect.month }]} onChange={changePeriod} /></View>
 
         <FadeOnChange token={`${period}-${keyOf(start)}`}>
           <Hero reflection={reflection} period={period} isCurrent={isCurrent} />
 
           {period === 'week' ? (
             <View style={styles.weekRow}>
-              <View style={styles.weekdayRow}>{days.map((day) => <Text key={keyOf(day)} style={styles.weekday}>{format(day, 'EEEEE')}</Text>)}</View>
+              <View style={styles.weekdayRow}>{days.map((day) => <Text key={keyOf(day)} style={styles.weekday}>{formatWith(day, 'EEEEE')}</Text>)}</View>
               <View style={styles.weekMarks}>{days.map((day) => renderDay(day, markSize, desk ? 7 : 5, desk ? styles.dayNumberDesk : {}))}</View>
             </View>
           ) : (
             <View style={styles.monthCard}>
-              <View style={styles.weekdayRow}>{gridDays.slice(0, 7).map((day) => <Text key={keyOf(day)} style={styles.weekday}>{format(day, 'EEEEE')}</Text>)}</View>
+              <View style={styles.weekdayRow}>{gridDays.slice(0, 7).map((day) => <Text key={keyOf(day)} style={styles.weekday}>{formatWith(day, 'EEEEE')}</Text>)}</View>
               <View style={styles.monthGrid}>
                 {gridDays.map((day) => (isSameMonth(day, start) ? renderDay(day, desk ? 36 : 28, desk ? 5 : 4, {}, styles.monthDay) : <View key={keyOf(day)} style={styles.monthCell} />))}
               </View>
@@ -145,7 +123,7 @@ export default function ReflectScreen() {
 
           {reflection.byList.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{STR.whereItWent}</Text>
+              <Text style={styles.sectionTitle}>{t.reflect.whereItWent}</Text>
               {reflection.byList.map(({ category, count }) => (
                 <View key={category.id} style={styles.barRow}>
                   <Text style={styles.barLabel} numberOfLines={1}>{category.name} · {count}</Text>
@@ -157,13 +135,13 @@ export default function ReflectScreen() {
 
           {reflection.folders.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{STR.folders}</Text>
+              <Text style={styles.sectionTitle}>{t.reflect.folders}</Text>
               {reflection.folders.map(({ project, steps, finished }) => (
                 <View key={project.id} style={styles.listRow}>
                   <View style={[styles.dot, { backgroundColor: paletteFor(project.categoryId).solid }]} />
                   <Text style={styles.rowTitle} numberOfLines={1}>{project.title}</Text>
-                  {finished ? <View style={styles.tag}><Text style={styles.tagText}>{STR.finished}</Text></View> : null}
-                  <Text style={styles.rowMeta}>{STR.steps(steps)}</Text>
+                  {finished ? <View style={styles.tag}><Text style={styles.tagText}>{t.reflect.finished}</Text></View> : null}
+                  <Text style={styles.rowMeta}>{t.reflect.steps(steps)}</Text>
                 </View>
               ))}
             </View>
@@ -171,12 +149,12 @@ export default function ReflectScreen() {
 
           {reflection.routines.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{STR.routines}</Text>
+              <Text style={styles.sectionTitle}>{t.reflect.routines}</Text>
               {reflection.routines.map(({ routine, count }) => (
                 <View key={routine.id} style={styles.listRow}>
                   <View style={[styles.dot, { backgroundColor: paletteFor(routine.categoryId).solid }]} />
                   <Text style={styles.rowTitle} numberOfLines={1}>{routine.title}</Text>
-                  <Text style={styles.rowMeta}>{STR.times(count)}</Text>
+                  <Text style={styles.rowMeta}>{t.reflect.times(count)}</Text>
                 </View>
               ))}
             </View>
@@ -184,10 +162,10 @@ export default function ReflectScreen() {
 
           {reflection.fullestDay ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{STR.fullestDay}</Text>
-              <PressableScale accessibilityRole="button" accessibilityLabel={STR.open(parseISO(reflection.fullestDay.day))} onPress={() => select(parseISO(reflection.fullestDay?.day ?? keyOf(today)))} style={styles.fullest}>
+              <Text style={styles.sectionTitle}>{t.reflect.fullestDay}</Text>
+              <PressableScale accessibilityRole="button" accessibilityLabel={t.today.openDay(fmt(parseISO(reflection.fullestDay.day), 'monthDayLong'))} onPress={() => select(parseISO(reflection.fullestDay?.day ?? keyOf(today)))} style={styles.fullest}>
                 <DayMark day={parseISO(reflection.fullestDay.day)} tasks={tasks} categories={categories} size={72} strokeWidth={8} />
-                <Text style={styles.fullestText}>{STR.fullestLine(parseISO(reflection.fullestDay.day), reflection.fullestDay.count)}</Text>
+                <Text style={styles.fullestText}>{t.reflect.fullestLine(fmt(parseISO(reflection.fullestDay.day), 'weekday'), reflection.fullestDay.count)}</Text>
               </PressableScale>
             </View>
           ) : null}
@@ -198,11 +176,12 @@ export default function ReflectScreen() {
 }
 
 function Hero({ reflection, period, isCurrent }: { reflection: Reflection; period: Period; isCurrent: boolean }) {
-  if (reflection.total === 0) return <View style={styles.hero}><Text style={styles.emptyLine}>{isCurrent ? STR.emptyCurrent(period) : STR.emptyPast(period)}</Text></View>;
+  const t = useT();
+  if (reflection.total === 0) return <View style={styles.hero}><Text style={styles.emptyLine}>{isCurrent ? t.reflect.emptyCurrent(period) : t.reflect.emptyPast(period)}</Text></View>;
   return (
     <View style={styles.hero}>
-      <Text style={styles.heroNumber}>{STR.done(reflection.total)}</Text>
-      <Text style={styles.heroSub}>{STR.acrossDays(reflection.activeDays)}</Text>
+      <Text style={styles.heroNumber}>{t.reflect.done(reflection.total)}</Text>
+      <Text style={styles.heroSub}>{t.reflect.acrossDays(reflection.activeDays)}</Text>
     </View>
   );
 }
@@ -214,6 +193,7 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 720, alignSelf: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md },
   headerCopy: { flex: 1, minWidth: 0 },
+  untracked: { letterSpacing: 0 },
   eyebrow: { ...type.meta, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: space.xs, fontFamily },
   title: { ...type.display, color: colors.ink, fontFamily },
   periodControls: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.xs },

@@ -6,11 +6,13 @@ import type { ResolvedPalette } from '@/theme/palette';
 import { colors, fontFamily, motion, radius, space, type } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { quietNextEnter } from './RowPresence';
+import { useT } from '@/i18n';
 
 interface GhostRoutineRowProps { routine: Routine; palette: ResolvedPalette; meta?: string; onAdd: () => void; onAddDone: () => void; onRepeat: () => void; onRemove: () => void }
 
 // A routine not yet added today: tap to make it a real task, tap the circle to add it already done.
 export function GhostRoutineRow({ routine, palette, meta, onAdd, onAddDone, onRepeat, onRemove }: GhostRoutineRowProps) {
+  const t = useT();
   const viewport = useWindowDimensions();
   const moreRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,8 +48,8 @@ export function GhostRoutineRow({ routine, palette, meta, onAdd, onAddDone, onRe
   return (
     <View>
       <View style={styles.row}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Add routine ${routine.title}`} onPress={() => become(onAdd)} style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} />
-        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: false }} accessibilityLabel={`Add and complete ${routine.title}`} onPress={() => become(onAddDone)} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.tasks.addRoutine(routine.title)} onPress={() => become(onAdd)} style={({ pressed }) => [StyleSheet.absoluteFill, pressed && styles.pressed]} />
+        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: false }} accessibilityLabel={t.tasks.addAndComplete(routine.title)} onPress={() => become(onAddDone)} hitSlop={8}>
           <View style={styles.checkSlot}>
             <Animated.View style={[styles.check, { borderColor: palette.solid, opacity: becoming.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }) }]} />
             <Animated.View style={[styles.check, styles.checkSolid, { borderColor: palette.solid, opacity: becoming }]} />
@@ -58,13 +60,13 @@ export function GhostRoutineRow({ routine, palette, meta, onAdd, onAddDone, onRe
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         </View>
         <Ionicons name="repeat" size={12} color={colors.muted} style={styles.repeat} />
-        <Pressable accessibilityRole="button" accessibilityLabel={`More options for routine ${routine.title}`} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.tasks.moreOptionsForRoutine(routine.title)} accessibilityState={{ expanded: menuOpen }} ref={moreRef} onPress={openMenu} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable>
       </View>
       {menuOpen ? <Modal transparent visible animationType="none" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
+        <Pressable accessibilityLabel={t.tasks.closeMenu} style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
         <View style={[styles.actions, { top: menuTop, right: menuRight }]}>
-          <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRepeat(); }} style={styles.action}><Ionicons name="repeat-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>Repeat…</Text></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRemove(); }} style={styles.action}><Ionicons name="trash-outline" size={16} color={colors.danger} /><Text style={[styles.actionText, styles.dangerText]}>Remove routine</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRepeat(); }} style={styles.action}><Ionicons name="repeat-outline" size={16} color={colors.inkSoft} /><Text style={styles.actionText}>{t.tasks.repeatEllipsis}</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); onRemove(); }} style={styles.action}><Ionicons name="trash-outline" size={16} color={colors.danger} /><Text style={[styles.actionText, styles.dangerText]}>{t.tasks.removeRoutine}</Text></Pressable>
         </View>
       </Modal> : null}
     </View>

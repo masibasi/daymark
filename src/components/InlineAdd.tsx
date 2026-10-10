@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ResolvedPalette } from '@/theme/palette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 interface InlineAddProps {
   listName: string;
@@ -17,6 +18,7 @@ interface InlineAddProps {
 
 // A quiet "+ Add" row that turns into an inline input at the end of a list section.
 export function InlineAdd({ listName, palette, open, onOpen, onClose, onAddTask, onSaveRoutine, onReveal }: InlineAddProps) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const wrapRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
@@ -50,9 +52,9 @@ export function InlineAdd({ listName, palette, open, onOpen, onClose, onAddTask,
 
   if (!open) {
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={`Add a task to ${listName}`} onPress={onOpen} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t.tasks.addTaskTo(listName)} onPress={onOpen} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
         <View style={styles.plus}><Ionicons name="add" size={17} color={colors.muted} /></View>
-        <Text style={styles.addText}>Add</Text>
+        <Text style={styles.addText}>{t.common.add}</Text>
       </Pressable>
     );
   }
@@ -63,14 +65,14 @@ export function InlineAdd({ listName, palette, open, onOpen, onClose, onAddTask,
         <View style={[styles.check, { borderColor: palette.solid }]} />
         <TextInput
           ref={inputRef} autoFocus value={title} onChangeText={setTitle} onSubmitEditing={submit} onBlur={onBlur} onFocus={hold}
-          submitBehavior="submit" blurOnSubmit={false} returnKeyType="done" placeholder={`Add to ${listName}`} placeholderTextColor={colors.muted}
-          accessibilityLabel={`New task in ${listName}`} style={styles.input}
+          submitBehavior="submit" blurOnSubmit={false} returnKeyType="done" placeholder={t.tasks.addPlaceholder(listName)} placeholderTextColor={colors.muted}
+          accessibilityLabel={t.tasks.newTaskIn(listName)} style={styles.input}
         />
-        <Pressable accessibilityRole="button" onPressIn={hold} onPress={onClose} hitSlop={8}><Text style={styles.done}>Done</Text></Pressable>
+        <Pressable accessibilityRole="button" onPressIn={hold} onPress={onClose} hitSlop={8}><Text style={styles.done}>{t.common.done}</Text></Pressable>
       </View>
       <View style={styles.tray}>
         <Pressable accessibilityRole="button" disabled={empty} onPressIn={hold} onPress={() => { onSaveRoutine(title.trim()); setTitle(''); refocus(); }} style={styles.saveRoutine}>
-          <Text style={[styles.saveRoutineText, empty && styles.disabled]}>Save as routine</Text>
+          <Text style={[styles.saveRoutineText, empty && styles.disabled]}>{t.tasks.saveAsRoutine}</Text>
         </Pressable>
       </View>
     </View>

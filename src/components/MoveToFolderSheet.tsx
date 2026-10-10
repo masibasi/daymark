@@ -6,10 +6,12 @@ import type { Task } from '@/domain/types';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 // "Move to folder…": active folders in the Folders-tab order, plus a quick "New folder…". The task leaves its day and joins the folder
 // (its list becomes the folder's list). Same action as dropping a task on a folder card; the app toast offers Undo.
 export function MoveToFolderSheet({ task, onClose }: { task: Task; onClose: () => void }) {
+  const t = useT();
   const projects = useDaymarkStore((state) => state.projects);
   const addProject = useDaymarkStore((state) => state.addProject);
   const moveTaskToFolder = useDaymarkStore((state) => state.moveTaskToFolder);
@@ -22,11 +24,11 @@ export function MoveToFolderSheet({ task, onClose }: { task: Task; onClose: () =
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
       <View style={styles.shade}>
         <View style={styles.card}>
-          <View style={styles.header}><Text style={styles.heading}>Move to folder</Text><Pressable accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
+          <View style={styles.header}><Text style={styles.heading}>{t.folders.moveSheetTitle}</Text><Pressable accessibilityLabel={t.common.close} onPress={onClose}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
           <Text style={styles.sub} numberOfLines={1}>{task.title}</Text>
           <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
             {selectFolders(projects).map((project) => (
-              <Pressable key={project.id} accessibilityRole="button" accessibilityLabel={`Move to ${project.title}`} onPress={() => choose(project.id)} style={styles.row}>
+              <Pressable key={project.id} accessibilityRole="button" accessibilityLabel={t.folders.moveTo(project.title)} onPress={() => choose(project.id)} style={styles.row}>
                 <View style={[styles.dot, { backgroundColor: paletteFor(project.categoryId).solid }]} />
                 <Text style={styles.rowText} numberOfLines={1}>{project.title}</Text>
                 {task.projectId === project.id ? <Ionicons name="checkmark" size={16} color={colors.muted} /> : null}
@@ -34,13 +36,13 @@ export function MoveToFolderSheet({ task, onClose }: { task: Task; onClose: () =
             ))}
             {creating ? (
               <View style={styles.row}>
-                <TextInput autoFocus value={title} onChangeText={setTitle} onSubmitEditing={create} placeholder="Folder name" placeholderTextColor={colors.muted} style={styles.input} />
-                <Pressable accessibilityLabel="Create folder and move" onPress={create} style={styles.go}><Ionicons name="arrow-up" size={15} color={colors.paper} /></Pressable>
+                <TextInput autoFocus value={title} onChangeText={setTitle} onSubmitEditing={create} placeholder={t.folders.folderName} placeholderTextColor={colors.muted} style={styles.input} />
+                <Pressable accessibilityLabel={t.folders.createAndMove} onPress={create} style={styles.go}><Ionicons name="arrow-up" size={15} color={colors.paper} /></Pressable>
               </View>
             ) : (
               <Pressable accessibilityRole="button" onPress={() => setCreating(true)} style={styles.row}>
                 <Ionicons name="add" size={16} color={colors.inkSoft} />
-                <Text style={styles.rowText}>New folder…</Text>
+                <Text style={styles.rowText}>{t.folders.newFolderEllipsis}</Text>
               </Pressable>
             )}
           </ScrollView>

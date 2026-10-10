@@ -4,11 +4,13 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, motion, nativeDriver, radius, space, type } from '@/theme/tokens';
 import { useReducedMotion } from '@/theme/useReducedMotion';
 import { PressableScale } from './PressableScale';
+import { useT } from '@/i18n';
 
 const DISMISS_MS = 5000;
 
 // One quiet toast at app level: "Deleted … / Undo", or a plain message. A new toast replaces the old one.
 export function UndoToast({ bottom }: { bottom: number }) {
+  const t = useT();
   const toast = useDaymarkStore((state) => state.toast);
   const undoDelete = useDaymarkStore((state) => state.undoDelete);
   const dismissToast = useDaymarkStore((state) => state.dismissToast);
@@ -45,7 +47,7 @@ export function UndoToast({ bottom }: { bottom: number }) {
     <View pointerEvents="box-none" style={[styles.wrap, { bottom }]}>
       <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { opacity, transform: [{ translateY: rise }] }]}>
         <Text style={styles.text} numberOfLines={1}>{shown.message}</Text>
-        {shown.undoable ? <PressableScale accessibilityRole="button" accessibilityLabel="Undo" onPress={undoDelete} hitSlop={8}><Text style={styles.undo}>Undo</Text></PressableScale> : null}
+        {shown.undoable ? <PressableScale accessibilityRole="button" accessibilityLabel={t.common.undo} onPress={undoDelete} hitSlop={8}><Text style={styles.undo}>{t.common.undo}</Text></PressableScale> : null}
       </Animated.View>
     </View>
   );

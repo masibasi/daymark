@@ -5,6 +5,7 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { getClient } from './client';
 import { decideRemote, diffCollections, dirtyKey, EPOCH, maxUpdatedAt, type DirtyEntry, type RemoteChange, type RemoteRow, type SyncKind } from './merge';
 import { setSyncStatus, useSyncStatus } from './syncStore';
+import { t } from '@/i18n';
 
 // Local-first sync: the store stays the source of truth; signed in, changes are pushed and other devices' rows are pulled into it.
 // Design notes live in docs/ARCHITECTURE.md ("Sync").
@@ -139,7 +140,7 @@ export async function syncNow() {
     await push();
     setSyncStatus({ status: 'idle', lastSyncedAt: Date.now(), error: undefined });
   } catch (error) {
-    const message = (error as { message?: string } | null)?.message ?? 'Sync failed.';
+    const message = (error as { message?: string } | null)?.message ?? t().settings.sync.failed;
     if (isNetworkError(error)) setSyncStatus({ status: 'offline', error: undefined });
     else setSyncStatus({ status: 'error', error: message });
   } finally {

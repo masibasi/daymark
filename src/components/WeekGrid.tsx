@@ -6,6 +6,7 @@ import { selectEventsOnDay } from '@/domain/selectors';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
 import { colors, fontFamily, type } from '@/theme/tokens';
 import { CalendarBlock } from './CalendarBlock';
+import { useFormat, useT } from '@/i18n';
 
 // The full day is scrollable; the grid opens near the current hour (this week) or at 7 AM (other weeks).
 const START_HOUR = 0;
@@ -23,6 +24,8 @@ interface WeekGridProps {
 
 export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockPress }: WeekGridProps) {
   const { width } = useWindowDimensions();
+  const t = useT();
+  const fmt = useFormat();
   const compact = width < 680;
   const hourHeight = compact ? 62 : 70;
   const weekStart = startOfWeek(anchor, { weekStartsOn: 1 });
@@ -43,10 +46,10 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
     <View style={styles.frame}>
       <View style={styles.headerRow}>
         <View style={styles.gutterHeader} />
-        {days.map((day) => <View key={day.toISOString()} style={styles.dayHeader}><Text style={styles.weekday}>{format(day, 'EEE')}</Text><Text style={[styles.dayNumber, isSameDay(day, anchor) && styles.today]}>{format(day, 'd')}</Text></View>)}
+        {days.map((day) => <View key={day.toISOString()} style={styles.dayHeader}><Text style={styles.weekday}>{fmt(day, 'weekdayShort')}</Text><Text style={[styles.dayNumber, isSameDay(day, anchor) && styles.today]}>{format(day, 'd')}</Text></View>)}
       </View>
       <View style={styles.allDayRow}>
-        <Text style={styles.allDayLabel}>all-day</Text>
+        <Text style={styles.allDayLabel}>{t.calendar.allDayRow}</Text>
         {days.map((day) => {
           const dayEvents = selectEventsOnDay(events, day).filter((event) => event.allDay);
           return <View key={day.toISOString()} style={styles.allDayCell}>{dayEvents.map((event) => <CalendarBlock key={event.id} event={event} compact onPress={() => onEventPress(event, day)} />)}</View>;
@@ -55,7 +58,7 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
       <ScrollView ref={scroller} style={styles.scroller} contentContainerStyle={{ height: (END_HOUR - START_HOUR) * hourHeight }}>
         <View style={styles.gridRow}>
           <View style={styles.timeGutter}>
-            {hours.slice(0, -1).map((hour) => <Text key={hour} style={[styles.hourLabel, { top: Math.max(0, (hour - START_HOUR) * hourHeight - 8) }]}>{format(setHours(new Date(2026, 0, 1), hour), 'h a')}</Text>)}
+            {hours.slice(0, -1).map((hour) => <Text key={hour} style={[styles.hourLabel, { top: Math.max(0, (hour - START_HOUR) * hourHeight - 8) }]}>{fmt(setHours(new Date(2026, 0, 1), hour), 'hour')}</Text>)}
           </View>
           {days.map((day) => {
             const dayEvents = events.filter((event) => !event.allDay && isSameDay(parseISO(event.startAt), day));

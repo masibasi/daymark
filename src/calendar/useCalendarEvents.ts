@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useSyncStatus } from '@/sync/syncStore';
 import { IcsCalendarProvider } from './IcsCalendarProvider';
+import { t } from '@/i18n';
 
 const REFRESH_MS = 15 * 60_000;
 const MIN_GAP_MS = 30_000; // focus/visibility bursts must not hammer the function
@@ -28,7 +29,7 @@ async function load(from: string, to: string, force: boolean) {
     lastAt = Date.now();
   } catch {
     // Keep the last events; surface a generic per-feed message in Settings.
-    applyFeedEvents([], from, to, [], Object.fromEntries(enabled.map((feed) => [feed.id, 'Could not reach the calendar service.'])));
+    applyFeedEvents([], from, to, [], Object.fromEntries(enabled.map((feed) => [feed.id, t().settings.calendars.unreachable])));
   } finally {
     inFlight = false;
     const next = queued;

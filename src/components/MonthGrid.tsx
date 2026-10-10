@@ -7,11 +7,13 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
 import { DayOrbit } from './DayOrbit';
+import { useT } from '@/i18n';
 
 interface MonthGridProps { anchor: Date; events: CalendarEvent[]; blocks: TimeBlock[]; projects: Project[]; tasks: Task[]; onEventPress: (event: CalendarEvent, day: Date) => void; onBlockPress: (block: TimeBlock) => void }
 
 export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPress, onBlockPress }: MonthGridProps) {
   const { width } = useWindowDimensions();
+  const t = useT();
   const categories = useDaymarkStore((state) => state.categories);
   const paletteFor = useCategoryPalette();
   const compact = width < 680;
@@ -21,26 +23,26 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPres
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   return (
     <View style={styles.frame}>
-      <View style={styles.weekdays}>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <Text key={day} style={styles.weekday}>{compact ? day[0] : day}</Text>)}</View>
+      <View style={styles.weekdays}>{t.calendar.weekdayShort.map((day) => <Text key={day} style={styles.weekday}>{compact ? day[0] : day}</Text>)}</View>
       <View style={styles.grid}>
         {days.map((day) => {
           const dayEvents = selectEventsOnDay(events, day);
           const dayBlocks = blocks.filter((block) => isSameDay(parseISO(block.startAt), day));
           const deadlines = projects.filter((project) => project.status !== 'archived' && project.deadline && isSameDay(parseISO(project.deadline), day));
           const items: { id: string; title: string; color: string; onPress?: () => void }[] = [
-            ...deadlines.map((project) => ({ id: project.id, title: `Due · ${project.title}`, color: paletteFor(project.categoryId).solid })),
+            ...deadlines.map((project) => ({ id: project.id, title: t.calendar.dueTitle(project.title), color: paletteFor(project.categoryId).solid })),
             ...dayEvents.map((event) => ({ id: event.id, title: event.title, color: colors.event, onPress: () => onEventPress(event, day) })),
-            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? 'Task block', color: (taskMap.get(block.taskId) ? paletteFor(taskMap.get(block.taskId)!.categoryId) : paletteFor('')).solid, onPress: () => onBlockPress(block) })),
+            ...dayBlocks.map((block) => ({ id: block.id, title: taskMap.get(block.taskId)?.title ?? t.calendar.taskBlock, color: (taskMap.get(block.taskId) ? paletteFor(taskMap.get(block.taskId)!.categoryId) : paletteFor('')).solid, onPress: () => onBlockPress(block) })),
           ];
           return (
             <View key={day.toISOString()} style={[styles.cell, compact && styles.cellCompact, !isSameMonth(day, anchor) && styles.outside]}>
               <View style={styles.cellTop}>
-                <View style={styles.dateWrap}><Text style={[styles.date, isSameDay(day, anchor) && styles.anchorDate]}>{format(day, 'd')}</Text>{selectDayComplete(tasks, day, categories) ? <Ionicons accessibilityLabel="All done" name="checkmark" size={8} color={colors.muted} style={styles.dateCheck} /> : null}</View>
+                <View style={styles.dateWrap}><Text style={[styles.date, isSameDay(day, anchor) && styles.anchorDate]}>{format(day, 'd')}</Text>{selectDayComplete(tasks, day, categories) ? <Ionicons accessibilityLabel={t.today.allDone} name="checkmark" size={8} color={colors.muted} style={styles.dateCheck} /> : null}</View>
                 <DayOrbit segments={selectDayOrbit(tasks, day, categories)} size={compact ? 18 : 22} strokeWidth={compact ? 3 : 3.5} />
               </View>
               <View style={styles.items}>
                 {items.slice(0, compact ? 2 : 3).map((item) => <Pressable key={item.id} accessibilityRole={item.onPress ? 'button' : undefined} accessibilityLabel={item.title} disabled={!item.onPress} onPress={item.onPress} style={styles.item}><View style={[styles.itemDot, { backgroundColor: item.color }]} /><Text style={[styles.itemText, compact && styles.itemTextCompact]} numberOfLines={1}>{item.title}</Text></Pressable>)}
-                {items.length > (compact ? 2 : 3) ? <Text style={styles.more}>+{items.length - (compact ? 2 : 3)} more</Text> : null}
+                {items.length > (compact ? 2 : 3) ? <Text style={styles.more}>{t.calendar.moreCount(items.length - (compact ? 2 : 3))}</Text> : null}
               </View>
             </View>
           );

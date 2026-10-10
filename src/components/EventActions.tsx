@@ -1,28 +1,23 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { isSameDay, parseISO } from 'date-fns';
 import { now } from '@/domain/clock';
 import { selectActiveCategories, selectTaskFromEvent } from '@/domain/selectors';
 import type { CalendarEvent, Category, Task } from '@/domain/types';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { PressableScale } from './PressableScale';
+import { formatDate, formatTimeRange, t, useT } from '@/i18n';
 
-export const eventTimeRange = (event: CalendarEvent) => {
-  if (event.allDay) return 'All day';
-  const start = parseISO(event.startAt);
-  const end = parseISO(event.endAt);
-  const samePeriod = format(start, 'a') === format(end, 'a');
-  return `${format(start, samePeriod ? 'h:mm' : 'h:mm a')} – ${format(end, 'h:mm a')}`;
-};
+export const eventTimeRange = (event: CalendarEvent) => (event.allDay ? t().common.allDay : formatTimeRange(parseISO(event.startAt), parseISO(event.endAt)));
 
 // "Today" or "Tue, Oct 6": the day an event would be added to.
-export const eventDayLabel = (day: Date) => (isSameDay(day, now()) ? 'Today' : format(day, 'EEE, MMM d'));
+export const eventDayLabel = (day: Date) => (isSameDay(day, now()) ? t().common.today : formatDate(day, 'weekdayShortMonthDay'));
 
 // List an imported event lands in by default: one named Schedule/Calendar, else the list used for the last event import, else none (a new "Schedule" list).
 export function defaultEventList(categories: Category[], tasks: Task[]): Category | undefined {
   const active = selectActiveCategories(categories);
-  const named = active.find((category) => /^(schedule|calendar)$/i.test(category.name.trim()));
+  const named = active.find((category) => /^(schedule|calendar|일정|캘린더)$/i.test(category.name.trim()));
   if (named) return named;
   const last = tasks.filter((task) => task.sourceEventId).pop();
   return active.find((category) => category.id === last?.categoryId);
@@ -39,24 +34,26 @@ interface EventActionsProps {
 
 // The "Add to <day>" pill plus "or in" list chips, or "Added" once a Task from this event exists on `day`. Shared by Today's Schedule and the Calendar tab.
 export function EventActions({ event, day, tasks, categories, onAdd }: EventActionsProps) {
+  const t = useT();
   const paletteFor = useCategoryPalette();
   const added = Boolean(selectTaskFromEvent(tasks, event.id, day));
   const preferred = defaultEventList(categories, tasks);
   const others = selectActiveCategories(categories).filter((category) => category.id !== preferred?.id);
-  const addLabel = `Add to ${eventDayLabel(day)}`;
-  if (added) return <View style={styles.added}><Ionicons name="checkmark" size={14} color={colors.muted} /><Text style={styles.addedText}>Added to {eventDayLabel(day)}</Text></View>;
+  const addLabel = t.calendar.addTo(eventDayLabel(day));
+  const newList = t.calendar.newScheduleList;
+  if (added) return <View style={styles.added}><Ionicons name="checkmark" size={14} color={colors.muted} /><Text style={styles.addedText}>{t.calendar.addedTo(eventDayLabel(day))}</Text></View>;
   const palette = preferred ? paletteFor(preferred) : undefined;
   return (
     <View style={styles.actions}>
-      <PressableScale accessibilityRole="button" accessibilityLabel={`${addLabel} in ${preferred?.name ?? 'Schedule (new)'}`} onPress={() => onAdd(event, preferred?.id)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
+      <PressableScale accessibilityRole="button" accessibilityLabel={t.calendar.addToIn(addLabel, preferred?.name ?? newList)} onPress={() => onAdd(event, preferred?.id)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
         {palette ? <View style={[styles.dot, { backgroundColor: palette.solid }]} /> : <Ionicons name="add" size={14} color={colors.ink} />}
-        <Text style={styles.addText}>{addLabel} · {preferred ? preferred.name : 'Schedule (new)'}</Text>
+        <Text style={styles.addText}>{addLabel} · {preferred ? preferred.name : newList}</Text>
       </PressableScale>
       {others.length > 0 ? (
         <View style={styles.chips}>
-          <Text style={styles.chipsLabel}>or in</Text>
+          <Text style={styles.chipsLabel}>{t.calendar.orIn}</Text>
           {others.map((category) => (
-            <PressableScale key={category.id} accessibilityRole="button" accessibilityLabel={`${addLabel} in ${category.name}`} onPress={() => onAdd(event, category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: paletteFor(category).soft }, pressed && styles.pressed]}>
+            <PressableScale key={category.id} accessibilityRole="button" accessibilityLabel={t.calendar.addToIn(addLabel, category.name)} onPress={() => onAdd(event, category.id)} style={({ pressed }) => [styles.chip, { backgroundColor: paletteFor(category).soft }, pressed && styles.pressed]}>
               <View style={[styles.chipDot, { backgroundColor: paletteFor(category).solid }]} />
               <Text style={[styles.chipText, { color: paletteFor(category).ink }]}>{category.name}</Text>
             </PressableScale>

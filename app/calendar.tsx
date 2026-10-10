@@ -13,9 +13,13 @@ import { now } from '@/domain/clock';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import type { CalendarEvent, TimeBlock } from '@/domain/types';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
+import { formatTimeRange, useFormat, useLocale, useT } from '@/i18n';
 
 export default function CalendarScreen() {
   const { width } = useWindowDimensions();
+  const t = useT();
+  const fmt = useFormat();
+  const ko = useLocale().locale === 'ko';
   const compact = width < 680;
   const [selection, setSelection] = useState<{ event: CalendarEvent; day: Date } | { block: TimeBlock } | null>(null);
   const view = useDaymarkStore((state) => state.calendarView);
@@ -46,27 +50,28 @@ export default function CalendarScreen() {
   return (
     <View style={styles.page}>
       <View style={[styles.toolbar, compact && styles.toolbarCompact]}>
-        <View><Text style={styles.eyebrow}>Calendar</Text><Text style={styles.title}>{format(anchor, view === 'week' ? "MMMM yyyy" : 'MMMM yyyy')}</Text></View>
+        <View><Text style={[styles.eyebrow, ko && styles.untracked]}>{t.calendar.eyebrow}</Text><Text style={[styles.title, ko && styles.untracked]}>{fmt(anchor, 'monthYear')}</Text></View>
         <View style={styles.toolbarActions}>
-          <SegmentedControl value={view} options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} onChange={setView} />
-          <View style={styles.periodControls}><Pressable accessibilityLabel="Previous period" onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>Today</Text></Pressable><Pressable accessibilityLabel="Next period" onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable><Pressable accessibilityRole="link" accessibilityLabel="Reflect on this period" hitSlop={6} onPress={() => router.push(`/reflect?period=${view}&date=${format(anchor, 'yyyy-MM-dd')}`)} style={styles.reflectButton}><Text style={styles.reflectText}>Reflect</Text></Pressable></View>
+          <SegmentedControl value={view} options={[{ value: 'week', label: t.calendar.week }, { value: 'month', label: t.calendar.month }]} onChange={setView} />
+          <View style={styles.periodControls}><Pressable accessibilityLabel={t.calendar.previousPeriod} onPress={() => move(-1)} style={styles.iconButton}><Ionicons name="chevron-back" size={18} color={colors.ink} /></Pressable><Pressable onPress={() => setDate(now().toISOString())} style={styles.todayButton}><Text style={styles.todayText}>{t.common.today}</Text></Pressable><Pressable accessibilityLabel={t.calendar.nextPeriod} onPress={() => move(1)} style={styles.iconButton}><Ionicons name="chevron-forward" size={18} color={colors.ink} /></Pressable><Pressable accessibilityRole="link" accessibilityLabel={t.calendar.reflectLabel} hitSlop={6} onPress={() => router.push(`/reflect?period=${view}&date=${format(anchor, 'yyyy-MM-dd')}`)} style={styles.reflectButton}><Text style={styles.reflectText}>{t.calendar.reflect}</Text></Pressable></View>
         </View>
       </View>
       <View style={styles.gridWrap}>{view === 'week' ? <WeekGrid anchor={anchor} events={events} blocks={blocks} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} /> : <MonthGrid anchor={anchor} events={events} blocks={blocks} projects={projects} tasks={tasks} onEventPress={openEvent} onBlockPress={openBlock} />}</View>
       <EventSheet
         visible={selection !== null}
-        title={selection && 'event' in selection ? selection.event.title : blockTask?.title ?? 'Task block'}
-        subtitle={selection && 'event' in selection ? `${format(selection.day, 'EEE, MMM d')} · ${eventTimeRange(selection.event)}` : selectedBlock ? `${format(parseISO(selectedBlock.startAt), 'EEE, MMM d · h:mm')}–${format(parseISO(selectedBlock.endAt), 'h:mm a')}` : ''}
+        title={selection && 'event' in selection ? selection.event.title : blockTask?.title ?? t.calendar.taskBlock}
+        subtitle={selection && 'event' in selection ? `${fmt(selection.day, 'weekdayShortMonthDay')} · ${eventTimeRange(selection.event)}` : selectedBlock ? `${fmt(parseISO(selectedBlock.startAt), 'weekdayShortMonthDay')} · ${formatTimeRange(parseISO(selectedBlock.startAt), parseISO(selectedBlock.endAt))}` : ''}
         onClose={close}
       >
         {selection && 'event' in selection ? <EventActions event={selection.event} day={selection.day} tasks={tasks} categories={categories} onAdd={(event, categoryId) => { addTaskFromEvent(event, categoryId, format(selection.day, 'yyyy-MM-dd')); close(); }} /> : null}
-        {selectedBlock ? <SheetAction label="Remove" onPress={() => { removeTimeBlock(selectedBlock.id); close(); }} /> : null}
+        {selectedBlock ? <SheetAction label={t.common.remove} onPress={() => { removeTimeBlock(selectedBlock.id); close(); }} /> : null}
       </EventSheet>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  untracked: { letterSpacing: 0 },
   page: { flex: 1, padding: space.lg, paddingBottom: space.md },
   toolbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.md, maxWidth: 1380, width: '100%', alignSelf: 'center', marginBottom: space.md },
   toolbarCompact: { flexDirection: 'column', alignItems: 'stretch' },

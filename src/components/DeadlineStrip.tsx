@@ -11,6 +11,7 @@ import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { FolderCompletionRow } from './FolderCompletionRow';
 import { TaskDragContext, useDragStore } from './useTaskDrag';
+import { useT } from '@/i18n';
 
 interface DeadlineStripProps { projects: Project[]; tasks: Task[]; now: Date; compact?: boolean; vertical?: boolean }
 
@@ -22,6 +23,7 @@ const toneStyle = (tone: ReturnType<typeof selectDeadlineTone>) => (tone === 'mu
 // `vertical` (desktop left column): compact cards stacked full width, the panel opens inline right under the tapped card.
 // While a task is dragged, the cards are drop targets (ring in the folder's list colour).
 export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vertical }: DeadlineStripProps) {
+  const t = useT();
   const compact = compactProp || vertical;
   const paletteFor = useCategoryPalette();
   const controller = useContext(TaskDragContext);
@@ -44,7 +46,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
         const palette = paletteFor(project.categoryId);
         const title = (
           <View style={[styles.titleRow, compact && styles.titleRowCompact]}>
-            {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
+            {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel={t.strip.pinned} style={styles.pin} /> : null}
             <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 1 : 2}>{project.title}</Text>
           </View>
         );
@@ -72,7 +74,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
         ) : card;
       })}
       <Pressable accessibilityRole="link" onPress={() => router.push('/projects')} style={({ pressed }) => [styles.allLink, vertical && styles.allLinkVertical, pressed && styles.pressed]}>
-        <Text style={styles.allText}>All folders</Text>
+        <Text style={styles.allText}>{t.strip.allFolders}</Text>
         <Ionicons name="arrow-forward" size={13} color={colors.muted} />
       </Pressable>
     </Track>
@@ -84,6 +86,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
 // `inline` (desktop list): the panel continues the tapped card, so it skips the card's own title, deadline and progress.
 // `headless` (phone strip): the tapped card above is already highlighted, so the panel shows only the steps, edged in the folder's colour.
 function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Project; tasks: Task[]; now: Date; inline?: boolean; headless?: boolean }) {
+  const t = useT();
   const palette = useCategoryPalette()(project.categoryId);
   const setTaskOnToday = useDaymarkStore((state) => state.setTaskOnToday);
   const addProjectTask = useDaymarkStore((state) => state.addProjectTask);
@@ -100,7 +103,7 @@ function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Pro
       <View style={inline ? styles.panelInline : [styles.panel, headless && { borderColor: palette.solid }]}>
         {inline || headless ? null : <View style={styles.panelHead}>
           <View style={[styles.projectDot, { backgroundColor: palette.solid }]} />
-          {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel="Pinned" style={styles.pin} /> : null}
+          {project.pinned ? <MaterialCommunityIcons name="pin" size={15} color={palette.ink} accessibilityLabel={t.strip.pinned} style={styles.pin} /> : null}
           <Text style={styles.panelTitle} numberOfLines={2}>{project.title}</Text>
           {days !== undefined ? <Text style={[styles.days, toneStyle(tone)]}>{selectDeadlineLabel(days)}</Text> : null}
         </View>}
@@ -112,15 +115,15 @@ function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Pro
           <View>
             {prompt ? <FolderCompletionRow project={project} /> : (
               <View style={styles.emptyRow}>
-                <Text style={styles.emptySteps}>{project.deadline ? 'No open steps' : 'Nothing left'}</Text>
+                <Text style={styles.emptySteps}>{project.deadline ? t.strip.noOpenSteps : t.strip.nothingLeft}</Text>
                 <Text style={styles.emptySteps}>·</Text>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Add a step to ${project.title}`} hitSlop={8} onPress={() => setAdding(true)}><Text style={styles.emptyAction}>Add</Text></Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.strip.addStepTo(project.title)} hitSlop={8} onPress={() => setAdding(true)}><Text style={styles.emptyAction}>{t.strip.add}</Text></Pressable>
               </View>
             )}
             {adding || prompt ? (
               <View style={styles.addStepRow}>
-                <TextInput autoFocus={adding} value={stepTitle} onChangeText={setStepTitle} onSubmitEditing={addStep} placeholder="Add a step" placeholderTextColor={colors.muted} style={styles.addStepInput} />
-                <Pressable accessibilityLabel="Save step" onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={15} color={colors.paper} /></Pressable>
+                <TextInput autoFocus={adding} value={stepTitle} onChangeText={setStepTitle} onSubmitEditing={addStep} placeholder={t.strip.addStepPlaceholder} placeholderTextColor={colors.muted} style={styles.addStepInput} />
+                <Pressable accessibilityLabel={t.strip.saveStep} onPress={addStep} style={styles.addStepButton}><Ionicons name="arrow-up" size={15} color={colors.paper} /></Pressable>
               </View>
             ) : null}
           </View>
@@ -129,14 +132,14 @@ function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Pro
           return (
             <View key={task.id} style={styles.stepRow}>
               <Text style={styles.stepTitle} numberOfLines={1}>{task.title}</Text>
-              <Pressable accessibilityLabel={onToday ? `Remove ${task.title} from Today` : `Add ${task.title} to Today`} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}>
+              <Pressable accessibilityLabel={onToday ? t.strip.removeFromToday(task.title) : t.strip.addToToday(task.title)} onPress={() => setTaskOnToday(task.id, !onToday)} style={[styles.todayToggle, onToday && { backgroundColor: palette.soft }]}>
                 <Ionicons name={onToday ? 'sunny' : 'sunny-outline'} size={14} color={onToday ? palette.solid : colors.muted} />
-                <Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? 'On Today' : 'Today'}</Text>
+                <Text style={[styles.todayText, onToday && { color: palette.ink }]}>{onToday ? t.strip.onToday : t.strip.today}</Text>
               </Pressable>
             </View>
           );
         })}
-        <Pressable accessibilityRole="link" onPress={() => router.push(`/projects/${project.id}`)} style={styles.openLink}><Text style={styles.openText}>Open</Text><Ionicons name="arrow-forward" size={14} color={colors.inkSoft} /></Pressable>
+        <Pressable accessibilityRole="link" onPress={() => router.push(`/projects/${project.id}`)} style={styles.openLink}><Text style={styles.openText}>{t.strip.open}</Text><Ionicons name="arrow-forward" size={14} color={colors.inkSoft} /></Pressable>
       </View>
     </View>
   );

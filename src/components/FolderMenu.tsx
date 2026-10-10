@@ -2,11 +2,13 @@ import { useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+import { useT } from '@/i18n';
 
 export interface FolderMenuItem { label: string; icon: keyof typeof Ionicons.glyphMap | 'pin' | 'pin-off'; onPress: () => void; danger?: boolean }
 
 // The `…` menu on a folder card: a small floating sheet anchored to the button (same placement logic as the task row menu).
 export function FolderMenu({ label, items }: { label: string; items: FolderMenuItem[] }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const ref = useRef<View>(null);
@@ -31,7 +33,7 @@ export function FolderMenu({ label, items }: { label: string; items: FolderMenuI
       <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} onPress={show} hitSlop={6} style={styles.more}><Ionicons name="ellipsis-horizontal" size={19} color={colors.muted} /></Pressable>
       {open ? (
         <Modal transparent visible animationType="none" onRequestClose={() => setOpen(false)}>
-          <Pressable accessibilityLabel="Close menu" style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
+          <Pressable accessibilityLabel={t.tasks.closeMenu} style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} />
           <View style={[styles.actions, { top, right }]}>
             {items.map((item) => (
               <Pressable key={item.label} accessibilityRole="button" onPress={() => { setOpen(false); item.onPress(); }} style={styles.action}>

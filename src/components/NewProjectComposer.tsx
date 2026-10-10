@@ -7,6 +7,7 @@ import type { Category, CategoryId, Project } from '@/domain/types';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useDaymarkTheme } from '@/theme/useDaymarkTheme';
 import { DatePickerModal } from './DatePickerModal';
+import { useFormat, useT } from '@/i18n';
 
 interface NewProjectComposerProps {
   categories: Category[];
@@ -16,6 +17,8 @@ interface NewProjectComposerProps {
 
 // New folder: a title and a list are enough. A deadline is a quiet, optional add-on; "Pin to Today" defaults off.
 export function NewProjectComposer({ categories, projects, onCreate }: NewProjectComposerProps) {
+  const t = useT();
+  const fmt = useFormat();
   const { colors: themeColors, category } = useDaymarkTheme();
   const activeCategories = selectActiveCategories(categories);
   // Preselect the list of the most recently created folder (projects are appended on creation), else the first active list.
@@ -38,40 +41,40 @@ export function NewProjectComposer({ categories, projects, onCreate }: NewProjec
 
   return (
     <>
-      <Pressable accessibilityLabel="New folder" onPress={() => { setCategoryId(defaultCategoryId); setOpen(true); }} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
+      <Pressable accessibilityLabel={t.folders.newFolder} onPress={() => { setCategoryId(defaultCategoryId); setOpen(true); }} style={[styles.trigger, { borderColor: themeColors.line, backgroundColor: themeColors.paper }]}>
         <Ionicons name="add" size={17} color={themeColors.ink} />
-        <Text style={[styles.triggerText, { color: themeColors.ink }]}>New folder</Text>
+        <Text style={[styles.triggerText, { color: themeColors.ink }]}>{t.folders.newFolder}</Text>
       </Pressable>
       {open ? (
         <Modal transparent visible animationType="fade" onRequestClose={reset}>
           <View style={styles.shade}>
             <View style={styles.card}>
-              <View style={styles.cardHeader}><Text style={styles.cardTitle}>New folder</Text><Pressable accessibilityLabel="Close" onPress={reset}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
-              <TextInput autoFocus value={title} onChangeText={setTitle} onSubmitEditing={submit} placeholder="Folder name" placeholderTextColor={colors.muted} style={styles.input} />
-              <Text style={styles.label}>List</Text>
-              <View style={styles.categories}>{activeCategories.map((item) => { const palette = category(item); const selected = item.id === categoryId; return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Choose ${item.name} list`} accessibilityState={{ selected }} onPress={() => setCategoryId(item.id)} style={[styles.categoryChip, { backgroundColor: selected ? palette.soft : colors.track }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={[styles.categoryText, { color: selected ? palette.ink : colors.muted }]}>{item.name}</Text></Pressable>; })}</View>
+              <View style={styles.cardHeader}><Text style={styles.cardTitle}>{t.folders.newFolder}</Text><Pressable accessibilityLabel={t.common.close} onPress={reset}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
+              <TextInput autoFocus value={title} onChangeText={setTitle} onSubmitEditing={submit} placeholder={t.folders.folderName} placeholderTextColor={colors.muted} style={styles.input} />
+              <Text style={styles.label}>{t.folders.list}</Text>
+              <View style={styles.categories}>{activeCategories.map((item) => { const palette = category(item); const selected = item.id === categoryId; return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={t.folders.chooseList(item.name)} accessibilityState={{ selected }} onPress={() => setCategoryId(item.id)} style={[styles.categoryChip, { backgroundColor: selected ? palette.soft : colors.track }]}><View style={[styles.dot, { backgroundColor: palette.solid }]} /><Text style={[styles.categoryText, { color: selected ? palette.ink : colors.muted }]}>{item.name}</Text></Pressable>; })}</View>
               <View style={styles.deadlineRow}>
                 <Ionicons name="calendar-outline" size={16} color={colors.muted} />
                 {deadline ? (
                   <>
-                    <Text style={styles.deadlineText}>Due {format(new Date(`${deadline}T00:00:00`), 'EEE, MMM d')}</Text>
-                    <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Change</Text></Pressable>
-                    <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setDeadline(undefined)}><Text style={styles.link}>Clear</Text></Pressable>
+                    <Text style={styles.deadlineText}>{t.folders.dueOn(fmt(new Date(`${deadline}T00:00:00`), 'weekdayShortMonthDay'))}</Text>
+                    <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>{t.folders.change}</Text></Pressable>
+                    <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setDeadline(undefined)}><Text style={styles.link}>{t.folders.clear}</Text></Pressable>
                   </>
-                ) : <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>Add deadline</Text></Pressable>}
+                ) : <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setPickerOpen(true)}><Text style={styles.link}>{t.folders.addDeadline}</Text></Pressable>}
               </View>
               <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: pinned }} onPress={() => setPinned(!pinned)} style={styles.pinRow}>
                 <Ionicons name={pinned ? 'checkbox' : 'square-outline'} size={20} color={pinned ? colors.ink : colors.muted} />
-                <Text style={styles.deadlineText}>Pin to Today</Text>
+                <Text style={styles.deadlineText}>{t.folders.pinToToday}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" disabled={!title.trim()} onPress={submit} style={[styles.save, !title.trim() && styles.saveDisabled]}>
-                <Text style={styles.saveText}>Create folder</Text>
+                <Text style={styles.saveText}>{t.folders.createFolder}</Text>
               </Pressable>
             </View>
           </View>
         </Modal>
       ) : null}
-      {pickerOpen ? <DatePickerModal title="Set a deadline" initialMonth={deadline ? new Date(`${deadline}T00:00:00`) : new Date()} onPick={(date) => { setDeadline(date); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} /> : null}
+      {pickerOpen ? <DatePickerModal title={t.folders.setDeadline} initialMonth={deadline ? new Date(`${deadline}T00:00:00`) : new Date()} onPick={(date) => { setDeadline(date); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} /> : null}
     </>
   );
 }
