@@ -21,7 +21,7 @@ Everything here ships to the PWA immediately, so the owner can use it during the
   - the fullest day.
   
   Unfinished work is never counted or shown here. The Sunday-evening recap notification (C2) opens this screen.
-- **A2 Data export and import.** A full JSON backup that can be imported back, plus a CSV of tasks for spreadsheets. Both live in Settings → Data, and both work signed out.
+- **A2 Data export and import.** A full JSON backup that can be imported back, plus a CSV of tasks for spreadsheets. Both live in Settings → Data, and both work signed out. **Built 2026-10-10:** `src/domain/backup.ts` (pure), `src/platform/files.ts` (web Blob/input; native expo-file-system, expo-sharing, expo-document-picker, untested until the iOS phase), store action `importBackup`, UI in `app/settings.tsx`.
 - **A3 English and Korean.**
   - String dictionaries plus the date-fns `ko` locale.
   - Language follows the device by default, with an override in Settings.

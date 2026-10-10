@@ -88,6 +88,11 @@ Code is in `src/sync/`. `merge.ts` holds the pure rules (diffing, `decideRemote`
 - **First sign-in on a device.** Every local item is marked dirty at epoch time, so any server copy of the same id wins and only local-only items are uploaded. Default lists share ids across devices and merge. A different user signing in resets this state.
 - **Ids** are `prefix-<time36>-<random>` so two devices never collide. Conflict rule is last-writer-wins per item by client timestamp (device clock skew is accepted).
 
+
+### Backup and export
+
+Settings → Data (works signed out). `src/domain/backup.ts` builds `{ app: 'daymark', format: 1, exportedAt, data: { categories, projects, tasks, routines, timeBlocks, dayMarkVariant, customMark?, calendarFeeds } }` and parses it defensively (rejects other `app` values and future `format`; drops malformed items, duplicate ids and items pointing at missing lists, folders or tasks). The backup contains calendar feed URLs, which are secrets. `importBackup` is a full replace done in one normal `set()`, so the sync engine's reference diff sees every imported item as an upsert and every item that disappeared as a tombstone; device-local prefs (collapsed lists, carryover dismissals) are kept, `onboardingDone` becomes true and `selectedTodayDate` resets to today. `tasksToCsv` writes a UTF-8 BOM, CRLF rows and neutralises formula-leading cells; CSV is export-only. File I/O is in `src/platform/files.ts`.
+
 ## Important edge cases
 
 - A TimeBlock ending does not complete its Task.

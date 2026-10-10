@@ -7,13 +7,29 @@ import { checkFeedUrl } from '@/calendar/feedUrl';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { DayOrbit } from '@/components/DayOrbit';
 import { PressableScale } from '@/components/PressableScale';
+import { buildBackup, countsLine, parseBackup, tasksToCsv, BACKUP_COPY, type Backup, type BackupCounts } from '@/domain/backup';
 import { confirmAction } from '@/domain/confirm';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
+import { pickJsonText, saveTextFile } from '@/platform/files';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { signIn, signOut, signUp, syncNow } from '@/sync/engine';
 import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
+
+const DATA_COPY = {
+  exportBackup: 'Export backup (JSON)',
+  exportBackupHint: 'A full copy of your lists, folders, tasks, routines and settings that you can import again.',
+  exportBackupNote: 'Includes your calendar feed links — keep the file private.',
+  exportCsv: 'Export tasks (CSV)',
+  exportCsvHint: 'One row per task, for spreadsheets. Export only; it cannot be imported back.',
+  importBackup: 'Import backup',
+  importBackupHint: 'Restore from a Daymark backup file.',
+  replaceWarning: "This replaces everything on this device. If you're signed in, your other devices will match it too.",
+  replace: 'Replace',
+  cancel: 'Cancel',
+  exportFailed: "The file couldn't be saved. Please try again.",
+};
 
 function syncLine({ status, lastSyncedAt, error }: ReturnType<typeof useSyncStatus.getState>) {
   if (status === 'syncing') return 'Syncing…';
@@ -21,6 +37,63 @@ function syncLine({ status, lastSyncedAt, error }: ReturnType<typeof useSyncStat
   if (status === 'error') return error ?? 'Sync failed.';
   if (!lastSyncedAt) return 'Not synced yet';
   return Date.now() - lastSyncedAt < 60_000 ? 'Synced just now' : `Synced at ${format(lastSyncedAt, 'h:mm a')}`;
+}
+
+function DataSection() {
+  const [pending, setPending] = useState<{ backup: Backup; counts: BackupCounts }>();
+  const [message, setMessage] = useState<string>();
+
+  const exportBackup = () => {
+    const { categories, projects, tasks, routines, timeBlocks, dayMarkVariant, customMark, calendarFeeds } = useDaymarkStore.getState();
+    const backup = buildBackup({ categories, projects, tasks, routines, timeBlocks, dayMarkVariant, customMark, calendarFeeds });
+    setMessage(undefined);
+    saveTextFile(`daymark-backup-${format(new Date(), 'yyyy-MM-dd')}.json`, JSON.stringify(backup, null, 2), 'application/json').catch(() => setMessage(DATA_COPY.exportFailed));
+  };
+  const exportCsv = () => {
+    const { categories, projects, tasks, routines } = useDaymarkStore.getState();
+    setMessage(undefined);
+    saveTextFile(`daymark-tasks-${format(new Date(), 'yyyy-MM-dd')}.csv`, tasksToCsv(tasks, categories, projects, routines), 'text/csv').catch(() => setMessage(DATA_COPY.exportFailed));
+  };
+  const pick = async () => {
+    setPending(undefined);
+    setMessage(undefined);
+    try {
+      const text = await pickJsonText();
+      if (text === undefined) return;
+      const parsed = parseBackup(text);
+      if (parsed.ok) setPending({ backup: parsed.backup, counts: parsed.counts }); else setMessage(parsed.reason);
+    } catch { setMessage(BACKUP_COPY.unreadable); }
+  };
+  const replace = () => {
+    if (!pending) return;
+    useDaymarkStore.getState().importBackup(pending.backup.data);
+    setPending(undefined);
+  };
+
+  return (
+    <View style={styles.section}>
+      <Pressable accessibilityRole="button" onPress={exportBackup} style={[styles.row, styles.rowBorder]}>
+        <View style={styles.rowCopy}><Text style={styles.rowTitle}>{DATA_COPY.exportBackup}</Text><Text style={styles.rowHint}>{DATA_COPY.exportBackupHint}</Text><Text style={styles.rowHint}>{DATA_COPY.exportBackupNote}</Text></View>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={exportCsv} style={[styles.row, styles.rowBorder]}>
+        <View style={styles.rowCopy}><Text style={styles.rowTitle}>{DATA_COPY.exportCsv}</Text><Text style={styles.rowHint}>{DATA_COPY.exportCsvHint}</Text></View>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { void pick(); }} style={[styles.row, (pending || message) && styles.rowBorder]}>
+        <View style={styles.rowCopy}><Text style={styles.rowTitle}>{DATA_COPY.importBackup}</Text><Text style={styles.rowHint}>{DATA_COPY.importBackupHint}</Text></View>
+      </Pressable>
+      {message ? <View style={styles.row}><Text accessibilityLiveRegion="polite" style={[styles.rowHint, styles.danger]}>{message}</Text></View> : null}
+      {pending ? (
+        <View style={styles.form}>
+          <Text style={styles.rowTitle}>{countsLine(pending.counts, pending.backup.exportedAt)}</Text>
+          <Text accessibilityLiveRegion="polite" style={styles.rowHint}>{DATA_COPY.replaceWarning}</Text>
+          <View style={styles.buttons}>
+            <Pressable accessibilityRole="button" onPress={replace} style={({ pressed }) => [styles.button, styles.buttonPrimary, pressed && styles.pressed]}><Text style={[styles.buttonText, styles.buttonPrimaryText]}>{DATA_COPY.replace}</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setPending(undefined)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Text style={styles.buttonText}>{DATA_COPY.cancel}</Text></Pressable>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function AccountSection() {
@@ -239,6 +312,7 @@ export default function SettingsScreen() {
           <View style={styles.rowCopy}><Text style={[styles.rowTitle, styles.danger]}>Erase all data</Text><Text style={styles.rowHint}>Clear all folders, tasks, and time blocks back to empty.{signedIn ? ' Also erases them on your other devices.' : ''}</Text></View>
         </Pressable>
       </View>
+      <DataSection />
       <Pressable onPress={() => { setOnboardingDone(false); router.replace('/welcome'); }}><Text style={styles.back}>Replay welcome</Text></Pressable>
       <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
       <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable>

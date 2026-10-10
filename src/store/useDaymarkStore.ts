@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { format, parseISO, setHours } from 'date-fns';
+import type { BackupData } from '@/domain/backup';
 import { isCustomMark, toCustomMark, type MarkPath } from '@/domain/markPath';
 import type { CalendarEvent, CalendarFeed, CalendarView, Category, CategoryId, CustomMark, DayMarkVariant, Project, Routine, RoutineRepeat, Task, TimeBlock } from '@/domain/types';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
@@ -97,6 +98,7 @@ interface DaymarkState {
   applyFeedEvents: (feedIds: string[], windowStart: string, windowEnd: string, loaded: CalendarEvent[], errors: Record<string, string>) => void;
   loadSampleData: () => void;
   eraseAllData: () => void;
+  importBackup: (data: BackupData) => void;
   applyRemoteItems: (changes: RemoteChange[]) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
@@ -428,6 +430,12 @@ export const useDaymarkStore = create<DaymarkState>()(
         };
       }),
       eraseAllData: () => set((state) => ({ projects: [], tasks: [], timeBlocks: [], events: state.events.filter((event) => event.provider !== 'mock'), lastDeleted: null, toast: null })),
+      // Full replace from a validated backup (see src/domain/backup.ts). One normal set(), so the sync engine diffs it like any edit. Device-local UI prefs are left alone.
+      importBackup: (data) => set({
+        categories: data.categories, projects: data.projects, tasks: data.tasks, routines: data.routines, timeBlocks: data.timeBlocks,
+        dayMarkVariant: data.dayMarkVariant, customMark: data.customMark, calendarFeeds: data.calendarFeeds,
+        onboardingDone: true, selectedTodayDate: todayKey(), lastDeleted: null, toast: makeToast('Backup restored', false),
+      }),
       // Synced rows from another device. Upserts/removes by id per kind; leaves `order` and all derived rules alone.
       applyRemoteItems: (changes) => set((state) => {
         const of = (kind: RemoteChange['kind']) => changes.filter((change) => change.kind === kind);
