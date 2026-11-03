@@ -37,6 +37,8 @@ Everything here ships to the PWA immediately, so the owner can use it during the
   - Light parsing in `src/domain/quickAdd.ts`: "tomorrow"/"내일", weekday names, "#list", "@folder", with a live "how it will be filed" line.
   - Default target: today, in the last-used list.
 
+> **Status 2026-11-03:** Phase A is done. The owner is keeping Daymark as a web app for daily use and parking Phases B–D (App Store) for now; sign-ups stay open. Resume from Phase B if launch comes back.
+
 ## Phase B — accounts and privacy
 
 - **B1 Email that actually sends.**
