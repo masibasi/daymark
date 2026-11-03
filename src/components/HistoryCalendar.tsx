@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -26,12 +27,12 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpa
 
   const days = expanded
     ? eachDayOfInterval({
-      start: startOfWeek(startOfMonth(selectedDate), { weekStartsOn: 0 }),
-      end: endOfWeek(endOfMonth(selectedDate), { weekStartsOn: 0 }),
+      start: startOfWeek(startOfMonth(selectedDate), WEEK_OPTIONS),
+      end: endOfWeek(endOfMonth(selectedDate), WEEK_OPTIONS),
     })
     : eachDayOfInterval({
-      start: startOfWeek(selectedDate, { weekStartsOn: 0 }),
-      end: endOfWeek(selectedDate, { weekStartsOn: 0 }),
+      start: startOfWeek(selectedDate, WEEK_OPTIONS),
+      end: endOfWeek(selectedDate, WEEK_OPTIONS),
     });
 
   const goToPrevious = () => onSelectDate(expanded ? subMonths(selectedDate, 1) : subWeeks(selectedDate, 1));

@@ -18,6 +18,7 @@ type LastDeleted =
   | { kind: 'routine'; routine: Routine; index: number }
   | { kind: 'archive'; project: Project }
   | { kind: 'move'; task: Task; project: Project };
+export type TipId = 'tasks' | 'folders' | 'dayMark' | 'reflect';
 export interface Toast { id: number; message: string; undoable: boolean }
 
 interface DaymarkState {
@@ -49,6 +50,14 @@ interface DaymarkState {
   // First-run flow (/welcome) finished or skipped; device-local, never synced. Existing users count as done (see migrate).
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
+  // First-use tips the person has dismissed (each shows once, inline). Device-local, never synced.
+  tipsSeen: TipId[];
+  // Lab screens unlocked on this device via `?lab=1` (see src/platform/labs.ts). Device-local, never synced.
+  labsUnlocked: boolean;
+  setLabsUnlocked: (unlocked: boolean) => void;
+  dismissTip: (id: TipId) => void;
+  // The list quick add (and inline add) last filed into; quick add defaults to it. Device-local, never synced.
+  lastUsedListId?: string;
   // Past days whose "unfinished from …" banner the user dismissed (last 14 kept).
   carryoverDismissed: string[];
   lastDeleted: LastDeleted | null;
@@ -59,6 +68,8 @@ interface DaymarkState {
   setCalendarView: (view: CalendarView) => void;
   setCalendarDate: (date: string) => void;
   addTask: (title: string, categoryId: Task['categoryId']) => void;
+  // Quick add: a task on an explicit day (addTask uses the day being viewed).
+  addTaskOnDate: (title: string, categoryId: Task['categoryId'], date: string) => void;
   addCategory: (name: string, colorKey?: CategoryColorKey) => void;
   updateCategory: (id: CategoryId, patch: { name?: string; colorKey?: CategoryColorKey; color?: string | null }) => void;
   moveCategory: (id: CategoryId, direction: -1 | 1) => void;
@@ -93,7 +104,8 @@ interface DaymarkState {
   moveTaskToFolder: (taskId: string, projectId: string) => boolean;
   dismissCarryover: (day: string) => void;
   deleteProject: (projectId: string) => void;
-  addProjectTask: (projectId: string, title: string) => void;
+  // `date`: also plan the step on that day (the same Task, still in its folder).
+  addProjectTask: (projectId: string, title: string, date?: string) => void;
   deleteTask: (taskId: string) => void;
   renameTask: (taskId: string, title: string) => void;
   addCalendarFeed: (name: string, url: string) => void;
@@ -107,7 +119,7 @@ interface DaymarkState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-const STORAGE_VERSION = 10;
+const STORAGE_VERSION = 11;
 const LANGUAGES: Language[] = ['system', 'en', 'ko'];
 
 let toastCounter = 0;
@@ -173,6 +185,10 @@ export const useDaymarkStore = create<DaymarkState>()(
       setLanguage: (language) => { setActiveLanguage(language); set({ language }); },
       onboardingDone: false,
       setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
+      tipsSeen: [],
+      labsUnlocked: false,
+      setLabsUnlocked: (labsUnlocked) => set({ labsUnlocked }),
+      dismissTip: (id) => set((state) => (state.tipsSeen.includes(id) ? state : { tipsSeen: [...state.tipsSeen, id] })),
       carryoverDismissed: [],
       lastDeleted: null,
       toast: null,
@@ -195,7 +211,13 @@ export const useDaymarkStore = create<DaymarkState>()(
       setCalendarDate: (calendarDate) => set({ calendarDate }),
       addTask: (title, categoryId) => set((state) => ({
         tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId, scheduledDate: state.selectedTodayDate, order: nextOrder(state.tasks, state.selectedTodayDate, categoryId) }],
+        lastUsedListId: categoryId,
       })),
+      addTaskOnDate: (title, categoryId, date) => set((state) => {
+        const day = format(parseISO(date), 'yyyy-MM-dd');
+        if (!title.trim() || !state.categories.some((category) => category.id === categoryId && !category.archived)) return state;
+        return { tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId, scheduledDate: day, order: nextOrder(state.tasks, day, categoryId) }], lastUsedListId: categoryId };
+      }),
       addCategory: (name, colorKey) => set((state) => {
         if (!name.trim()) return state;
         const order = state.categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
@@ -384,11 +406,12 @@ export const useDaymarkStore = create<DaymarkState>()(
           timeBlocks: state.timeBlocks.filter((block) => !taskIds.has(block.taskId)),
         };
       }),
-      addProjectTask: (projectId, title) => set((state) => {
+      addProjectTask: (projectId, title, date) => set((state) => {
         const project = state.projects.find((item) => item.id === projectId);
         if (!project || !title.trim()) return state;
+        const day = date ? format(parseISO(date), 'yyyy-MM-dd') : undefined;
         return {
-          tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId }],
+          tasks: [...state.tasks, { id: newId('task'), title: title.trim(), categoryId: project.categoryId, projectId, ...(day ? { scheduledDate: day, order: nextOrder(state.tasks, day, project.categoryId) } : {}) }],
           projects: project.completionAcknowledged ? state.projects.map((item) => item.id === projectId ? { ...item, completionAcknowledged: false } : item) : state.projects,
         };
       }),
@@ -481,12 +504,15 @@ export const useDaymarkStore = create<DaymarkState>()(
         dayMarkCollapsedDesktop: state.dayMarkCollapsedDesktop,
         scheduleCollapsed: state.scheduleCollapsed,
         onboardingDone: state.onboardingDone,
+        tipsSeen: state.tipsSeen,
+        labsUnlocked: state.labsUnlocked,
+        lastUsedListId: state.lastUsedListId,
         language: state.language,
       }),
       // v1 -> v2: shapes are compatible; make sure every category has an `order` and routines exist.
       // v2 -> v3: Task.order optional; v3 -> v4: calendarFeeds defaults to []; v4 -> v5: folders (Project.deadline optional, pinned/order/archivedAt,
       // Task.missedOn, carryoverDismissed). Existing projects keep their deadlines and get `order` by deadline.
-      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields); customMark later gained an optional `strokes` array (multi-stroke drawings) with the first stroke still in points/closed, so it is backward compatible and needs no version bump. v8 -> v9: onboardingDone (device-local); anyone with data already is marked done. v9 -> v10: language ('system' | 'en' | 'ko', device-local, never synced); pass-through, a missing value falls back to the 'system' default and is checked on rehydrate.
+      // v5 -> v6: Routine.repeat optional (missing = daily); pass-through. v6 -> v7: collapsedListIds (device-local, defaults to []); pass-through. v7 -> v8: optional customMark; pass-through (the migrate spreads unknown fields); customMark later gained an optional `strokes` array (multi-stroke drawings) with the first stroke still in points/closed, so it is backward compatible and needs no version bump. v8 -> v9: onboardingDone (device-local); anyone with data already is marked done. v9 -> v10: language ('system' | 'en' | 'ko', device-local, never synced); pass-through, a missing value falls back to the 'system' default and is checked on rehydrate. v10 -> v11: tipsSeen (first-use tips, device-local) and lastUsedListId (quick add) and labsUnlocked (the `?lab=1` flag); pass-through, but anyone who already has tasks, folders or completions is marked as having seen the matching tips so they are not taught what they already know.
       migrate: (persisted, version) => {
         let old = (persisted ?? {}) as Partial<DaymarkState>;
         if (version === 1 && Array.isArray(old.categories)) {
@@ -503,6 +529,13 @@ export const useDaymarkStore = create<DaymarkState>()(
         if (typeof old.onboardingDone !== 'boolean') {
           const hasData = (old.tasks?.length ?? 0) > 0 || (old.projects?.length ?? 0) > 0 || (old.routines?.length ?? 0) > 0 || !!old.customMark || (!!old.dayMarkVariant && old.dayMarkVariant !== 'doodle');
           old = { ...old, onboardingDone: hasData };
+        }
+        if (!Array.isArray(old.tipsSeen)) {
+          const seen: TipId[] = [];
+          if ((old.tasks?.length ?? 0) > 0) seen.push('tasks', 'folders');
+          else if ((old.projects?.length ?? 0) > 0) seen.push('folders');
+          if (old.tasks?.some((task) => task.completedAt)) seen.push('dayMark');
+          old = { ...old, tipsSeen: seen };
         }
         return old as DaymarkState;
       },

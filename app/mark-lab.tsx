@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
+import { useLabsEnabled } from '@/platform/labs';
 import { parseISO } from 'date-fns';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import { selectDayOrbit } from '@/domain/selectors';
@@ -60,7 +61,7 @@ const toneSamples: Project[] = [
   { days: 0, title: 'Due today · rose', categoryId: 'routine' as const },
 ].map((sample) => ({ id: `tone-${sample.days}`, title: sample.title, categoryId: sample.categoryId, deadline: format(addDays(prototypeDate, sample.days), 'yyyy-MM-dd'), status: 'active' }));
 
-export default function DayMarkLab() {
+function DayMarkLab() {
   const { width } = useWindowDimensions();
   const wide = width >= 1000;
   const tasks = useDaymarkStore((s) => s.tasks);
@@ -182,3 +183,8 @@ const styles = StyleSheet.create({
   darkPanel: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', backgroundColor: darkColors.canvas, borderRadius: radius.md, padding: space.md },
   footer: { ...type.meta, color: colors.muted, marginTop: space.xl, fontFamily },
 });
+
+// Labs are development-only unless unlocked with ?lab=1 (see src/platform/labs.ts).
+export default function DayMarkLabRoute() {
+  return useLabsEnabled() ? <DayMarkLab /> : <Redirect href="/settings" />;
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
+import { useLabsEnabled } from '@/platform/labs';
 import { PressableScale } from '@/components/PressableScale';
 import { StudyPhone } from '@/components/style-lab/StudyPhone';
 import { studyDirections, type StudyDirection, type StudyScheme } from '@/theme/styleStudies';
@@ -20,7 +21,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   );
 }
 
-export default function StyleLab() {
+function StyleLab() {
   const { width } = useWindowDimensions();
   const wide = width >= 760;
   const [pick, setPick] = useState<Pick>('all');
@@ -78,3 +79,8 @@ const styles = StyleSheet.create({
   caption: { ...type.body, color: colors.inkSoft, marginTop: space.md, fontFamily },
   note: { ...type.meta, color: colors.muted, textAlign: 'center', marginTop: space.md, fontFamily },
 });
+
+// Labs are development-only unless unlocked with ?lab=1 (see src/platform/labs.ts).
+export default function StyleLabRoute() {
+  return useLabsEnabled() ? <StyleLab /> : <Redirect href="/settings" />;
+}

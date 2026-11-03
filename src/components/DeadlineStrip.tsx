@@ -10,6 +10,7 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { useCategoryPalette } from '@/store/useCategoryPalette';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { FolderCompletionRow } from './FolderCompletionRow';
+import { Tip } from './Tip';
 import { TaskDragContext, useDragStore } from './useTaskDrag';
 import { useT } from '@/i18n';
 
@@ -38,6 +39,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
   const trackProps = vertical ? { style: styles.trackVertical } : { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.track };
   return (
     <View>
+    {projects.length > 0 ? <Tip id="folders" /> : null}
     <Track {...trackProps}>
       {projects.map((project) => {
         const days = project.deadline ? selectDeadlineDays(project.deadline, now) : undefined;
@@ -73,6 +75,7 @@ export function DeadlineStrip({ projects, tasks, now, compact: compactProp, vert
           </View>
         ) : card;
       })}
+      {projects.length === 0 ? <Text style={[styles.emptyNote, vertical && styles.emptyNoteVertical]}>{t.strip.empty}</Text> : null}
       <Pressable accessibilityRole="link" onPress={() => router.push('/projects')} style={({ pressed }) => [styles.allLink, vertical && styles.allLinkVertical, pressed && styles.pressed]}>
         <Text style={styles.allText}>{t.strip.allFolders}</Text>
         <Ionicons name="arrow-forward" size={13} color={colors.muted} />
@@ -148,6 +151,8 @@ function DeadlinePanel({ project, tasks, now, inline, headless }: { project: Pro
 const styles = StyleSheet.create({
   track: { gap: space.sm, paddingRight: space.lg },
   trackVertical: { gap: space.xs },
+  emptyNote: { alignSelf: 'center', ...type.meta, color: colors.muted, fontFamily },
+  emptyNoteVertical: { alignSelf: 'flex-start', paddingHorizontal: space.xxs },
   itemVertical: { width: '100%' },
   itemVerticalOpen: { borderWidth: 0, backgroundColor: 'transparent' },
   group: { borderWidth: 1, borderRadius: radius.md, backgroundColor: colors.paper, overflow: 'hidden' },

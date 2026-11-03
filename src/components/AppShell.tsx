@@ -1,5 +1,5 @@
-import { PropsWithChildren } from 'react';
-import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { PropsWithChildren, useCallback, useEffect, useState } from 'react';
+import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { useSyncStatus } from '@/sync/syncStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useKeyboardVisible } from '@/theme/useKeyboardVisible';
 import { PressableScale } from './PressableScale';
+import { QuickAdd } from './QuickAdd';
 import { UndoToast } from './UndoToast';
 import { useT } from '@/i18n';
 
@@ -28,12 +29,38 @@ export function AppShell({ children }: PropsWithChildren) {
   const desktop = width >= 760;
   const keyboardVisible = useKeyboardVisible();
   const showBottomNav = !desktop && !keyboardVisible;
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const closeQuickAdd = useCallback(() => setQuickAddOpen(false), []);
+
+  // Web: N opens quick add, unless a field has focus or a modifier is held. `code` so it also works under the Korean input method.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || pathname === '/welcome') return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.isComposing || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.code !== 'KeyN' && event.key.toLowerCase() !== 'n') return;
+      const target = event.target as HTMLElement | null;
+      if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) return;
+      event.preventDefault();
+      setQuickAddOpen(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pathname]);
 
   // The Today tab always lands on today, even when another day was being viewed.
   const backToToday = () => setSelectedTodayDate(todayKey());
   const nav = (
     <View style={desktop ? styles.sideNav : [styles.bottomNav, { paddingBottom: Math.max(insets.bottom, space.xs) }]}>
       {desktop ? <Image source={require('../../assets/brand-mark.png')} accessibilityLabel="Daymark" style={styles.brandMark} /> : null}
+      {desktop ? (
+        <Pressable
+          ref={(node) => { if (Platform.OS === 'web' && node) (node as unknown as HTMLElement).title = t.quickAdd.open; }}
+          accessibilityRole="button" accessibilityLabel={t.quickAdd.open} onPress={() => setQuickAddOpen(true)}
+          style={({ pressed }) => [styles.quickAdd, pressed && styles.pressed]}
+        >
+          <Ionicons name="add" size={20} color={colors.inkSoft} />
+        </Pressable>
+      ) : null}
       <View style={desktop ? styles.sideItems : styles.bottomItems}>
         {navItems.map((item) => {
           const active = item.href === '/' ? pathname === '/' || pathname === '/lists' : pathname.startsWith(item.href);
@@ -62,6 +89,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <View style={[styles.root, { paddingTop: desktop ? 0 : insets.top }]}>
       {desktop ? nav : null}
       <View style={[styles.content, showBottomNav && { paddingBottom: 72 + insets.bottom }]}>{children}<UndoToast bottom={showBottomNav ? 72 + insets.bottom + space.sm : space.lg} /></View>
+      <QuickAdd open={quickAddOpen} onClose={closeQuickAdd} />
       {showBottomNav ? nav : null}
     </View>
   );
@@ -72,6 +100,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, minWidth: 0 },
   sideNav: { width: 86, paddingVertical: space.lg, alignItems: 'center', borderRightWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.paper },
   brandMark: { width: 42, height: 42, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.white },
+  quickAdd: { width: 36, height: 36, marginTop: space.lg, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.canvas },
   sideItems: { flex: 1, justifyContent: 'center', gap: space.md },
   bottomNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, paddingTop: space.xs, backgroundColor: colors.paper, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
   bottomItems: { flexDirection: 'row' },

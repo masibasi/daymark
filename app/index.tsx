@@ -3,6 +3,7 @@ import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowD
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { addWeeks, endOfWeek, format, isSameDay, parseISO, startOfWeek, subWeeks } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import { DeadlineStrip } from '@/components/DeadlineStrip';
 import { CarryoverBanner } from '@/components/CarryoverBanner';
 import { Collapsible } from '@/components/Collapsible';
@@ -16,6 +17,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipePager } from '@/components/SwipePager';
 import { TodaySchedule } from '@/components/TodaySchedule';
 import { TaskSection } from '@/components/TaskSection';
+import { Tip } from '@/components/Tip';
 import { TaskDragContext, useTaskDragController } from '@/components/useTaskDrag';
 import { selectCompletedByCategoryOnDay, selectCompletedCountOnDay, selectDayComplete, selectLateCompletedCountOnDay, selectActiveCategories, selectCarryover, selectDayOrbit, selectEventsOnDay, selectGhostRoutines, selectMissedOnDay, selectRoutineMeta, selectRoutinesForList, selectTodayFolders, selectTodaySections, selectTodayTasks } from '@/domain/selectors';
 import { useCalendarEvents } from '@/calendar/useCalendarEvents';
@@ -62,6 +64,7 @@ export default function TodayScreen() {
   const toggleDayMark = useDaymarkStore((state) => state.toggleDayMarkDesktop);
   const toggleListCollapsed = useDaymarkStore((state) => state.toggleListCollapsed);
   const tasks = useDaymarkStore((state) => state.tasks);
+  const tasksTipSeen = useDaymarkStore((state) => state.tipsSeen.includes('tasks'));
   const selectedTodayDate = useDaymarkStore((state) => state.selectedTodayDate);
   const setSelectedTodayDate = useDaymarkStore((state) => state.setSelectedTodayDate);
   const events = useDaymarkStore((state) => state.events);
@@ -87,7 +90,7 @@ export default function TodayScreen() {
   const moveTaskToDate = useDaymarkStore((state) => state.moveTaskToDate);
   const deleteTask = useDaymarkStore((state) => state.deleteTask);
   const selectedDate = parseISO(selectedTodayDate);
-  useCalendarEvents(startOfWeek(subWeeks(selectedDate, 1), { weekStartsOn: 1 }), endOfWeek(addWeeks(selectedDate, 1), { weekStartsOn: 1 }));
+  useCalendarEvents(startOfWeek(subWeeks(selectedDate, 1), WEEK_OPTIONS), endOfWeek(addWeeks(selectedDate, 1), WEEK_OPTIONS));
   const dayTasks = selectTodayTasks(tasks, selectedDate);
   // A past day also remembers what was left undone on it (moved since): planned, never completed.
   const missed = selectMissedOnDay(tasks, selectedDate);
@@ -169,6 +172,7 @@ export default function TodayScreen() {
       ) : null}
       <FadeOnChange token={selectedTodayDate}>
           {phone ? null : <View style={styles.tasksHeader}><View><Text style={styles.sectionTitle}>{isToday ? t.today.todaysTasks : fmt(selectedDate, 'weekdayMonthDayShort')}</Text>{!isToday ? <Text style={styles.historyHint}>{t.today.historyHint}</Text> : null}</View><Text style={styles.taskCount}>{t.today.left(Math.max(0, planned - completed))}</Text></View>}
+          {isToday && sections.length > 0 ? (tasksTipSeen ? (tasks.some((task) => task.completedAt) ? <Tip id="dayMark" /> : null) : <Tip id="tasks" />) : null}
           {sections.map((group) => (
             <TaskSection
               key={group.category.id}

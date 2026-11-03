@@ -12,6 +12,7 @@ import { buildBackup, countsLine, parseBackup, tasksToCsv, type Backup, type Bac
 import { confirmAction } from '@/domain/confirm';
 import type { DayOrbitSegment } from '@/domain/selectors';
 import type { DayMarkVariant } from '@/domain/types';
+import { useLabsEnabled } from '@/platform/labs';
 import { pickJsonText, saveTextFile } from '@/platform/files';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { signIn, signOut, signUp, syncNow } from '@/sync/engine';
@@ -298,6 +299,7 @@ export default function SettingsScreen() {
   const eraseAllData = useDaymarkStore((state) => state.eraseAllData);
   const setOnboardingDone = useDaymarkStore((state) => state.setOnboardingDone);
   const signedIn = useSyncStatus((state) => state.status !== 'signedOut');
+  const labsEnabled = useLabsEnabled();
 
   const onLoadSample = async () => {
     const confirmed = await confirmAction(rows.loadSample, rows.loadSampleConfirm, rows.loadSample);
@@ -332,8 +334,8 @@ export default function SettingsScreen() {
       </View>
       <DataSection />
       <Pressable onPress={() => { setOnboardingDone(false); router.replace('/welcome'); }}><Text style={styles.back}>{rows.replayWelcome}</Text></Pressable>
-      <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable>
-      <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable>
+      {labsEnabled ? <Pressable onPress={() => router.push('/style-lab')}><Text style={styles.back}>Design studies</Text></Pressable> : null}
+      {labsEnabled ? <Pressable onPress={() => router.push('/mark-lab')}><Text style={styles.back}>Day Mark lab</Text></Pressable> : null}
       <Pressable onPress={() => router.back()}><Text style={styles.back}>{rows.goBack}</Text></Pressable>
     </ScrollView>
   );

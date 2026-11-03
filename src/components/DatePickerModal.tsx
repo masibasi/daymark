@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useFormat, useT } from '@/i18n';
 
@@ -16,7 +17,7 @@ export function DatePickerModal({ title, initialMonth, onPick, onClose }: DatePi
   const t = useT();
   const fmt = useFormat();
   const [month, setMonth] = useState(initialMonth);
-  const days = eachDayOfInterval({ start: startOfWeek(startOfMonth(month)), end: endOfWeek(endOfMonth(month)) });
+  const days = eachDayOfInterval({ start: startOfWeek(startOfMonth(month), WEEK_OPTIONS), end: endOfWeek(endOfMonth(month), WEEK_OPTIONS) });
 
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>

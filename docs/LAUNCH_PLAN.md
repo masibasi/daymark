@@ -26,14 +26,15 @@ Everything here ships to the PWA immediately, so the owner can use it during the
   - String dictionaries plus the date-fns `ko` locale.
   - Language follows the device by default, with an override in Settings.
   - Korean copy is written, not machine-translated; it should sound as calm as the English.
-- **A4 Cleanup.**
+- **A4 Cleanup.** *Built 2026-11-03.*
   - Mock weather line removed (2026-10-06).
-  - Hide the lab screens from production Settings.
-  - Review the empty states.
-  - Add contextual first-use tips.
-- **A5 Quick add on the web.**
-  - A global shortcut (`N`) opens a single add field.
-  - Light parsing: "tomorrow"/"내일", "#list", "@folder".
+  - Week starts Monday everywhere (`src/domain/week.ts`: Today history, Calendar month, date pickers, weekday dictionary arrays).
+  - Lab screens (Design studies, Day Mark lab and their routes) are dev-only: `__DEV__`, or a `?lab=1` URL remembered per device (`src/platform/labs.ts`, store `labsUnlocked`). The draw-mark screen stays public.
+  - Empty states reviewed: Today's folder strip says what folders are for when there are none, the Schedule only offers "Connect a calendar" when no feed is on, and the Reflect empty line is one sentence.
+  - Four inline first-use tips (`src/components/Tip.tsx`, store `tipsSeen`): lists/drag, folders, Day Mark after the first check-off, Reflect.
+- **A5 Quick add on the web.** *Built 2026-11-03.*
+  - A global shortcut (`N`) opens a single add field (`src/components/QuickAdd.tsx`), also a "+" in the desktop side nav.
+  - Light parsing in `src/domain/quickAdd.ts`: "tomorrow"/"내일", weekday names, "#list", "@folder", with a live "how it will be filed" line.
   - Default target: today, in the last-used list.
 
 ## Phase B — accounts and privacy

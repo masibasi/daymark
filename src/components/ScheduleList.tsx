@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { selectTaskFromEvent } from '@/domain/selectors';
 import type { CalendarEvent, Category, Task } from '@/domain/types';
+import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, space, type } from '@/theme/tokens';
 import { useT } from '@/i18n';
 
@@ -20,12 +21,13 @@ interface ScheduleListProps {
 export function ScheduleList({ events, day, tasks, categories, onAdd }: ScheduleListProps) {
   const t = useT();
   const [openId, setOpenId] = useState<string | null>(null);
+  const hasFeeds = useDaymarkStore((state) => state.calendarFeeds.some((feed) => feed.enabled));
 
   if (events.length === 0) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>{t.calendar.noEvents}</Text>
-        <Link href="/settings" style={styles.emptyHint}>{t.calendar.connectInSettings}</Link>
+        {hasFeeds ? null : <Link href="/settings" style={styles.emptyHint}>{t.calendar.connectInSettings}</Link>}
       </View>
     );
   }

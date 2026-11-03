@@ -1,4 +1,5 @@
 import { addDays, differenceInCalendarDays, endOfWeek, format, isSameDay, isWithinInterval, parseISO, startOfDay, startOfWeek } from 'date-fns';
+import { WEEK_OPTIONS } from './week';
 import { listColors, type ListColors } from '@/theme/palette';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import type { CalendarEvent, Category, CategoryId, Project, Routine, RoutineRepeat, Task } from './types';
@@ -174,7 +175,7 @@ export function selectCompletedByCategoryOnDay(tasks: Task[], day: Date, categor
 
 // Completed tasks from this routine within the Mon-Sun week containing `day` (by completedAt).
 export function selectRoutineWeekDone(tasks: Task[], routineId: string, day: Date): number {
-  const interval = { start: startOfWeek(day, { weekStartsOn: 1 }), end: endOfWeek(day, { weekStartsOn: 1 }) };
+  const interval = { start: startOfWeek(day, WEEK_OPTIONS), end: endOfWeek(day, WEEK_OPTIONS) };
   return tasks.filter((task) => task.routineId === routineId && task.completedAt && isWithinInterval(parseISO(task.completedAt), interval)).length;
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfWeek, format, getHours, getMinutes, isSameDay, isSameWeek, parseISO, setHours, startOfWeek } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import { now } from '@/domain/clock';
 import { selectEventsOnDay } from '@/domain/selectors';
 import type { CalendarEvent, Task, TimeBlock } from '@/domain/types';
@@ -28,8 +29,8 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
   const fmt = useFormat();
   const compact = width < 680;
   const hourHeight = compact ? 62 : 70;
-  const weekStart = startOfWeek(anchor, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: endOfWeek(anchor, { weekStartsOn: 1 }) });
+  const weekStart = startOfWeek(anchor, WEEK_OPTIONS);
+  const weekDays = eachDayOfInterval({ start: weekStart, end: endOfWeek(anchor, WEEK_OPTIONS) });
   const days = compact ? weekDays.slice(0, 3) : weekDays;
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index);
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
@@ -37,7 +38,7 @@ export function WeekGrid({ anchor, events, blocks, tasks, onEventPress, onBlockP
   const weekKey = format(weekStart, 'yyyy-MM-dd');
   useEffect(() => {
     const current = now();
-    const hour = isSameWeek(anchor, current, { weekStartsOn: 1 }) ? Math.max(0, Math.min(getHours(current) - 1, 16)) : DEFAULT_HOUR;
+    const hour = isSameWeek(anchor, current, WEEK_OPTIONS) ? Math.max(0, Math.min(getHours(current) - 1, 16)) : DEFAULT_HOUR;
     const id = setTimeout(() => scroller.current?.scrollTo({ y: hour * hourHeight, animated: false }), 0);
     return () => clearTimeout(id);
   }, [weekKey, hourHeight]); // eslint-disable-line react-hooks/exhaustive-deps

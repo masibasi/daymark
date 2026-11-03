@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppShell } from '@/components/AppShell';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { startSync } from '@/sync/engine';
+import { unlockLabsFromUrl } from '@/platform/labs';
 import { colors } from '@/theme/tokens';
 
 // Installable web app: the service worker only passes through to the network and keeps an offline fallback page (public/sw.js).
@@ -27,7 +28,7 @@ export default function RootLayout() {
   const onboardingDone = useDaymarkStore((state) => state.onboardingDone);
   const pathname = usePathname();
 
-  useEffect(() => { if (hasHydrated) startSync(); }, [hasHydrated]);
+  useEffect(() => { if (hasHydrated) { startSync(); unlockLabsFromUrl(); } }, [hasHydrated]);
   // First run: new installs land on /welcome until they finish or skip it (existing users are marked done on migrate).
   useEffect(() => { if (hasHydrated && !onboardingDone && pathname !== '/welcome') router.replace('/welcome'); }, [hasHydrated, onboardingDone, pathname]);
   useEffect(registerServiceWorker, []);

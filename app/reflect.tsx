@@ -3,10 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isAfter, isSameDay, isSameMonth, isValid, parseISO, startOfDay, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import { DayOrbit } from '@/components/DayOrbit';
 import { FadeOnChange } from '@/components/FadeOnChange';
 import { PressableScale } from '@/components/PressableScale';
 import { SegmentedControl } from '@/components/SegmentedControl';
+import { Tip } from '@/components/Tip';
 import { now } from '@/domain/clock';
 import { selectDayOrbit, selectReflection, type Reflection } from '@/domain/selectors';
 import type { Category, Task } from '@/domain/types';
@@ -18,8 +20,7 @@ import { formatWith, useFormat, useLocale, useT } from '@/i18n';
 type Period = 'week' | 'month';
 
 const keyOf = (date: Date) => format(date, 'yyyy-MM-dd');
-// Monday-first, like the Calendar tab.
-const WEEK = { weekStartsOn: 1 } as const;
+const WEEK = WEEK_OPTIONS;
 
 function rangeFor(period: Period, anchor: Date) {
   return period === 'week' ? { start: startOfWeek(anchor, WEEK), end: endOfWeek(anchor, WEEK) } : { start: startOfMonth(anchor), end: endOfMonth(anchor) };
@@ -103,6 +104,8 @@ export default function ReflectScreen() {
           </View>
         </View>
         <View style={styles.segment}><SegmentedControl value={period} options={[{ value: 'week', label: t.reflect.week }, { value: 'month', label: t.reflect.month }]} onChange={changePeriod} /></View>
+
+        <Tip id="reflect" style={styles.tip} />
 
         <FadeOnChange token={`${period}-${keyOf(start)}`}>
           <Hero reflection={reflection} period={period} isCurrent={isCurrent} />
@@ -200,6 +203,7 @@ const styles = StyleSheet.create({
   iconButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   iconDisabled: { opacity: 0.35 },
   segment: { alignSelf: 'flex-start', marginTop: space.md },
+  tip: { marginTop: space.md, marginBottom: 0 },
   hero: { marginTop: space.xl },
   heroNumber: { fontSize: 52, lineHeight: 58, fontWeight: '700', letterSpacing: -1.6, color: colors.ink, fontFamily },
   heroSub: { ...type.body, color: colors.inkSoft, marginTop: space.xxs, fontFamily },

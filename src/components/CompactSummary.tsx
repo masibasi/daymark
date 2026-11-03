@@ -1,6 +1,7 @@
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { eachDayOfInterval, endOfWeek, isSameDay, startOfWeek } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import { now } from '@/domain/clock';
 import { selectDayComplete, selectDayOrbit } from '@/domain/selectors';
 import type { Category, Task } from '@/domain/types';
@@ -27,7 +28,7 @@ interface CompactSummaryProps {
 export function CompactSummary({ selectedDate, tasks, categories, completed, total, late = 0, expanded, onToggle, onSelectDate }: CompactSummaryProps) {
   const t = useT();
   const fmt = useFormat();
-  const week = eachDayOfInterval({ start: startOfWeek(selectedDate, { weekStartsOn: 0 }), end: endOfWeek(selectedDate, { weekStartsOn: 0 }) });
+  const week = eachDayOfInterval({ start: startOfWeek(selectedDate, WEEK_OPTIONS), end: endOfWeek(selectedDate, WEEK_OPTIONS) });
   const dayComplete = selectDayComplete(tasks, selectedDate, categories);
   const isToday = isSameDay(selectedDate, now());
   const turn = useToggleProgress(expanded, motion.base, true);

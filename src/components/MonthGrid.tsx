@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { WEEK_OPTIONS } from '@/domain/week';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
 import { selectDayComplete, selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -17,8 +18,8 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPres
   const categories = useDaymarkStore((state) => state.categories);
   const paletteFor = useCategoryPalette();
   const compact = width < 680;
-  const start = startOfWeek(startOfMonth(anchor), { weekStartsOn: 0 });
-  const end = endOfWeek(endOfMonth(anchor), { weekStartsOn: 0 });
+  const start = startOfWeek(startOfMonth(anchor), WEEK_OPTIONS);
+  const end = endOfWeek(endOfMonth(anchor), WEEK_OPTIONS);
   const days = eachDayOfInterval({ start, end });
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   return (
