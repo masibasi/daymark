@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
-import { WEEK_OPTIONS } from '@/domain/week';
+import { WEEK_DAY_ORDER, WEEK_OPTIONS } from '@/domain/week';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { useFormat, useT } from '@/i18n';
 
@@ -24,7 +24,7 @@ export function DatePickerModal({ title, initialMonth, onPick, onClose }: DatePi
       <View style={styles.modalShade}><View style={styles.picker}>
         <View style={styles.pickerHeader}><Text style={styles.pickerTitle}>{title}</Text><Pressable accessibilityLabel={t.folders.closeDatePicker} onPress={onClose}><Ionicons name="close" size={20} color={colors.ink} /></Pressable></View>
         <View style={styles.monthHeader}><Pressable accessibilityLabel={t.folders.previousMonth} onPress={() => setMonth(subMonths(month, 1))} style={styles.monthArrow}><Ionicons name="chevron-back" size={17} color={colors.ink} /></Pressable><Text style={styles.monthTitle}>{fmt(month, 'monthYear')}</Text><Pressable accessibilityLabel={t.folders.nextMonth} onPress={() => setMonth(addMonths(month, 1))} style={styles.monthArrow}><Ionicons name="chevron-forward" size={17} color={colors.ink} /></Pressable></View>
-        <View style={styles.weekdays}>{t.calendar.weekdayLetters.map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
+        <View style={styles.weekdays}>{WEEK_DAY_ORDER.map((day) => t.calendar.weekdayLetters[day]).map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
         <View style={styles.dateGrid}>{days.map((day) => <Pressable key={day.toISOString()} accessibilityLabel={t.folders.chooseDay(fmt(day, 'monthDayLong'))} onPress={() => onPick(format(day, 'yyyy-MM-dd'))} style={[styles.dateCell, !isSameMonth(day, month) && styles.outside]}><Text style={styles.dateText}>{format(day, 'd')}</Text></Pressable>)}</View>
       </View></View>
     </Modal>

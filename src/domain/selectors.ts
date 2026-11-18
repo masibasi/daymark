@@ -1,5 +1,5 @@
 import { addDays, differenceInCalendarDays, endOfWeek, format, isSameDay, isWithinInterval, parseISO, startOfDay, startOfWeek } from 'date-fns';
-import { WEEK_OPTIONS } from './week';
+import { WEEK_DAY_ORDER, WEEK_OPTIONS } from './week';
 import { listColors, type ListColors } from '@/theme/palette';
 import { categoryColorKeys, type CategoryColorKey } from '@/theme/tokens';
 import type { CalendarEvent, Category, CategoryId, Project, Routine, RoutineRepeat, Task } from './types';
@@ -198,7 +198,7 @@ export function selectRepeatSummary(repeat: RoutineRepeat | undefined): string {
   if (preset === 'weekdays') return copy.weekdays;
   if (preset === 'weekends') return copy.weekends;
   if (repeat?.kind === 'perWeek') return copy.timesAWeek(repeat.times);
-  if (repeat?.kind === 'weekdays') return repeat.days.length === 0 ? copy.noDays : [1, 2, 3, 4, 5, 6, 0].filter((day) => repeat.days.includes(day)).map((day) => copy.weekdayNames[day]).join(copy.daySeparator);
+  if (repeat?.kind === 'weekdays') return repeat.days.length === 0 ? copy.noDays : WEEK_DAY_ORDER.filter((day) => repeat.days.includes(day)).map((day) => copy.weekdayNames[day]).join(copy.daySeparator);
   return copy.everyDay;
 }
 

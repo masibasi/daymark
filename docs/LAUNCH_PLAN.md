@@ -28,7 +28,7 @@ Everything here ships to the PWA immediately, so the owner can use it during the
   - Korean copy is written, not machine-translated; it should sound as calm as the English.
 - **A4 Cleanup.** *Built 2026-11-03.*
   - Mock weather line removed (2026-10-06).
-  - Week starts Monday everywhere (`src/domain/week.ts`: Today history, Calendar month, date pickers, weekday dictionary arrays).
+  - Week starts Sunday everywhere (`src/domain/week.ts`: Today history, Calendar month/week, Reflection, date pickers; weekday dictionary arrays are Sunday-indexed and rotated by `WEEK_DAY_ORDER`).
   - Lab screens (Design studies, Day Mark lab and their routes) are dev-only: `__DEV__`, or a `?lab=1` URL remembered per device (`src/platform/labs.ts`, store `labsUnlocked`). The draw-mark screen stays public.
   - Empty states reviewed: Today's folder strip says what folders are for when there are none, the Schedule only offers "Connect a calendar" when no feed is on, and the Reflect empty line is one sentence.
   - Four inline first-use tips (`src/components/Tip.tsx`, store `tipsSeen`): lists/drag, folders, Day Mark after the first check-off, Reflect.

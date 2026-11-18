@@ -7,8 +7,9 @@ import { useDaymarkStore } from '@/store/useDaymarkStore';
 import { colors, fontFamily, radius, space, type } from '@/theme/tokens';
 import { PressableScale } from './PressableScale';
 import { useT } from '@/i18n';
+import { WEEK_DAY_ORDER } from '@/domain/week';
 
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const DAY_ORDER = WEEK_DAY_ORDER;
 const TIMES = [1, 2, 3, 4, 5, 6];
 
 type Choice = 'daily' | 'weekdays' | 'weekends' | 'custom' | 'perWeek';

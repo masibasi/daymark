@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
-import { WEEK_OPTIONS } from '@/domain/week';
+import { WEEK_DAY_ORDER, WEEK_OPTIONS } from '@/domain/week';
 import type { Task } from '@/domain/types';
 import { selectDayOrbit } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -56,7 +56,7 @@ export function HistoryCalendar({ selectedDate, tasks, onSelectDate, defaultExpa
           <Pressable accessibilityLabel={expanded ? t.calendar.nextHistoryMonth : t.calendar.nextHistoryWeek} onPress={goToNext} style={styles.arrow}><Ionicons name="chevron-forward" size={16} color={colors.ink} /></Pressable>
         </View>
       </View>
-      <View style={styles.weekdays}>{t.calendar.weekdayLetters.map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
+      <View style={styles.weekdays}>{WEEK_DAY_ORDER.map((day) => t.calendar.weekdayLetters[day]).map((label, index) => <Text key={`${label}-${index}`} style={styles.weekday}>{label}</Text>)}</View>
       <View style={styles.grid}>
         {days.map((day) => {
           const selected = isSameDay(day, selectedDate);

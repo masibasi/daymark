@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
-import { WEEK_OPTIONS } from '@/domain/week';
+import { WEEK_DAY_ORDER, WEEK_OPTIONS } from '@/domain/week';
 import type { CalendarEvent, Project, Task, TimeBlock } from '@/domain/types';
 import { selectDayComplete, selectDayOrbit, selectEventsOnDay } from '@/domain/selectors';
 import { useDaymarkStore } from '@/store/useDaymarkStore';
@@ -24,7 +24,7 @@ export function MonthGrid({ anchor, events, blocks, projects, tasks, onEventPres
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   return (
     <View style={styles.frame}>
-      <View style={styles.weekdays}>{t.calendar.weekdayShort.map((day) => <Text key={day} style={styles.weekday}>{compact ? day[0] : day}</Text>)}</View>
+      <View style={styles.weekdays}>{WEEK_DAY_ORDER.map((index) => t.calendar.weekdayShort[index]).map((day) => <Text key={day} style={styles.weekday}>{compact ? day[0] : day}</Text>)}</View>
       <View style={styles.grid}>
         {days.map((day) => {
           const dayEvents = selectEventsOnDay(events, day);

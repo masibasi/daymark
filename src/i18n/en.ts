@@ -128,8 +128,8 @@ export const en = {
     previousHistoryWeek: 'Previous history week',
     nextHistoryMonth: 'Next history month',
     nextHistoryWeek: 'Next history week',
-    weekdayLetters: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-    weekdayShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    weekdayLetters: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    weekdayShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     allDayRow: 'all-day',
     // "2:00 – 3:30 PM": the first time drops its period when both share one (Korean puts the period on the first time instead).
     timeRange: (start: string, startShort: string, end: string, endShort: string, samePeriod: boolean) => `${samePeriod ? startShort : start} – ${end}`,
@@ -172,8 +172,8 @@ export const en = {
     repeatTitle: 'Repeat',
     customDays: 'Custom days',
     timesAWeekChoice: 'Times a week',
-    perWeekHint: 'Shows each day until you have done it this many times, then rests until Monday.',
-    dayLetters: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    perWeekHint: 'Shows each day until you have done it this many times, then rests until the new week.',
+    dayLetters: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
     dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   },
   nav: {
