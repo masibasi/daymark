@@ -41,6 +41,8 @@ The launch path (reflection, export, English/Korean, accounts, native iOS with n
 
 Android-specific polish, Apple Calendar/EventKit, notifications, widgets, optional social features, and assistive AI scheduling. These are not V1 commitments.
 
+AI assistant integration (add Tasks from ChatGPT, Claude, Codex and scripts through MCP/REST) is proposed in `docs/ASSISTANT_PLAN.md` (2026-11-24, awaiting owner decisions).
+
 ## Not planned yet
 
 - Nested lists, un-archiving lists, and reordering routines.
