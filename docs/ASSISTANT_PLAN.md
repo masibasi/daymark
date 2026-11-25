@@ -1,6 +1,6 @@
 # Daymark for AI assistants — plan
 
-Drafted 2026-11-24 at the owner's request. Status: **approved in principle 2026-11-24; D1–D4 decided, D5 (license) open.** Nothing here is built yet.
+Drafted 2026-11-24 at the owner's request. Status: **approved in principle 2026-11-24; D1–D5 decided.** Nothing here is built yet.
 
 ## 1. Goal
 
@@ -102,7 +102,7 @@ Each phase ends verified (typecheck, web export, browser at 375 and 1280 px, end
 
 ## 7. Owner decisions
 
-Decided 2026-11-24: D1 Inbox folder (a backlog in the existing folder model); D2 yes, but no assistant names (wording in section 2); D3 add + read only; D4 defer the note field. D5 open. D6 follows from approving the feature and lands with phase 1.
+Decided 2026-11-24: D1 Inbox folder (a backlog in the existing folder model); D2 yes, but no assistant names (wording in section 2); D3 add + read only; D4 defer the note field; D5 split license: the app and server are AGPL-3.0 (root `LICENSE`, added 2026-11-24), and `integrations/` will carry its own MIT `LICENSE` when it is created in phase 3. D6 follows from approving the feature and lands with phase 1.
 
 
 - **D1. Where does a Task with no date go?** Recommended: an **Inbox** folder (no deadline), created on first use and reused by name afterwards. It fits the "containers first, pull into a day" model, and it is where automated sources (the M1 scheduler) always go. The alternative is today's list, which puts unreviewed items straight on the day.
