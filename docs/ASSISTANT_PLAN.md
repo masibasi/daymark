@@ -71,6 +71,8 @@ Each phase ends verified (typecheck, web export, browser at 375 and 1280 px, end
 - Spike A: a "hello" MCP server in an Edge Function (stateless Streamable HTTP, official TypeScript SDK through `npm:` specifiers, or a lighter library such as mcp-lite), tested with MCP Inspector.
 - Spike B: whether the bundler can import shared code from outside `supabase/functions/`.
 
+**Phase 0 result (2026-11-24, verified locally):** `@modelcontextprotocol/sdk@1.32.2` with `WebStandardStreamableHTTPServerTransport` (stateless, JSON responses) runs in Deno. `supabase/functions/assistant/` answers initialize, tools/list and tools/call through MCP Inspector 2.16, and returns 401 without a token. `verify_jwt = false` is set for this function only, in `supabase/config.toml`. The shared core goes in `supabase/functions/_shared/`: files there use `.ts`-extension relative imports and bare `date-fns`, mapped by `assistant/deno.json`. The app imports the same files extensionless, which tsc and the Metro web export both accept with no tsconfig change. Still unverified: whether `--use-api` uploads `_shared/`. The `probe` tool checks this on the first real deploy. Server code must never rely on local time.
+
 **Phase 1: personal use with tokens (Claude Code, Codex, M1 scheduler)**
 - App:
   - Extract the shared core.
