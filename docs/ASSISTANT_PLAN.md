@@ -1,6 +1,6 @@
 # Daymark for AI assistants — plan
 
-Drafted 2026-11-24 at the owner's request. Status: **proposal, awaiting owner decisions (section 7)**. Nothing here is built yet.
+Drafted 2026-11-24 at the owner's request. Status: **approved in principle 2026-11-24; D1–D4 decided, D5 (license) open.** Nothing here is built yet.
 
 ## 1. Goal
 
@@ -12,7 +12,7 @@ Out of scope: calendar write-back, time-blocking, anything that deletes data, as
 
 - The assistant creates **Tasks only**: a dated Task, or an undated step in a folder. It never creates a CalendarEvent or a TimeBlock. Time-blocking is paused, so "3pm meeting" becomes a Task on that day, not a block at 3pm.
 - An explicit request ("add this as a todo") is the user creating a Task through another input. It does not break "external events never automatically become Tasks". A scheduler that turns every email into a Task without being asked would break the spirit of that rule. So automated sources go to an **Inbox folder** (section 7, D1), where nothing reaches a day until the person moves it there.
-- Every assistant-made Task carries a quiet source line ("Added by Claude"), in the same style as the existing folder source label. No badges and no notifications.
+- Every assistant-made Task carries a quiet, brand-free source line in the same style as the existing folder source label: "Added from a chat" / "대화에서 추가" for MCP, "Added automatically" / "자동으로 추가" for REST tokens (scheduler, scripts). No assistant names, badges or notifications.
 - The app must still work signed out. The integration needs an account, because the server can only reach synced data.
 
 ## 3. How it works
@@ -74,7 +74,7 @@ Each phase ends verified (typecheck, web export, browser at 375 and 1280 px, end
 **Phase 1: personal use with tokens (Claude Code, Codex, M1 scheduler)**
 - App:
   - Extract the shared core.
-  - Add `Task.source?: { kind: 'assistant'; label: string }` and its muted source line (en/ko).
+  - Add `Task.source?: 'chat' | 'automation'` and its muted source line (en/ko).
   - Inbox folder handling (D1).
   - Settings "AI assistants" section: create, list and revoke tokens, plus copy-paste snippets for Claude Code, Codex and curl.
 - Server: `supabase/migrations/…_tokens.sql` and the `assistant` Edge Function with `/mcp` and `/v1/tasks`, `/v1/lists`, `/v1/folders`.
@@ -101,6 +101,9 @@ Each phase ends verified (typecheck, web export, browser at 375 and 1280 px, end
 **Phase 4 (later, separate approval):** complete, move and rename tools; folder creation; Supabase realtime so additions show up instantly instead of within 60 s.
 
 ## 7. Owner decisions
+
+Decided 2026-11-24: D1 Inbox folder (a backlog in the existing folder model); D2 yes, but no assistant names (wording in section 2); D3 add + read only; D4 defer the note field. D5 open. D6 follows from approving the feature and lands with phase 1.
+
 
 - **D1. Where does a Task with no date go?** Recommended: an **Inbox** folder (no deadline), created on first use and reused by name afterwards. It fits the "containers first, pull into a day" model, and it is where automated sources (the M1 scheduler) always go. The alternative is today's list, which puts unreviewed items straight on the day.
 - **D2. Show "Added by <assistant>" on those Tasks?** Recommended: yes, muted, reusing the folder source-label style.
